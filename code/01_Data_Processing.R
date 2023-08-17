@@ -182,7 +182,7 @@ which(duplicated(UGT8_data$Variant_ID))
 
 
 # __________________________________________________________________________________________
-#  1.1.2 Verify there are not overlapping variants between genes from different subfamilies
+#  1.1.2 Verify there are no overlapping variants between genes from different subfamilies
 # __________________________________________________________________________________________
 
 length(intersect(unique_UGT1_variants, unique_UGT2_variants))
@@ -274,9 +274,9 @@ table(apply(sapply(shared_variants, function(x){colnames(UGT2_variants_counts)[w
 
 
 
-############################
-####      UGT3 genes 
-############################
+##############################
+####  UGT3 shared variants 
+##############################
 
 ## No shared variants between UGT3A1 and UGT3A2
 which(apply(UGT3_variants_counts[,-3], 1, sum)==2)
@@ -284,9 +284,9 @@ which(apply(UGT3_variants_counts[,-3], 1, sum)==2)
 
 
 
-############################
-####      UGT8 gene
-############################
+##############################
+####  UGT8 shared variants 
+##############################
 
 ## Only one gene for UGT8
 
