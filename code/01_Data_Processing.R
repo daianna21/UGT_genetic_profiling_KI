@@ -38,12 +38,13 @@ for (gene in UGT_genes){
 
 
 
-#########################################################
-##  1.1 Correct variant counts within each gene family
-#########################################################
+################################################################################
+##           1.1  Correct variant counts within each gene family
+################################################################################
 
-
-## Detect overlapping variants between different genes of the same family
+# _______________________________________________________________________________
+#  1.1.1 Detect overlapping variants between different genes of the same family 
+# _______________________________________________________________________________
 
 ############################
 ####      UGT1 genes 
@@ -90,7 +91,6 @@ for (variant in unique_UGT1_variants){
 rownames(UGT1_variants_counts) <- unique_UGT1_variants
 
 
-
 ############################
 ####    UGT2 genes 
 ############################
@@ -131,7 +131,6 @@ for (variant in unique_UGT2_variants){
 rownames(UGT2_variants_counts) <- unique_UGT2_variants
 
 
-
 ############################
 ####    UGT3 genes 
 ############################
@@ -170,7 +169,6 @@ for (variant in unique_UGT3_variants){
 rownames(UGT3_variants_counts) <- unique_UGT3_variants
 
 
-
 ############################
 ####    UGT8 genes 
 ############################
@@ -183,7 +181,9 @@ which(duplicated(UGT8_data$Variant_ID))
 
 
 
-####### 1.1.2 Verify there are not overlappging variants between genes from different subfamilies
+# __________________________________________________________________________________________
+#  1.1.2 Verify there are not overlapping variants between genes from different subfamilies
+# __________________________________________________________________________________________
 
 length(intersect(unique_UGT1_variants, unique_UGT2_variants))
 #  0
@@ -200,27 +200,23 @@ length(intersect(unique_UGT3_variants, unique_UGT8_variants))
 
 
 
+# _______________________________________________________
+#  1.1.3 Examine annotation and genes of shared variants
+# _______________________________________________________
 
+##############################
+####  UGT1 shared variants 
+##############################
 
-
-
-
-## Examine annotation of shared variants 
-
-############################
-####      UGT1 genes 
-############################
-
-## Annotation for shared variants between all UGT1 genes
+###########  Annotation for shared variants between all UGT1 genes  ###########
 table(UGT1_variants_counts[which(apply(UGT1_variants_counts[,-10], 1, sum)==9), 'VEP_Annotation'])
 # 3_prime_UTR_variant      frameshift_variant        inframe_deletion          intron_variant        missense_variant splice_acceptor_variant    splice_donor_variant 
 #                  10                       8                       2                      94                     165                       2                       1 
 # splice_region_variant             stop_gained      synonymous_variant 
 #                    10                       6                      76 
 
-# __________________________________________________________________________________________________
 
-## Annotation for variants shared between 4 UGT1 genes
+###########  Annotation for variants shared between 4 UGT1 genes  ###########
 table(UGT1_variants_counts[which(apply(UGT1_variants_counts[,-10], 1, sum)==4), 'VEP_Annotation'])
 # 3_prime_UTR_variant, intron_variant, 3_prime_UTR_variant, 3_prime_UTR_variant 
 #                                                                            16 
@@ -236,16 +232,13 @@ table(UGT1_variants_counts[which(apply(UGT1_variants_counts[,-10], 1, sum)==4), 
 #                                                                         3 
 
 ## Which 4 genes share those variants?
-UGT1_variants_counts[which(apply(UGT1_variants_counts[,-10], 1, sum)==4), 'VEP_Annotation']
-
 shared_variants <- rownames(UGT1_variants_counts)[which(apply(UGT1_variants_counts[,-10], 1, sum)==4)]
 table(apply(sapply(shared_variants, function(x){colnames(UGT1_variants_counts)[which(UGT1_variants_counts[x,]==1)]}), 2, toString))
 # UGT1A1, UGT1A4, UGT1A6, UGT1A10 
 #                              45 
 
-# __________________________________________________________________________________________________
 
-## Annotation for variants shared between 2 UGT1 genes
+###########  Annotation for variants shared between 2 UGT1 genes  ###########
 table(UGT1_variants_counts[which(apply(UGT1_variants_counts[,-10], 1, sum)==2), 'VEP_Annotation'])
 # 5_prime_UTR_variant                  frameshift_variant                    inframe_deletion                      intron_variant 
 #                   7                                  55                                   7                                  75 
@@ -254,21 +247,31 @@ table(UGT1_variants_counts[which(apply(UGT1_variants_counts[,-10], 1, sum)==2), 
 # start_lost                         stop_gained                  synonymous_variant 
 #          6                                  32                                 331 
 
+## Which 2 genes share those variants?
+shared_variants <- rownames(UGT1_variants_counts)[which(apply(UGT1_variants_counts[,-10], 1, sum)==2)]
+table(apply(sapply(shared_variants, function(x){colnames(UGT1_variants_counts)[which(UGT1_variants_counts[x,]==1)]}), 2, toString))
+# UGT1A1, UGT1A3     UGT1A1, UGT1A5     UGT1A1, UGT1A8     UGT1A1, UGT1A9 
+#            392                317                279                340 
+ 
 
 
+##############################
+####  UGT2 shared variants 
+##############################
 
-
-
-############################
-####      UGT2 genes 
-############################
-
-## Annotation for variants shared between 2 UGT2 genes
+###########  Annotation for variants shared between 2 UGT2 genes  ###########
 table(UGT2_variants_counts[which(apply(UGT2_variants_counts[,-11], 1, sum)==2), 'VEP_Annotation'])
 # 3_prime_UTR_variant      frameshift_variant        inframe_deletion          intron_variant        missense_variant splice_acceptor_variant    splice_donor_variant 
 #                  10                      18                       1                     122                     217                       3                       3 
 # splice_region_variant             stop_gained   stop_retained_variant      synonymous_variant 
 #                    23                      15                       1                      69 
+
+## Which 2 genes share those variants?
+shared_variants <- rownames(UGT2_variants_counts)[which(apply(UGT2_variants_counts[,-11], 1, sum)==2)]
+table(apply(sapply(shared_variants, function(x){colnames(UGT2_variants_counts)[which(UGT2_variants_counts[x,]==1)]}), 2, toString))
+# UGT2A1, UGT2A2 
+#            482
+
 
 
 ############################
@@ -279,11 +282,21 @@ table(UGT2_variants_counts[which(apply(UGT2_variants_counts[,-11], 1, sum)==2), 
 which(apply(UGT3_variants_counts[,-3], 1, sum)==2)
 #  named integer(0)
 
+
+
 ############################
 ####      UGT8 gene
 ############################
 
 ## Only one gene for UGT8
+
+
+
+
+
+
+
+
 
 
 
