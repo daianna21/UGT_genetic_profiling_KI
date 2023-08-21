@@ -228,9 +228,72 @@ length(intersect(unique_UGT3_variants, unique_UGT8_variants))
 
 
 
+# _______________________________________________________________________________________________
+#  1.1.3 Quantify the proportion of variants present in the canonical transcripts of UGT genes
+# _______________________________________________________________________________________________
+
+## Define canonical/most common txs for each family
+canonical_UGT1_txs <- list('UGT1A1'= 'ENST00000305208.5', 'UGT1A3'='ENST00000482026.1', 'UGT1A4'='ENST00000373409.3', 
+                           'UGT1A5'='ENST00000373414.3', 'UGT1A6'='ENST00000305139.6', 'UGT1A7'='ENST00000373426.3', 
+                           'UGT1A8'= 'ENST00000373450.4', 'UGT1A9'= 'ENST00000354728.4', 'UGT1A10'='ENST00000344644.5')
+
+canonical_UGT2_txs <- list('UGT2A1'= 'ENST00000503640.1', 'UGT2A2'='ENST00000457664.2', 'UGT2A3'='ENST00000251566.4', 
+                           'UGT2B4'='ENST00000305107.6', 'UGT2B7'='ENST00000305231.7', 'UGT2B10'='ENST00000265403.7', 
+                           'UGT2B11'= 'ENST00000446444.1', 'UGT2B15'= 'ENST00000338206.5', 'UGT2B17'='ENST00000317746.2', 
+                           'UGT2B28'='ENST00000335568.5')
+
+canonical_UGT3_txs <- list('UGT3A1'= 'ENST00000274278.3', 'UGT3A2'='ENST00000282507.3')
+
+canonical_UGT8_txs <- list('UGT8'= 'ENST00000310836.6')
+
+
+## % of variants in a gene that are located in the canonical tx of the gene
+
+###################
+####  UGT1 genes
+###################
+
+sapply(UGT1_genes, function(x){
+  length(which(UGT1_variants[[x]] == canonical_UGT1_txs[[x]]))/length(which(!is.na(UGT1_variants[[x]]))) * 100}
+  )
+# UGT1A1    UGT1A3    UGT1A4    UGT1A5    UGT1A6    UGT1A7    UGT1A8    UGT1A9   UGT1A10 
+# 100.00000 100.00000 100.00000 100.00000  96.03524  95.40682 100.00000 100.00000  97.13262 
+
+
+###################
+####  UGT2 genes
+###################
+
+sapply(UGT2_genes, function(x){
+  length(which(UGT2_variants[[x]] == canonical_UGT2_txs[[x]]))/length(which(!is.na(UGT2_variants[[x]]))) * 100}
+)
+# UGT2A1    UGT2A2    UGT2A3    UGT2B4    UGT2B7   UGT2B10   UGT2B11   UGT2B15   UGT2B17   UGT2B28 
+# 97.41268  99.86339  98.91041  94.64752  99.47507  99.88208 100.00000 100.00000 100.00000 100.00000  
+
+###################
+####  UGT3 genes
+###################
+
+sapply(UGT3_genes, function(x){
+  length(which(UGT3_variants[[x]] == canonical_UGT3_txs[[x]]))/length(which(!is.na(UGT3_variants[[x]]))) * 100}
+)
+# UGT3A1   UGT3A2 
+# 93.36735 99.56012 
+
+###################
+####  UGT8 gene
+###################
+
+sapply(UGT8_genes, function(x){
+  length(which(UGT8_data$Transcript == canonical_UGT8_txs[[x]]))/length(which(!is.na(UGT8_data$Transcript))) * 100}
+)
+# UGT8 
+# 97.22222 
+
+
 
 # _______________________________________________________
-#  1.1.3 Examine annotation and genes of shared variants
+#  1.1.4 Examine annotation and genes of shared variants
 # _______________________________________________________
 
 ##############################
@@ -244,6 +307,16 @@ table(UGT1_variants[which(sapply(1:dim(UGT1_variants)[1], function(x){ length(wh
 #                  10                       8                       2                      94                     165                       2                       1 
 # splice_region_variant             stop_gained      synonymous_variant 
 #                    10                       6                      76 
+
+## Which txs contain those variants?
+table(apply(sapply(UGT1_shared_variants_allGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))
+# ENST00000305208.5, ENST00000482026.1, ENST00000373409.3, ENST00000373414.3, ENST00000305139.6, ENST00000373426.3, ENST00000373450.4, ENST00000354728.4, ENST00000344644.5 
+# 374 
+
+## Are these the canonical txs?
+strsplit(names(table(apply(sapply(UGT1_shared_variants_allGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))), ', ')[[1]] %in% unlist(canonical_UGT1_txs)
+# [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+
 
 
 ###########  Annotation for variants shared between 4 UGT1 genes  ###########
@@ -269,8 +342,12 @@ table(apply(sapply(UGT1_shared_variants_fourGenes, function(x){colnames(UGT1_var
 ## Txs
 table(apply(sapply(UGT1_shared_variants_fourGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))
 # ENST00000305208.5, ENST00000373409.3, ENST00000305139.6, ENST00000344644.5        ENST00000305208.5, ENST00000373409.3, ENST00000406651.1, ENST00000373445.1 
-#                                                                         21                                                                                24
- 
+# 24
+
+unlist(strsplit(names(table(apply(sapply(UGT1_shared_variants_fourGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))), ', ')) %in% unlist(canonical_UGT1_txs)
+# [1]  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE FALSE FALSE
+
+
 
 ###########  Annotation for variants shared between 2 UGT1 genes  ###########
 table(UGT1_variants[which(sapply(1:dim(UGT1_variants)[1], function(x){ length(which(!is.na(UGT1_variants[x,-c(10,11)]))) })==2), 'VEP_Annotation'])
@@ -292,6 +369,10 @@ table(apply(sapply(UGT1_shared_variants_twoGenes, function(x){UGT1_variants[x,wh
 # ENST00000305208.5, ENST00000354728.4      ENST00000305208.5, ENST00000373414.3      ENST00000305208.5, ENST00000373450.4      ENST00000305208.5, ENST00000482026.1 
 #                                  340                                       317                                       279                                       392 
 
+unlist(strsplit(names(table(apply(sapply(UGT1_shared_variants_twoGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))), ', ')) %in% unlist(canonical_UGT1_txs)
+# [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+
+
 
 
 ##############################
@@ -310,6 +391,14 @@ UGT2_shared_variants_twoGenes <- rownames(UGT2_variants)[which(sapply(1:dim(UGT2
 table(apply(sapply(UGT2_shared_variants_twoGenes, function(x){colnames(UGT2_variants)[which(!is.na(UGT2_variants[x,-c(11,12)]))]}), 2, toString))
 # UGT2A1, UGT2A2 
 #            482
+
+## Txs
+table(apply(sapply(UGT2_shared_variants_twoGenes, function(x){UGT2_variants[x,which(!is.na(UGT2_variants[x, -c(11,12)]))]}), 2, toString))
+# ENST00000503640.1, ENST00000457664.2 
+# 482 
+
+unlist(strsplit(names(table(apply(sapply(UGT2_shared_variants_twoGenes, function(x){UGT2_variants[x,which(!is.na(UGT2_variants[x, -c(11,12)]))]}), 2, toString))), ', ')) %in% unlist(canonical_UGT2_txs)
+# [1] 
 
 
 
