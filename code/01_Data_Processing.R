@@ -743,7 +743,11 @@ table(UGT8_variants_canonical[, c('VEP_Annotation', 'Location_in_txs')])
 
 annotations <- unique(c(UGT1A1_data$VEP_Annotation, UGT1A3_data$VEP_Annotation, UGT1A4_data$VEP_Annotation, UGT1A5_data$VEP_Annotation,
                         UGT1A6_data$VEP_Annotation, UGT1A7_data$VEP_Annotation, UGT1A8_data$VEP_Annotation, UGT1A9_data$VEP_Annotation,
-                        UGT1A10_data$VEP_Annotation))
+                        UGT1A10_data$VEP_Annotation, UGT2A1_data$VEP_Annotation, UGT2A2_data$VEP_Annotation, UGT2A3_data$VEP_Annotation,
+                        UGT2B4_data$VEP_Annotation, UGT2B7_data$VEP_Annotation, UGT2B10_data$VEP_Annotation, UGT2B11_data$VEP_Annotation,
+                        UGT2B15_data$VEP_Annotation, UGT2B17_data$VEP_Annotation, UGT2B28_data$VEP_Annotation, UGT3A1_data$VEP_Annotation,
+                        UGT3A2_data$VEP_Annotation, UGT8_data$VEP_Annotation))
+
 
 ## Define colors for variant categories
 var_colors <- list("5_prime_UTR_variant" = 'darkturquoise',
@@ -759,7 +763,9 @@ var_colors <- list("5_prime_UTR_variant" = 'darkturquoise',
                    "splice_acceptor_variant"='slateblue4',
                    "stop_retained_variant"='wheat3',
                    "3_prime_UTR_variant"='deeppink4',
-                   "inframe_insertion"='purple')
+                   "inframe_insertion"='purple',
+                   "coding_sequence_variant"='khaki1',
+                   "stop_lost"='deeppink2')
 
 ## Function to create barplot for all variants in genes of a certain family
 barplot_gene_fam<- function(gene_family){
@@ -819,14 +825,38 @@ p3 <- barplot_gene_fam('UGT3') + theme(legend.position="none")
 #####################
 p4 <- barplot_gene_fam('UGT8')
 
-plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1,1.02,0.28, 0.47))
+plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1,1.02,0.28, 0.49))
 ggsave(filename=paste0('plots/01_Data_Processing/All_variants_genes.pdf'), width = 19, height = 7)
+
 
 # ___________________________________________________________________________
 #  1.1.4.2  Exonic variants per gene 
 
+annotations <- annotations[which(! annotations %in% c("splice_donor_variant", "splice_region_variant", "intron_variant", "splice_acceptor_variant"))]
 
+#####################
+####   UGT1 genes
+#####################
 
+p1 <- barplot_gene_fam('UGT1') + theme(legend.position="none")
+
+#####################
+####   UGT2 genes
+#####################
+p2 <- barplot_gene_fam('UGT2') + theme(legend.position="none")
+
+#####################
+####   UGT3 genes
+#####################
+p3 <- barplot_gene_fam('UGT3') + theme(legend.position="none")
+
+#####################
+####  UGT8 gene
+#####################
+p4 <- barplot_gene_fam('UGT8')
+
+plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1,1.02,0.28, 0.49))
+ggsave(filename=paste0('plots/01_Data_Processing/Exonic_variants_genes.pdf'), width = 19, height = 7)
 
 # _____________________________________________________________________________
 #  1.1.4.3  Exonic variants per gene family
