@@ -3,6 +3,8 @@
 library(here)
 library(readr)
 library(rlang)
+library(ggplot2)
+library(cowplot)
 
 ####################################################################################################
 ##                                1. Data Processing and Correction
@@ -361,7 +363,7 @@ UGT1_variants_canonical <- UGT1_variants[UGT1_variants$Canonical_txs==TRUE, ]
 UGT2_variants_canonical <- UGT2_variants[UGT2_variants$Canonical_txs==TRUE, ]
 UGT3_variants_canonical <- UGT3_variants[UGT3_variants$Canonical_txs==TRUE, ]
 UGT8_variants_canonical <- UGT8_data[UGT8_data$Canonical_txs==TRUE, ]
-
+rownames(UGT8_variants_canonical) <- UGT8_variants_canonical$Variant_ID
 
 ## For a given variant, examine where it's located with respect to txs boundaries
 
@@ -729,27 +731,110 @@ table(UGT8_variants_canonical[, c('VEP_Annotation', 'Location_in_txs')])
 
 
 
+
 # __________________________________________________________________________
 #  1.1.4  Variant quantification and comparison between genes and families
 # __________________________________________________________________________
 
+## Plot total number and proportion of variants from each category for each gene/family
+
+# ___________________________________________________________________________
+#  1.1.4.1  All variants per gene
+
+annotations <- unique(c(UGT1A1_data$VEP_Annotation, UGT1A3_data$VEP_Annotation, UGT1A4_data$VEP_Annotation, UGT1A5_data$VEP_Annotation,
+                        UGT1A6_data$VEP_Annotation, UGT1A7_data$VEP_Annotation, UGT1A8_data$VEP_Annotation, UGT1A9_data$VEP_Annotation,
+                        UGT1A10_data$VEP_Annotation))
+
+## Define colors for variant categories
+var_colors <- list("5_prime_UTR_variant" = 'darkturquoise',
+                   "start_lost"='yellow',
+                   "frameshift_variant"='coral1',
+                   "missense_variant"='antiquewhite2',
+                   "synonymous_variant"='thistle2',
+                   "stop_gained"='deepskyblue1',
+                   "inframe_deletion"='chartreuse',
+                   "splice_donor_variant"='darkseagreen1',
+                   "splice_region_variant"='salmon4',
+                   "intron_variant"='lightsteelblue3',
+                   "splice_acceptor_variant"='slateblue4',
+                   "stop_retained_variant"='wheat3',
+                   "3_prime_UTR_variant"='deeppink4',
+                   "inframe_insertion"='purple')
+
+## Function to create barplot for all variants in genes of a certain family
+barplot_gene_fam<- function(gene_family){
+  
+  genes<- eval(parse_expr(paste0(gene_family, '_genes')))
+  UGT_variants_canonical <- eval(parse_expr(paste0(gene_family, '_variants_canonical')))
+  
+  var_data <- data.frame(matrix(ncol = 3))
+  colnames(var_data) <- c('gene', 'annotation', 'frequency')
+  
+  for (gene in genes){
+    data <- data.frame(matrix(ncol = 3))
+    colnames(data) <- c('gene', 'annotation', 'frequency')
+    gene_data <- eval(parse_expr(paste0(gene, '_data')))
+    gene_data <- gene_data[which(gene_data$Variant_ID %in% rownames(UGT_variants_canonical)), ]
+    for (i in 1:length(annotations)){
+      data[i,'gene'] <- gene
+      data[i,'annotation'] <- annotations[i]
+      data[i,'frequency'] <- table(gene_data$VEP_Annotation)[annotations[i]]
+    }
+    var_data <- rbind(var_data, data)
+  }
+  var_data$frequency <- replace(var_data$frequency, which(is.na(var_data$frequency)), 0)
+  var_data$gene <- factor(var_data$gene, levels = unique(var_data$gene))
+  var_data <- var_data[-1,]
+  
+  p <- ggplot(var_data, aes(fill=annotation, y=frequency, x=gene)) + 
+          geom_bar(position="stack", stat="identity") + 
+          labs(x=paste(gene_family, 'genes', sep=' '), y='Frequency of variants in canonical tx', fill='Predicted effect') +
+          theme_bw() + 
+          scale_fill_manual(values = var_colors) +
+          theme(axis.text = element_text(size = 8),
+                legend.text = element_text(size=9))
+  
+  return(p)
+}
+
+
+#####################
+####   UGT1 genes
+#####################
+# Stacked barplots
+p1 <- barplot_gene_fam('UGT1') + theme(legend.position="none")
+
+#####################
+####   UGT2 genes
+#####################
+p2 <- barplot_gene_fam('UGT2') + theme(legend.position="none")
+
+#####################
+####   UGT3 genes
+#####################
+p3 <- barplot_gene_fam('UGT3') + theme(legend.position="none")
+
+#####################
+####  UGT8 gene
+#####################
+p4 <- barplot_gene_fam('UGT8')
+
+plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1,1.02,0.28, 0.47))
+ggsave(filename=paste0('plots/01_Data_Processing/All_variants_genes.pdf'), width = 19, height = 7)
+
+# ___________________________________________________________________________
+#  1.1.4.2  Exonic variants per gene 
+
+
 
 
 # _____________________________________________________________________________
-#  1.1.4.1 Compare shared variants for genes and families
-# _____________________________________________________________________________
+#  1.1.4.3  Exonic variants per gene family
 
 
 
-##
-
-
-
-# _____________________________________________________________________________
-#  1.1.6.2 Extract and quantify exonic variants for genes and families
-# _____________________________________________________________________________
-
-
+# _________________________________________________________________________
+#  1.1.4.1 Shared variants per gene family
 
 
 
