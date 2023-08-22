@@ -59,16 +59,15 @@ sapply(UGT1_genes, function(x){unique(eval(parse_expr(paste0(x, '_data$Chromosom
 
 ## For each variant, determine in what UGT1 genes' txs they are present 
 
-##### *** UGT1A1 and UGT1A8 txs are swapped; take only the main tx of these genes for all of their variants ***
+########## *** UGT1A1 and UGT1A8 txs are swapped; take only the main tx of these genes for all of their variants *** ##########
 
 UGT1A1_data$Transcript <- rep('ENST00000305208.5', dim(UGT1A1_data)[1])
 UGT1A8_data$Transcript <- rep('ENST00000373450.4', dim(UGT1A8_data)[1])
 
-
 ## Unique variants in UGT1 genes
 unique_UGT1_variants <- unique(c(UGT1A1_data$Variant_ID, UGT1A3_data$Variant_ID, UGT1A4_data$Variant_ID, UGT1A5_data$Variant_ID, UGT1A6_data$Variant_ID, UGT1A7_data$Variant_ID, UGT1A8_data$Variant_ID, UGT1A9_data$Variant_ID, UGT1A10_data$Variant_ID))
 
-## Compute in what transcript each variant appears for each gene 
+## Compute in which transcript each variant appears for each gene 
 ## (if present in a gene, variants are expected to appear only in one transcript since they are all unique in each gene dataset)
 UGT1_variants <- data.frame(matrix(ncol = 11, nrow = 0))
 colnames(UGT1_variants) <- c(UGT1_genes, 'VEP_Annotation', 'Position')
@@ -207,11 +206,8 @@ which(duplicated(UGT8_data$Variant_ID))
 #  integer(0)
 
 
-
-
-# __________________________________________________________________________________________
-#  1.1.2 Verify there are no overlapping variants between genes from different subfamilies
-# __________________________________________________________________________________________
+# ___________________________________________________________________________________________
+#  1.1.1.1 Verify there are no overlapping variants between genes from different subfamilies
 
 length(intersect(unique_UGT1_variants, unique_UGT2_variants))
 #  0
@@ -228,11 +224,14 @@ length(intersect(unique_UGT3_variants, unique_UGT8_variants))
 
 
 
+
 # _______________________________________________________________________________________________
-#  1.1.3 Quantify the proportion of variants present in the canonical transcripts of UGT genes
+#  1.1.2 Quantify the proportion of variants present in the canonical transcripts* of UGT genes
 # _______________________________________________________________________________________________
 
-## Define canonical/most common txs for each family
+##  *Canonical transcript in GRCh38.p14 or the most frequent/unique transcript for the gene
+
+## Define canonical/most common tx for each gene
 canonical_UGT1_txs <- list('UGT1A1'= 'ENST00000305208.5', 'UGT1A3'='ENST00000482026.1', 'UGT1A4'='ENST00000373409.3', 
                            'UGT1A5'='ENST00000373414.3', 'UGT1A6'='ENST00000305139.6', 'UGT1A7'='ENST00000373426.3', 
                            'UGT1A8'= 'ENST00000373450.4', 'UGT1A9'= 'ENST00000354728.4', 'UGT1A10'='ENST00000344644.5')
@@ -247,17 +246,35 @@ canonical_UGT3_txs <- list('UGT3A1'= 'ENST00000274278.3', 'UGT3A2'='ENST00000282
 canonical_UGT8_txs <- list('UGT8'= 'ENST00000310836.6')
 
 
-## % of variants in a gene that are located in the canonical tx of the gene
+## % of variants in a gene that are present in the canonical tx of the gene
 
 ###################
 ####  UGT1 genes
 ###################
 
+## For each gene
 sapply(UGT1_genes, function(x){
   length(which(UGT1_variants[[x]] == canonical_UGT1_txs[[x]]))/length(which(!is.na(UGT1_variants[[x]]))) * 100}
   )
 # UGT1A1    UGT1A3    UGT1A4    UGT1A5    UGT1A6    UGT1A7    UGT1A8    UGT1A9   UGT1A10 
 # 100.00000 100.00000 100.00000 100.00000  96.03524  95.40682 100.00000 100.00000  97.13262 
+
+
+## In the whole family
+## (For shared variants, if they are in canonical txs of all genes in which they are)
+for (i in 1:dim(UGT1_variants)[1]){
+  var_txs <- UGT1_variants[i, which(!is.na(UGT1_variants[i, 1:9]))] 
+  ## If all txs of a variant are canonical
+  if (length(which(var_txs %in% unlist(canonical_UGT1_txs))) == length(var_txs)){
+    UGT1_variants$Canonical_txs[i] <- TRUE
+  }
+  else{
+    UGT1_variants$Canonical_txs[i] <- FALSE
+  }
+}
+table(UGT1_variants$Canonical_txs)['TRUE'] / dim(UGT1_variants)[1] * 100
+## % of total UGT1 variants that appear in canonical txs
+# 98.31384 
 
 
 ###################
@@ -270,6 +287,20 @@ sapply(UGT2_genes, function(x){
 # UGT2A1    UGT2A2    UGT2A3    UGT2B4    UGT2B7   UGT2B10   UGT2B11   UGT2B15   UGT2B17   UGT2B28 
 # 97.41268  99.86339  98.91041  94.64752  99.47507  99.88208 100.00000 100.00000 100.00000 100.00000  
 
+for (i in 1:dim(UGT2_variants)[1]){
+  var_txs <- UGT2_variants[i, which(!is.na(UGT2_variants[i, 1:10]))] 
+  if (length(which(var_txs %in% unlist(canonical_UGT2_txs))) == length(var_txs)){
+    UGT2_variants$Canonical_txs[i] <- TRUE
+  }
+  else{
+    UGT2_variants$Canonical_txs[i] <- FALSE
+  }
+}
+table(UGT2_variants$Canonical_txs)['TRUE'] / dim(UGT2_variants)[1] * 100
+## % of total UGT2 variants in canonical txs
+# 98.95475
+
+
 ###################
 ####  UGT3 genes
 ###################
@@ -279,6 +310,20 @@ sapply(UGT3_genes, function(x){
 )
 # UGT3A1   UGT3A2 
 # 93.36735 99.56012 
+
+for (i in 1:dim(UGT3_variants)[1]){
+  var_txs <- UGT3_variants[i, which(!is.na(UGT3_variants[i, 1:2]))] 
+  if (length(which(var_txs %in% unlist(canonical_UGT3_txs))) == length(var_txs)){
+    UGT3_variants$Canonical_txs[i] <- TRUE
+  }
+  else{
+    UGT3_variants$Canonical_txs[i] <- FALSE
+  }
+}
+table(UGT3_variants$Canonical_txs)['TRUE'] / dim(UGT3_variants)[1] * 100
+## % of total UGT3 variants in canonical txs
+# 96.24829 
+
 
 ###################
 ####  UGT8 gene
@@ -291,144 +336,37 @@ sapply(UGT8_genes, function(x){
 # 97.22222 
 
 
+######################
+####  All UGT genes
+######################
 
-# _______________________________________________________
-#  1.1.4 Examine annotation and genes of shared variants
-# _______________________________________________________
+## % of total UGT variants in canonical txs
+vars_in_canonical_txs <- sum(table(UGT1_variants$Canonical_txs)['TRUE'], table(UGT2_variants$Canonical_txs)['TRUE'], table(UGT3_variants$Canonical_txs)['TRUE'], 
+    length(which(UGT8_data$Transcript == canonical_UGT8_txs)))
+total_vars <- sum(dim(UGT1_variants)[1], dim(UGT2_variants)[1], dim(UGT3_variants)[1], dim(UGT8_data)[1])
 
-##############################
-####  UGT1 shared variants 
-##############################
-
-###########  Annotation for shared variants between all UGT1 genes  ###########
-UGT1_shared_variants_allGenes <- rownames(UGT1_variants)[which(sapply(1:dim(UGT1_variants)[1], function(x){ length(which(!is.na(UGT1_variants[x,-c(10,11)]))) })==9)]
-table(UGT1_variants[which(sapply(1:dim(UGT1_variants)[1], function(x){ length(which(!is.na(UGT1_variants[x,-c(10,11)]))) })==9), 'VEP_Annotation'])
-# 3_prime_UTR_variant      frameshift_variant        inframe_deletion          intron_variant        missense_variant splice_acceptor_variant    splice_donor_variant 
-#                  10                       8                       2                      94                     165                       2                       1 
-# splice_region_variant             stop_gained      synonymous_variant 
-#                    10                       6                      76 
-
-## Which txs contain those variants?
-table(apply(sapply(UGT1_shared_variants_allGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))
-# ENST00000305208.5, ENST00000482026.1, ENST00000373409.3, ENST00000373414.3, ENST00000305139.6, ENST00000373426.3, ENST00000373450.4, ENST00000354728.4, ENST00000344644.5 
-# 374 
-
-## Are these the canonical txs?
-strsplit(names(table(apply(sapply(UGT1_shared_variants_allGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))), ', ')[[1]] %in% unlist(canonical_UGT1_txs)
-# [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-
-
-
-###########  Annotation for variants shared between 4 UGT1 genes  ###########
-table(UGT1_variants[which(sapply(1:dim(UGT1_variants)[1], function(x){ length(which(!is.na(UGT1_variants[x,-c(10,11)]))) })==4), 'VEP_Annotation'])
-# 3_prime_UTR_variant, intron_variant, 3_prime_UTR_variant, 3_prime_UTR_variant 
-#                                                                            16 
-# intron_variant 
-#             21 
-# missense_variant, intron_variant, missense_variant, missense_variant 
-#                                                                    2 
-# splice_acceptor_variant, intron_variant, splice_acceptor_variant, splice_acceptor_variant 
-#                                                                                         2 
-# stop_retained_variant, intron_variant, stop_retained_variant, stop_retained_variant 
-#                                                                                   1 
-# synonymous_variant, intron_variant, synonymous_variant, synonymous_variant 
-#                                                                         3 
-
-## Which 4 genes share those variants?
-UGT1_shared_variants_fourGenes <- rownames(UGT1_variants)[which(sapply(1:dim(UGT1_variants)[1], function(x){ length(which(!is.na(UGT1_variants[x,-c(10,11)]))) })==4)]
-table(apply(sapply(UGT1_shared_variants_fourGenes, function(x){colnames(UGT1_variants)[which(!is.na(UGT1_variants[x,-c(10,11)]))]}), 2, toString))
-# UGT1A1, UGT1A4, UGT1A6, UGT1A10 
-#                              45 
-## Txs
-table(apply(sapply(UGT1_shared_variants_fourGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))
-# ENST00000305208.5, ENST00000373409.3, ENST00000305139.6, ENST00000344644.5        ENST00000305208.5, ENST00000373409.3, ENST00000406651.1, ENST00000373445.1 
-# 24
-
-unlist(strsplit(names(table(apply(sapply(UGT1_shared_variants_fourGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))), ', ')) %in% unlist(canonical_UGT1_txs)
-# [1]  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE FALSE FALSE
-
-
-
-###########  Annotation for variants shared between 2 UGT1 genes  ###########
-table(UGT1_variants[which(sapply(1:dim(UGT1_variants)[1], function(x){ length(which(!is.na(UGT1_variants[x,-c(10,11)]))) })==2), 'VEP_Annotation'])
-# 5_prime_UTR_variant                  frameshift_variant                    inframe_deletion                      intron_variant 
-#                   7                                  55                                   7                                  75 
-# intron_variant, 5_prime_UTR_variant                    missense_variant                splice_donor_variant               splice_region_variant 
-#                                 24                                 773                                   4                                  14 
-# start_lost                         stop_gained                  synonymous_variant 
-#          6                                  32                                 331 
-
-## Which 2 genes share those variants?
-UGT1_shared_variants_twoGenes <- rownames(UGT1_variants)[which(sapply(1:dim(UGT1_variants)[1], function(x){ length(which(!is.na(UGT1_variants[x,-c(10,11)]))) })==2)]
-table(apply(sapply(UGT1_shared_variants_twoGenes, function(x){colnames(UGT1_variants)[which(!is.na(UGT1_variants[x,-c(10,11)]))]}), 2, toString))
-# UGT1A1, UGT1A3     UGT1A1, UGT1A5     UGT1A1, UGT1A8     UGT1A1, UGT1A9 
-#            392                317                279                340 
-
-## Txs
-table(apply(sapply(UGT1_shared_variants_twoGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))
-# ENST00000305208.5, ENST00000354728.4      ENST00000305208.5, ENST00000373414.3      ENST00000305208.5, ENST00000373450.4      ENST00000305208.5, ENST00000482026.1 
-#                                  340                                       317                                       279                                       392 
-
-unlist(strsplit(names(table(apply(sapply(UGT1_shared_variants_twoGenes, function(x){UGT1_variants[x,which(!is.na(UGT1_variants[x, -c(10,11)]))]}), 2, toString))), ', ')) %in% unlist(canonical_UGT1_txs)
-# [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-
-
-
-
-##############################
-####  UGT2 shared variants 
-##############################
-
-###########  Annotation for variants shared between 2 UGT2 genes  ###########
-table(UGT2_variants[which(sapply(1:dim(UGT2_variants)[1], function(x){ length(which(!is.na(UGT2_variants[x,-c(11,12)]))) })==2), 'VEP_Annotation'])
-# 3_prime_UTR_variant      frameshift_variant        inframe_deletion          intron_variant        missense_variant splice_acceptor_variant    splice_donor_variant 
-#                  10                      18                       1                     122                     217                       3                       3 
-# splice_region_variant             stop_gained   stop_retained_variant      synonymous_variant 
-#                    23                      15                       1                      69 
-
-## Which 2 genes share those variants?
-UGT2_shared_variants_twoGenes <- rownames(UGT2_variants)[which(sapply(1:dim(UGT2_variants)[1], function(x){ length(which(!is.na(UGT2_variants[x,-c(11,12)]))) })==2)]
-table(apply(sapply(UGT2_shared_variants_twoGenes, function(x){colnames(UGT2_variants)[which(!is.na(UGT2_variants[x,-c(11,12)]))]}), 2, toString))
-# UGT2A1, UGT2A2 
-#            482
-
-## Txs
-table(apply(sapply(UGT2_shared_variants_twoGenes, function(x){UGT2_variants[x,which(!is.na(UGT2_variants[x, -c(11,12)]))]}), 2, toString))
-# ENST00000503640.1, ENST00000457664.2 
-# 482 
-
-unlist(strsplit(names(table(apply(sapply(UGT2_shared_variants_twoGenes, function(x){UGT2_variants[x,which(!is.na(UGT2_variants[x, -c(11,12)]))]}), 2, toString))), ', ')) %in% unlist(canonical_UGT2_txs)
-# [1] 
-
-
-
-##############################
-####  UGT3 shared variants 
-##############################
-
-## No shared variants between UGT3A1 and UGT3A2
-which(sapply(1:dim(UGT3_variants)[1], function(x){ length(which(!is.na(UGT3_variants[x,-c(3,4)]))) })==2)
-#  integer(0)
-
-
-
-##############################
-####  UGT8 shared variants 
-##############################
-
-## Only one gene for UGT8
+vars_in_canonical_txs / total_vars * 100
+# [1] 98.39432
 
 
 
 
 # _____________________________________________________________________________
-#  1.1.4 Re-evaluate annotation of variants based on genes' txs boundaries
+#  1.1.3 Manual annotation of variants based on boundaries of canonical txs
 # _____________________________________________________________________________
 
-## For a given variant, examine where it's located with respect to genes' txs boundaries
+## Conserve variants in canonical txs only
+
+UGT1_variants_canonical <- UGT1_variants[UGT1_variants$Canonical_txs==TRUE, ]
+UGT2_variants_canonical <- UGT2_variants[UGT2_variants$Canonical_txs==TRUE, ]
+UGT3_variants_canonical <- UGT3_variants[UGT3_variants$Canonical_txs==TRUE, ]
+UGT8_variants_canonical <- UGT8_data[UGT8_data$Canonical_txs==TRUE, ]
+
+
+## For a given variant, examine where it's located with respect to txs boundaries
 
 ## Function to evaluate the location of a variant according to the boundaries of a gene transcript
-location_determination <- function(variant_pos, tx){
+location_determination <- function(variant_pos, tx, feature){
 
   ## Read tx data
   tx_seq_data <- as.data.frame(read.csv(paste0("raw-data/Tx_seq_data/", tx, "_seq_data.csv")))
@@ -443,22 +381,20 @@ location_determination <- function(variant_pos, tx){
   
   ## Overall transcript composition:  
   ## (5' upstream seq) ... [5'UTR + Exon A] + Intron A-B + Exon B + Intron B-C + Exon C + Intron C-D + Exon D + ... + [Exon Z + 3'UTR] ... (3' downstream seq)
-  
-  ## Add rownames
-  rownames(tx_seq_data)<- tx_seq_data$Exon_Intron
-  ## Specify we have 1st Exon + 5'UTR and last Exon + 3'UTR
-  rownames(tx_seq_data)[1] <- '5-UTR + First Exon'
-  rownames(tx_seq_data)[dim(tx_seq_data)[1]] <- 'Last Exon + 3-UTR'
+  rownames(tx_seq_data) <- tx_seq_data$Exon_Intron
   
   ## Add exon/intron info
-  tx_seq_data$Exon_Intron <- sapply(rownames(tx_seq_data), function(x){
-    if(length(grep('Intron', tx_seq_data[x, 'Exon_Intron']))==1){'Intron'}   else{'Exon'}})
-  tx_seq_data['5-UTR + First Exon', 'Exon_Intron'] <- '5-UTR + First Exon'
-  tx_seq_data['Last Exon + 3-UTR', 'Exon_Intron'] <- 'Last Exon + 3-UTR'
+  tx_seq_data$Exon_Intron <- sapply(tx_seq_data$Exon_Intron, function(x){
+    if(length(grep('Intron', x))==1){x}  else{paste0('Exon ', tx_seq_data[x, 'No.'])}})
+  
+  ## Specify we have 1st Exon + 5'UTR and last Exon + 3'UTR
+  tx_seq_data$Exon_Intron[1] <- '5-UTR + First Exon'
+  tx_seq_data$Exon_Intron[dim(tx_seq_data)[1]] <- 'Last Exon + 3-UTR'
+  rownames(tx_seq_data) <- tx_seq_data$Exon_Intron
   
   ## Evaluate if the variant is within a tx exon/intron/UTR or outside
   location_within_tx <- unlist(sapply(rownames(tx_seq_data), function(x){
-                                  if(variant_pos %in% tx_seq_data[x, 'Start']:tx_seq_data[x, 'End']){tx_seq_data[x, 'Exon_Intron']}}))
+                                  if(variant_pos %in% tx_seq_data[x, 'Start']:tx_seq_data[x, 'End']){x}}))
   
   ## If the variant is not within tx region then is either in the 5' upstream or 3' downstream sequence
   if (is.null(location_within_tx))  {
@@ -475,56 +411,192 @@ location_determination <- function(variant_pos, tx){
     location <- location_within_tx
   }
   
-  return(location)
+  ## Extract boundaries of a tx feature
+  if (! is.null(feature)){
+    range <- tx_seq_data[feature, c('Start', 'End')]
+  }
+  else{
+    range <- NULL
+  }
+  
+  return(list(location, range))
 }
 
 
-##############################################
-####  Tx location of variants in UGT1 genes
-##############################################
+####################################
+####  Annotation of UGT1 variants
+####################################
 
 ## For each variant, obtain in which txs it is present and its location for each one
 
-for (i in 1:dim(UGT1_variants)[1]){
- pos <- UGT1_variants$Position[i]
- txs <- UGT1_variants[i,which(!is.na(UGT1_variants[i, -c(10,11, 12)]))]
- locations <- unlist(sapply(txs, function(x){location_determination(pos, x)}))
+for (i in 1:dim(UGT1_variants_canonical)[1]){
+ pos <- UGT1_variants_canonical$Position[i]
+ txs <- UGT1_variants_canonical[i,which(!is.na(UGT1_variants_canonical[i, 1:9]))]
+ locations <- unlist(sapply(txs, function(x){location_determination(pos, x, NULL)[[1]][1]}))
  if (length(unique(locations))==1){
-   UGT1_variants$Location_in_txs[i] <- unique(locations)
+   UGT1_variants_canonical$Location_in_txs[i] <- unique(locations)
  }
  else
-   UGT1_variants$Location_in_txs[i] <- toString(unlist(sapply(txs, function(tx){location_determination(pos, tx)})))
+   UGT1_variants_canonical$Location_in_txs[i] <- toString(locations)
 }
 
-table(UGT1_variants[, c('VEP_Annotation', 'Location_in_txs')])[, c('5\' upstream', '5-UTR + First Exon', 'Intron', 'Exon', 'Last Exon + 3-UTR')]
+table(UGT1_variants_canonical[, c('VEP_Annotation', 'Location_in_txs')])
+
+#########################  All variants  #########################
+## Compare VEP annotation vs manual annotation
+#                                                                                              Location_in_txs
+# VEP_Annotation                        5-UTR + First Exon      5-UTR + First Exon, Intron 1-2       5' upstream        5' upstream, 5-UTR + First Exon
+# 3_prime_UTR_variant                                    0                                   0                 0                                     0
+# 5_prime_UTR_variant                                   60                                   0                28                                     7
+# frameshift_variant                                    56                                   8                19                                    47
+# inframe_deletion                                       7                                   2                 1                                     5
+# inframe_insertion                                      1                                   0                 0                                     0
+# intron_variant                                         0                                   0                64                                     0
+# intron_variant, 5_prime_UTR_variant                    0                                  11                 0                                    12
+# missense_variant                                     821                                 164               208                                   609
+# splice_acceptor_variant                                0                                   0                 0                                     0
+# splice_donor_variant                                   1                                   0                 1                                     0
+# splice_region_variant                                  1                                   1                 1                                     0
+# start_lost                                             4                                   0                 2                                     6
+# stop_gained                                           51                                   5                18                                    27
+# synonymous_variant                                   349                                  62               101                                   269
+
+#                                                                                              Location_in_txs
+# VEP_Annotation                        5' upstream, Intron 1-2      Exon 2  Exon 3   Exon 4   Intron 1-2   Intron 2-3   Intron 3-4   Intron 4-5   Last Exon + 3-UTR
+#   3_prime_UTR_variant                                       0         0         0        0            0            0            0            0                  10
+#   5_prime_UTR_variant                                       0         0         0        0            0            0            0            0                   0
+#   frameshift_variant                                        0         0         2        3            0            0            0            0                   3
+#   inframe_deletion                                          0         0         1        0            0            0            0            0                   1
+#   inframe_insertion                                         0         0         0        0            0            0            0            0                   0
+#   intron_variant                                           54         0         0        0          112           30           25           50                   0
+#   intron_variant, 5_prime_UTR_variant                       1         0         0        0            0            0            0            0                   0
+#   missense_variant                                          0        22        24       40            0            0            0            0                  79
+#   splice_acceptor_variant                                   0         0         0        0            1            0            0            1                   0
+#   splice_donor_variant                                      2         0         0        0            6            0            1            0                   0
+#   splice_region_variant                                    11         0         1        0           16            2            3            3                   0
+#   start_lost                                                0         0         0        0            0            0            0            0                   0
+#   stop_gained                                               0         1         4     .  0            0            0            0            0                   1
+#   synonymous_variant                                        0         2        13       23            0            0            0            0                  38
+  
+
+#########################  Tx anno of variants common in all UGT1 genes  #########################
+UGT1_shared_variants_allGenes <- rownames(UGT1_variants_canonical)[which(sapply(1:dim(UGT1_variants_canonical)[1], function(x){length(which(!is.na(UGT1_variants_canonical[x,1:9]))) })==9)]
+table(UGT1_variants_canonical[UGT1_shared_variants_allGenes, 'Location_in_txs'])
+# Exon 2            Exon 3            Exon 4        Intron 1-2        Intron 2-3        Intron 3-4        Intron 4-5       Last Exon + 3-UTR 
+#     25                45                66                12                32                29                33                     132 
+
+## Position of shared variants in Intron 1-2 region
+pos <- UGT1_variants_canonical[which(UGT1_variants_canonical$Location_in_txs=='Intron 1-2' & rownames(UGT1_variants_canonical) %in% UGT1_shared_variants_allGenes), 'Position']
+## Confirm this overlapping intronic region starts after exon 1 of UGT1A1 and finishes before exon 2 of all UGT1 genes
+min(pos) > location_determination(max(pos), canonical_UGT1_txs[['UGT1A1']], '5-UTR + First Exon')[[2]]['End']
+# TRUE
+max(pos) < location_determination(max(pos), canonical_UGT1_txs[['UGT1A1']], 'Exon 2')[[2]]['Start']
+# TRUE
 
 
+#########################  Tx anno of variants common in 4 UGT1 genes  #########################
+UGT1_shared_variants_fourGenes <- rownames(UGT1_variants_canonical)[which(sapply(1:dim(UGT1_variants_canonical)[1], function(x){ length(which(!is.na(UGT1_variants_canonical[x,1:9]))) })==4)]
+## Which 4 genes share those variants?
+table(apply(sapply(UGT1_shared_variants_fourGenes, function(x){colnames(UGT1_variants)[which(!is.na(UGT1_variants[x,1:9]))]}), 2, toString))
+# UGT1A1, UGT1A4, UGT1A6, UGT1A10 
+#                              21
+table(UGT1_variants_canonical[UGT1_shared_variants_fourGenes, c('VEP_Annotation', 'Location_in_txs')])
+#                Location_in_txs
+# VEP_Annotation   Intron 4-5
+# intron_variant         21
 
 
+#########################  Tx anno of variants common in 2 UGT1 genes  #########################
+UGT1_shared_variants_twoGenes <- rownames(UGT1_variants_canonical)[which(sapply(1:dim(UGT1_variants_canonical)[1], function(x){length(which(!is.na(UGT1_variants_canonical[x,1:9]))) })==2)]
+## Which 2 genes share those variants?
+table(apply(sapply(UGT1_shared_variants_twoGenes, function(x){colnames(UGT1_variants_canonical)[which(!is.na(UGT1_variants_canonical[x,1:9]))]}), 2, toString))
+# UGT1A1, UGT1A3     UGT1A1, UGT1A5     UGT1A1, UGT1A8     UGT1A1, UGT1A9 
+#            392                317                279                340 
+table(UGT1_variants_canonical[UGT1_shared_variants_twoGenes, 'Location_in_txs'])
+# 5-UTR + First Exon, Intron 1-2          5' upstream, 5-UTR + First Exon         5' upstream, Intron 1-2           Intron 1-2 
+#                            253                                      982                              68                    25 
+ 
+# ------------------------------------------------------
+## Genes with 5-UTR + First Exon / Intron 1-2 variants
+vars <- which(UGT1_variants_canonical$Location_in_txs == '5-UTR + First Exon, Intron 1-2')
+table(apply(sapply(vars, function(x){colnames(UGT1_variants_canonical[x, which(!is.na(UGT1_variants_canonical[x, 1:9]))])}), 2, toString))
+# UGT1A1, UGT1A8 
+# 253 
 
+## Verify these variants are in the 1st Exon of UGT1A1 = Intron 1-2 of UGT1A8
+pos <- UGT1_variants_canonical[vars, 'Position']
+table(sapply(pos, function(x){location_determination(x, canonical_UGT1_txs[['UGT1A1']], NULL)[[1]]}))
+# 5-UTR + First Exon 
+#               253
+table(sapply(pos, function(x){location_determination(x, canonical_UGT1_txs[['UGT1A8']], NULL)[[1]]}))
+# Intron 1-2 
+#        253 
 
+## Check 1st Exon of UGT1A1 is within Intron 1-2 of UGT1A8
+exon_boundaries <- location_determination(pos[1], canonical_UGT1_txs[['UGT1A1']], '5-UTR + First Exon')[[2]]
+exon_range <- exon_boundaries[['Start']]:exon_boundaries[['End']]
+intron_boundaries <- location_determination(pos[1], canonical_UGT1_txs[['UGT1A8']], 'Intron 1-2')[[2]]
+intron_range <- intron_boundaries[['Start']]:intron_boundaries[['End']]
 
+length(which(exon_range %in% intron_range)) == length(exon_range)
 
+# ------------------------------------------------------
+## Genes with 5' upstream / 5-UTR + First Exon variants
+vars <- which(UGT1_variants_canonical$Location_in_txs == '5\' upstream, 5-UTR + First Exon')
+table(apply(sapply(vars, function(x){colnames(UGT1_variants_canonical[x, which(!is.na(UGT1_variants_canonical[x, 1:9]))])}), 2, toString))
+# UGT1A1, UGT1A3       UGT1A1, UGT1A5      UGT1A1, UGT1A9 
+#            368                 292                  322 
 
+## Verify these variants are in the 1st Exon of UGT1A[3,5,9] = 5' upstream seq of UGT1A1
+pos <- UGT1_variants_canonical[vars, 'Position']
+table(sapply(pos, function(x){location_determination(x, canonical_UGT1_txs[['UGT1A1']], NULL)[[1]]}))
+# 5' upstream 
+#         982 
 
-## Tx location of variants common in all UGT1 genes
-table(UGT1_variants[UGT1_shared_variants_allGenes, 'Location_in_txs'])
-# Exon-2         Exon-3         Exon-4 Exon-5 + 3-UTR     Intron 1-2     Intron 2-3     Intron 3-4     Intron 4-5 
-#     25             45             66            132             12             32             29             33 
+sapply(c('UGT1A3', 'UGT1A5', 'UGT1A9'), function(y){
+  vars_pos <- UGT1_variants_canonical[which(!is.na(UGT1_variants_canonical[,y]) & UGT1_variants_canonical$Location_in_txs=='5\' upstream, 5-UTR + First Exon'), 'Position']
+  table(sapply(vars_pos, function(x){location_determination(x, canonical_UGT1_txs[[y]], NULL)[[1]]}))
+})
+# UGT1A3.5-UTR + First Exon      UGT1A5.5-UTR + First Exon      UGT1A9.5-UTR + First Exon 
+#                       368                            292                            322 
 
-## Tx location of variants common in 4 UGT1 genes
-table(UGT1_variants[UGT1_shared_variants_fourGenes, 'Location_in_txs'])
-# Intron 4-5 
-#         45 
+# ------------------------------------------------------
+## Genes with 5' upstream / Intron 1-2 variants
+vars <- which(UGT1_variants_canonical$Location_in_txs == '5\' upstream, Intron 1-2')
+table(apply(sapply(vars, function(x){colnames(UGT1_variants_canonical[x, which(!is.na(UGT1_variants_canonical[x, 1:9]))])}), 2, toString))
+# UGT1A1, UGT1A3      UGT1A1, UGT1A5      UGT1A1, UGT1A8     UGT1A1, UGT1A9 
+#             24                  25                   1                 18
 
-## Tx location of variants common in 2 UGT1 genes
-table(UGT1_variants[UGT1_shared_variants_twoGenes, 'Location_in_txs'])
-# 5-UTR + Exon-1    5' upstream     Intron 1-2 
-#            253           1050             25 
+## Confirm these variants are in Intron 1-2 of UGT1A[3,5,8,9] = 5' upstream seq of UGT1A1
+pos <- UGT1_variants_canonical[vars, 'Position']
+table(sapply(pos, function(x){location_determination(x, canonical_UGT1_txs[['UGT1A1']], NULL)[[1]]}))
+# 5' upstream 
+#          68
 
+sapply(c('UGT1A3', 'UGT1A5', 'UGT1A8', 'UGT1A9'), function(y){
+  vars_pos <- UGT1_variants_canonical[which(!is.na(UGT1_variants_canonical[,y]) & UGT1_variants_canonical$Location_in_txs=='5\' upstream, Intron 1-2'), 'Position']
+  table(sapply(vars_pos, function(x){location_determination(x, canonical_UGT1_txs[[y]], NULL)[[1]]}))
+})
+# UGT1A3.Intron 1-2    UGT1A5.Intron 1-2    UGT1A8.Intron 1-2    UGT1A9.Intron 1-2 
+#                24                   25                    1                   18
 
-## What txs present those variants?
+## Check the intronic region of UGT1A[3,5,8,9] goes before exon 1 of UGT1A1
+max(pos) < location_determination(pos[1], canonical_UGT1_txs[['UGT1A1']], '5-UTR + First Exon')[[2]][['Start']]
+# [1] TRUE
 
+# ------------------------------------------------------
+## Genes with Intron 1-2 variants
+vars <- which(UGT1_variants_canonical$Location_in_txs == 'Intron 1-2' & rownames(UGT1_variants_canonical) %in% UGT1_shared_variants_twoGenes)
+table(apply(sapply(vars, function(x){colnames(UGT1_variants_canonical[x, which(!is.na(UGT1_variants_canonical[x, 1:9]))])}), 2, toString))
+# UGT1A1, UGT1A8 
+#             25 
+
+## Corroborate the common intronic region goes after 1st exon and before 2nd exon of UGT1A1
+pos <- UGT1_variants_canonical[vars, 'Position']
+min(pos) > location_determination(pos[1], canonical_UGT1_txs[['UGT1A1']], '5-UTR + First Exon')[[2]][['End']]
+# [1] TRUE
+max(pos) < location_determination(pos[1], canonical_UGT1_txs[['UGT1A1']], 'Exon 2')[[2]][['Start']]
+# [1] TRUE
 
 
 
@@ -532,39 +604,56 @@ table(UGT1_variants[UGT1_shared_variants_twoGenes, 'Location_in_txs'])
 ####  Tx location of variants in UGT2 genes
 ##############################################
 
-for (i in 1:dim(UGT2_variants)[1]){
-  pos <- UGT2_variants$Position[i]
-  txs <- UGT2_variants[i,which(!is.na(UGT2_variants[i, -c(11,12,13)]))]
-  locations <- unlist(sapply(txs, function(tx){location_determination(pos, tx)}))
+for (i in 1:dim(UGT2_variants_canonical)[1]){
+  pos <- UGT2_variants_canonical$Position[i]
+  txs <- UGT2_variants_canonical[i,which(!is.na(UGT2_variants_canonical[i, 1:10]))]
+  locations <- unlist(sapply(txs, function(tx){location_determination(pos, tx, NULL)}))
   if (length(unique(locations))==1){
-    UGT2_variants$Location_in_txs[i] <- unique(locations)
+    UGT2_variants_canonical$Location_in_txs[i] <- unique(locations)
   }
   else
-    UGT2_variants$Location_in_txs[i] <- toString(unlist(sapply(txs, function(tx){location_determination(pos, tx)})))
+    UGT2_variants_canonical$Location_in_txs[i] <- toString(locations)
 }
 
 
+#########################  All variants  #########################
 ## Compare VEP annotation and tx location of variants in UGT2 genes
-table(UGT2_variants[, c('VEP_Annotation', 'Location_in_txs')])
+table(UGT2_variants_canonical[, c('VEP_Annotation', 'Location_in_txs')])
+#                                                                                    Location_in_txs
+# VEP_Annotation            5-UTR + First Exon Exon 2 Exon 3 Exon 4 Exon 5 Intron 1-2 Intron 2-3 Intron 3-4 Intron 4-5 Intron 5-6 Last Exon + 3-UTR
+# 3_prime_UTR_variant                        0      0      0      0      0          0          0          0          0          0               155
+# 5_prime_UTR_variant                       78      0      0      0      0          0          0          0          0          0                 0
+# frameshift_variant                       111     16     16      8     29          0          0          0          0          0                44
+# inframe_deletion                           7      0      3      1      2          0          0          1          0          0                 5
+# inframe_insertion                          2      0      1      0      0          0          0          0          0          0                 0
+# intron_variant                             0      0      0      0      0        326        314        236        270        291                 0
+# missense_variant                        1709    284    253    200    521          0          0          0          0          0               600
+# splice_acceptor_variant                    0      0      0      0      0          5          4          7          4          5                 0
+# splice_donor_variant                       1      0      0      0      0          8          6          7          3         11                 0
+# splice_region_variant                      1      8      2      4      8         47         39         46         37         32                 4
+# start_lost                                 8      0      0      0      0          0          0          0          0          0                 0
+# stop_gained                               80     24     11     18     12          0          0          0          0          0                41
+# stop_lost                                  0      0      0      0      0          0          0          0          0          0                13
+# stop_retained_variant                      0      0      0      0      0          0          0          0          0          0                 2
+# synonymous_variant                       584    102     93     62    178          0          0          0          0          0               195
 
-#                                            Location_in_txs
-# VEP_Annotation            5-UTR + First Exon Exon Intron Last Exon + 3-UTR
-# 3_prime_UTR_variant                      0    0      0               155
-# 5_prime_UTR_variant                     87    3      0                 3
-# coding_sequence_variant                  1    0      0                 0
-# frameshift_variant                     111   70      0                44
-# inframe_deletion                         7    7      1                 5
-# inframe_insertion                        2    1      0                 0
-# intron_variant                           0    0   1448                 0
-# missense_variant                      1715 1264      0               603
-# splice_acceptor_variant                  0    0     27                 0
-# splice_donor_variant                     1    0     35                 0
-# splice_region_variant                    1   24    216                 6
-# start_lost                               9    2      0                 0
-# stop_gained                             80   65      0                41
-# stop_lost                                0    0      0                16
-# stop_retained_variant                    0    0      0                 2
-# synonymous_variant                     588  436      0               195
+
+#########################  Tx anno of variants common in 2 UGT2 genes  #########################
+UGT2_shared_variants_twoGenes <- rownames(UGT2_variants_canonical)[which(sapply(1:dim(UGT2_variants_canonical)[1], function(x){ length(which(!is.na(UGT2_variants_canonical[x,1:10]))) })==2)]
+## Which 2 genes share those variants?
+table(apply(sapply(UGT2_shared_variants_twoGenes, function(x){colnames(UGT2_variants_canonical)[which(!is.na(UGT2_variants_canonical[x,1:10]))]}), 2, toString))
+# UGT2A1, UGT2A2 
+#            482
+table(UGT2_variants_canonical[UGT2_shared_variants_twoGenes, 'Location_in_txs'])
+# Exon 2            Exon 3            Exon 4            Exon 5        Intron 1-2        Intron 2-3        Intron 3-4        Intron 4-5        Intron 5-6     Last Exon + 3-UTR 
+#     45                39                28                99                14                34                28                35                38                   122
+
+## Check Intron 1-2 variants span a region between exon 2 of UGT2A1 and UGT2A2 and before exon 1 of UGT2A2
+pos <- UGT2_variants_canonical[which(UGT2_variants_canonical$Location_in_txs=='Intron 1-2' & rownames(UGT2_variants_canonical) %in% UGT2_shared_variants_twoGenes), 'Position']
+min(pos) > location_determination(pos[1], canonical_UGT2_txs[['UGT2A1']], 'Exon 2')[[2]][['End']]
+# [1] TRUE
+max(pos) < location_determination(pos[1], canonical_UGT2_txs[['UGT2A1']], '5-UTR + First Exon')[[2]][['Start']]
+# [1] TRUE
 
 
 
@@ -572,110 +661,97 @@ table(UGT2_variants[, c('VEP_Annotation', 'Location_in_txs')])
 ####  Tx location of variants in UGT3 genes
 ##############################################
 
-for (i in 1:dim(UGT3_variants)[1]){
-  pos <- UGT3_variants$Position[i]
-  txs <- UGT3_variants[i,which(!is.na(UGT3_variants[i, -c(3,4,5)]))]
-  locations <- unlist(sapply(txs, function(tx){location_determination(pos, tx)}))
+## No shared variants between UGT3A1 and UGT3A2
+which(sapply(1:dim(UGT3_variants_canonical)[1], function(x){ length(which(!is.na(UGT3_variants_canonical[x,1:2]))) })==2)
+#  integer(0)
+
+for (i in 1:dim(UGT3_variants_canonical)[1]){
+  pos <- UGT3_variants_canonical$Position[i]
+  txs <- UGT3_variants_canonical[i,which(!is.na(UGT3_variants_canonical[i, 1:2]))]
+  locations <- unlist(sapply(txs, function(tx){location_determination(pos, tx, NULL)}))
   if (length(unique(locations))==1){
-    UGT3_variants$Location_in_txs[i] <- unique(locations)
+    UGT3_variants_canonical$Location_in_txs[i] <- unique(locations)
   }
   else
-    UGT3_variants$Location_in_txs[i] <- toString(unlist(sapply(txs, function(tx){location_determination(pos, tx)})))
+    UGT3_variants_canonical$Location_in_txs[i] <- toString(unlist(sapply(txs, function(tx){location_determination(pos, tx)})))
 }
 
+#########################  All variants  #########################
+## Compare VEP annotation and tx location of variants in UGT3 genes
+table(UGT3_variants_canonical[, c('VEP_Annotation', 'Location_in_txs')])
 
-## Compare VEP annotation and tx location of variants in UGT2 genes
-table(UGT3_variants[, c('VEP_Annotation', 'Location_in_txs')])
-
-#                                            Location_in_txs
-# VEP_Annotation            5-UTR + First Exon Exon Intron Last Exon + 3-UTR
-# 3_prime_UTR_variant                      0    0      0                57
-# 5_prime_UTR_variant                     49    0      0                 0
-# frameshift_variant                       1   31      0                 6
-# inframe_deletion                         0    4      0                 0
-# inframe_insertion                        0    1      0                 0
-# intron_variant                           0    0    347                 0
-# missense_variant                        36  440      0               141
-# splice_acceptor_variant                  0    0      5                 0
-# splice_donor_variant                     0    0      9                 0
-# splice_region_variant                    1    3     44                 0
-# start_lost                               4    3      0                 0
-# stop_gained                              0   21      0                 8
-# stop_lost                                0    0      0                 1
-# stop_retained_variant                    0    0      0                 1
-# synonymous_variant                      29  165      0                59
+#                                                                                            Location_in_txs
+# VEP_Annotation            5-UTR + First Exon Exon 2 Exon 3 Exon 4 Exon 5 Exon 6 Intron 1-2 Intron 2-3 Intron 3-4 Intron 4-5 Intron 5-6 Intron 6-7 Last Exon + 3-UTR
+# 3_prime_UTR_variant                        0      0      0      0      0      0          0          0          0          0          0          0                31
+# 5_prime_UTR_variant                       49      0      0      0      0      0          0          0          0          0          0          0                 0
+# frameshift_variant                         1      1      4     16      5      5          0          0          0          0          0          0                 6
+# inframe_deletion                           0      0      0      3      0      1          0          0          0          0          0          0                 0
+# inframe_insertion                          0      0      0      1      0      0          0          0          0          0          0          0                 0
+# intron_variant                             0      0      0      0      0      0         96         47         34         66         55         49                 0
+# missense_variant                          36     39     35    175     97     94          0          0          0          0          0          0               122
+# splice_acceptor_variant                    0      0      0      0      0      0          0          0          1          1          2          1                 0
+# splice_donor_variant                       0      0      0      0      0      0          1          5          0          0          2          1                 0
+# splice_region_variant                      1      2      1      0      0      0          8          2          8          6          8         11                 0
+# start_lost                                 4      0      0      0      0      0          0          0          0          0          0          0                 0
+# stop_gained                                0      1      1     14      2      3          0          0          0          0          0          0                 8
+# synonymous_variant                        29      9      7     86     34     29          0          0          0          0          0          0                55
 
 
 
 ##############################################
-####  Tx location of variants in UGT8 gene
+####  Tx location of variants in UGT8 gene 
 ##############################################
 
-for (i in 1:dim(UGT8_data)[1]){
-  pos <- UGT8_data$Position[i]
-  tx <- UGT8_data$Transcript[i]
-  location <- location_determination(pos, tx)
-  UGT8_data$Location_in_txs[i] <- location
+for (i in 1:dim(UGT8_variants_canonical)[1]){
+  pos <- UGT8_variants_canonical$Position[i]
+  tx <- UGT8_variants_canonical$Transcript[i]
+  location <- location_determination(pos, tx, NULL)[[1]]
+  UGT8_variants_canonical[i, 'Location_in_txs'] <- location
 }
 
-
-## Compare VEP annotation and tx location of variants in UGT2 genes
-table(UGT8_data[, c('VEP_Annotation', 'Location_in_txs')])
-
-#                                            Location_in_txs
-# VEP_Annotation            5-UTR + First Exon Exon Intron Last Exon + 3-UTR
-# 3_prime_UTR_variant                      0    0      0                18
-# 5_prime_UTR_variant                     15    0      0                 0
-# frameshift_variant                       0    4      0                 0
-# inframe_deletion                         0    2      0                 0
-# inframe_insertion                        0    1      0                 0
-# intron_variant                           0    0    113                 0
-# missense_variant                         0  163      0                57
-# splice_acceptor_variant                  0    0      1                 0
-# splice_donor_variant                     0    0      2                 0
-# splice_region_variant                    0    5     18                 0
-# start_lost                               0    1      0                 0
-# stop_gained                              0    2      0                 1
-# synonymous_variant                       0  105      0                32
+#########################  All variants  #########################
+## Compare VEP annotation and tx location of variants in UGT8 genes
+table(UGT8_variants_canonical[, c('VEP_Annotation', 'Location_in_txs')])
+#                                                                         Location_in_txs
+# VEP_Annotation            Exon 2 Exon 3 Exon 4 Exon 5 Intron 1-2 Intron 2-3 Intron 3-4 Intron 4-5 Intron 5-6 Last Exon + 3-UTR
+# 3_prime_UTR_variant            0      0      0      0          0          0          0          0          0                18
+# frameshift_variant             1      0      0      3          0          0          0          0          0                 0
+# inframe_deletion               1      1      0      0          0          0          0          0          0                 0
+# inframe_insertion              1      0      0      0          0          0          0          0          0                 0
+# intron_variant                 0      0      0      0          0         28         29         28         28                 0
+# missense_variant             120     15      4     24          0          0          0          0          0                57
+# splice_acceptor_variant        0      0      0      0          0          0          0          0          1                 0
+# splice_donor_variant           0      0      0      0          0          0          1          0          1                 0
+# splice_region_variant          1      1      1      2          2          3          2          3          8                 0
+# start_lost                     1      0      0      0          0          0          0          0          0                 0
+# stop_gained                    2      0      0      0          0          0          0          0          0                 1
+# synonymous_variant            77     10      3     15          0          0          0          0          0                32
 
 
 
+# __________________________________________________________________________
+#  1.1.4  Variant quantification and comparison between genes and families
+# __________________________________________________________________________
+
+
+
+# _____________________________________________________________________________
+#  1.1.4.1 Compare shared variants for genes and families
+# _____________________________________________________________________________
+
+
+
+##
+
+
+
+# _____________________________________________________________________________
+#  1.1.6.2 Extract and quantify exonic variants for genes and families
+# _____________________________________________________________________________
 
 
 
 
-
-
-
-
-
-
-
-## Examine if shared variants are in common tx regions
-
-## Define start of common region between UGT1 genes' txs:
-# 
-# ## UGT1 genes' txs
-# txs <- names(unlist(lapply(c('1', '3', '4', '5', '6', '7', '8', '9', '10'), function(x){table(UGT1_variants[,paste0('UGT1A', x)])})))
-# txs_boundaries <- data.frame()
-# for (i in 1:length(txs)){
-#   ## Read tx data
-#   tx_seq_data <- as.data.frame(read.csv(paste0("raw-data/Tx_seq_data/", txs[i], "_seq_data.csv")))
-#   tx_seq_data <- tx_seq_data[-c(1, dim(tx_seq_data)[1]),]
-#   ## Char to integer for End, Start and Length
-#   tx_seq_data$Start <- as.numeric(gsub(',', '', tx_seq_data$Start))
-#   tx_seq_data$End <- as.numeric(gsub(',', '', tx_seq_data$End))
-#   tx_seq_data$Length <- as.numeric(gsub(',', '', tx_seq_data$Length))
-#   ## Start and end of each tx
-#   txs_boundaries[i, 'Start'] <- min(tx_seq_data$Start)
-#   txs_boundaries[i, 'End'] <- max(tx_seq_data$End)
-#   rownames(txs_boundaries)[i] <- txs[i]
-# }
-# 
-# ## Common region given by: Max Start - Min End
-# common_region <- max(txs_boundaries$Start):min(txs_boundaries$End)
-# 
-# 
 
 
 
@@ -698,7 +774,6 @@ table(UGT8_data[, c('VEP_Annotation', 'Location_in_txs')])
 # - Identify weird cases and plot
 
 
-# - Shared variants: in what txs, evaluate if they are in common region of those txs
 # - Shared variants anno: compare my anno with VEP
 # - What about shared variants with different VEP anno or manual locations? -> plot
 
