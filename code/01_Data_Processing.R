@@ -362,8 +362,8 @@ vars_in_canonical_txs / total_vars * 100
 UGT1_variants_canonical <- UGT1_variants[UGT1_variants$Canonical_txs==TRUE, ]
 UGT2_variants_canonical <- UGT2_variants[UGT2_variants$Canonical_txs==TRUE, ]
 UGT3_variants_canonical <- UGT3_variants[UGT3_variants$Canonical_txs==TRUE, ]
-UGT8_variants_canonical <- UGT8_data[UGT8_data$Canonical_txs==TRUE, ]
-rownames(UGT8_variants_canonical) <- UGT8_variants_canonical$Variant_ID
+UGT8_variants_canonical <- UGT8_data[UGT8_data$Canonical_txs==TRUE, c('Transcript', 'VEP_Annotation', 'Position', 'Canonical_txs')]
+rownames(UGT8_variants_canonical) <- UGT8_data[UGT8_data$Canonical_txs==TRUE, 'Variant_ID']
 
 ## Define end of 5'-UTR of each tx 
 fiveUTR_end <- list('ENST00000305208.5'= 234668933,
@@ -524,8 +524,7 @@ location_determination <- function(variant_pos, tx, feature){
 }
 
 
-## Function to add variant location in all genes of a family
-
+## Function to add variant location data in all genes of a family
 add_tx_location <- function(gene_family){
   genes<- eval(parse_expr(paste0(gene_family, '_genes')))
   UGT_variants <- eval(parse_expr(paste0(gene_family, '_variants_canonical')))
@@ -541,6 +540,8 @@ add_tx_location <- function(gene_family){
   }
 }
 
+############################################################################
+############################  Variants per gene  ###########################
 
 ## Plot number of variants from each category in each gene
 
@@ -552,16 +553,27 @@ var_colors <- list('Exon 1'= 'mistyrose2',
                    'Exon 5'= 'palevioletred3',
                    'Exon 6'= 'plum3',
                    'Exon 7'= 'orchid3',
+                   'Exon'= 'salmon',
+                   'Exon 1, Intron 1-2'= 'tan1',
+                   '5\'UTR, Intron 1-2'= 'firebrick4',
+                   '5\' upstream, Intron 1-2'= 'olivedrab1',
                    'Intron 1-2'= 'lightblue2',
                    'Intron 2-3'= 'lightsteelblue1', 
                    'Intron 3-4'= 'lightsteelblue2',
                    'Intron 4-5'= 'lightsteelblue',
                    'Intron 5-6'= 'lightsteelblue3',
                    'Intron 6-7'= 'lightsteelblue4',
+                   '5\' upstream, Exon 1'= 'cornsilk3',
+                   '5\' upstream, 5\'UTR'= 'mediumspringgreen',
                    '5\'UTR'='royalblue2',
                    '3\'UTR'= 'slateblue4',
                    '5\' upstream'= 'thistle3', 
-                   '3\' downstream'='khaki1')
+                   '3\' downstream'='khaki1',
+                   'Exonic variants'= 'salmon',
+                   'All variants'= 'darkslategray3')
+
+
+######## All variants per gene ########
 
 ## Function to create barplot for all variants in genes of a certain family
 barplot_gene_fam<- function(gene_family){
@@ -609,7 +621,7 @@ barplot_gene_fam<- function(gene_family){
   
   p <- ggplot(var_data, aes(fill=factor(location, levels=ordered_locations), y=number, x=gene)) + 
     geom_bar(position="stack", stat="identity") + 
-    labs(x=paste(gene_family, 'genes', sep=' '), y='Number of variants in canonical tx', fill='Predicted effect') +
+    labs(x=paste(gene_family, 'genes', sep=' '), y='Number of variants in canonical tx', fill='Location') +
     theme_bw() + 
     ylim(0, 2170) +
     scale_fill_manual(values = var_colors) +
@@ -619,41 +631,193 @@ barplot_gene_fam<- function(gene_family){
   return(p)
 }
 
-## Plot number of variants in general categories for each gene
-## More general categories
-unlist(sapply(UGT1A1_data$Location_in_txs, function(x){if(length(grep('Intron', x))==1){'Intron'}
-  else if(length(grep('Exon', x))==1){'Exon'}
-  else {x}}))
+## Add variant location for variants in each gene dataset
+add_tx_location('UGT1')
+add_tx_location('UGT2')
+add_tx_location('UGT3')
+add_tx_location('UGT8')
+
+p1 <- barplot_gene_fam('UGT1')
+p2 <- barplot_gene_fam('UGT2')
+p3 <- barplot_gene_fam('UGT3')
+p4 <- barplot_gene_fam('UGT8')
+
+plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1,1.1, 0.48, 0.40))
+ggsave(filename=paste0('plots/01_Data_Processing/All_variants_genes.pdf'), width = 20, height = 6)
+
+
+
+######## Exonic variants per gene ########
+
+## Plot number of exonic variants for each gene
+
+## Define more general categories for variants
+define_gral_categories <- function(gene_family){
+  genes<- eval(parse_expr(paste0(gene_family, '_genes')))
+  for (gene in genes){
+    gene_data <- eval(parse_expr(paste0(gene, '_data')))
+    gene_data$general_location <- unlist(sapply(gene_data$Location_in_txs, function(x){if(length(grep('Intron', x))==1){'Intron'}
+      else if(length(grep('Exon', x))==1){'Exon'}
+      else {x}}))
+    assign(paste0(gene, '_data'), gene_data, envir = parent.frame())
+  }
+}
+
+define_gral_categories('UGT1')
+define_gral_categories('UGT2')
+define_gral_categories('UGT3')
+define_gral_categories('UGT8')
+
+
+## Function to create barplot for exonic variants in genes of a certain family
+barplot_exonic_variants <- function(gene_family){
+  
+  ## Location of variants in each gene of the family
+  genes<- eval(parse_expr(paste0(gene_family, '_genes')))
+  
+  var_data <- data.frame(matrix(ncol = 2))
+  colnames(var_data) <- c('gene', 'number')
+  
+  ## Number of exonic variants per gene
+  i=1
+  for (gene in genes){
+    gene_data <- eval(parse_expr(paste0(gene, '_data')))
+    number <- table(gene_data$general_location)['Exon']
+    var_data[i,] <- c(gene, number)
+    i=i+1
+  }
+  var_data$gene <- factor(var_data$gene, levels = unique(var_data$gene))
+  var_data$number <- as.numeric(var_data$number)
+  
+  p <- ggplot(var_data, aes(y=number, x=gene)) + 
+    geom_bar(stat="identity", fill=var_colors[['Exon']]) + 
+    labs(x=paste(gene_family, 'genes', sep=' '), y='Number of exonic variants in canonical tx') +
+    theme_bw() + 
+    ylim(0, 750) +
+    theme(axis.text = element_text(size = 10),
+          legend.position="none")
+
+  return(p)
+}
+
+p1 <- barplot_exonic_variants('UGT1') + theme(plot.margin = margin(30, 5, 30, 5))
+p2 <- barplot_exonic_variants('UGT2') + theme(plot.margin = margin(30, 5, 30, 5))
+p3 <- barplot_exonic_variants('UGT3') + theme(plot.margin = margin(30, 5, 30, 5))
+p4 <- barplot_exonic_variants('UGT8') + theme(plot.margin = margin(30, 5, 90, 5))
+
+plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1,1.1, 0.3, 0.20), align = "hv")
+ggsave(filename=paste0('plots/01_Data_Processing/Exonic_variants_genes.pdf'), width = 20, height = 7)
+
+
+
+############################################################################
+########################  Variants per gene family  ########################
+
+## Function to add tx location of variants in the same gene family
+tx_location_gene_fam <- function(gene_family){
+  
+  UGT_variants <- eval(parse_expr(paste0(gene_family, '_variants_canonical')))
+    
+  for (i in 1:dim(UGT_variants)[1]){
+    ## Variant position
+    pos <- UGT_variants$Position[i]
+    ## Txs in which the variant is present
+    txs <- UGT_variants[i,which(!is.na(UGT_variants[i, 1:(dim(UGT_variants)[2]-4)]))]
+    locations <- unlist(sapply(txs, function(x){location_determination(pos, x, NULL)[[1]][1]}))
+    if (length(unique(locations))==1){
+      UGT_variants$Location_in_txs[i] <- unique(locations)
+    }
+    ## For shared variants with different locations in the genes
+    else
+      UGT_variants$Location_in_txs[i] <- toString(locations)
+  }
+  assign(paste0(gene_family, '_variants_canonical'), UGT_variants, envir = parent.frame())
+}
+
+tx_location_gene_fam('UGT1')
+tx_location_gene_fam('UGT2')
+tx_location_gene_fam('UGT3')
+tx_location_gene_fam('UGT8')
+
+
+## Create stacked barplot for total number of variants in each gene family
+var_data <- data.frame(matrix(ncol = 3))
+colnames(var_data) <- c('gene_family', 'location', 'number')
+
+locations <- c('5\' upstream', '5\'UTR', '5\' upstream, 5\'UTR',  'Intron 6-7', 'Intron 5-6',  'Intron 4-5', 'Intron 3-4', 'Intron 2-3', 'Intron 1-2', 
+                       'Exon 1, Intron 1-2', '5\'UTR, Intron 1-2', '5\' upstream, Intron 1-2', '5\' upstream, Exon 1', 
+                       'Exon 1', 'Exon 2', 'Exon 3', 'Exon 4', 'Exon 5', 'Exon 6', 'Exon 7', '3\'UTR', '3\' downstream')
+
+for(gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')){
+  
+    UGT_variants <- eval(parse_expr(paste0(gene_family, '_variants_canonical')))
+    data <- data.frame(matrix(ncol = 3))
+    colnames(data) <- c('gene_family', 'location', 'number')
+    
+    for (i in 1:length(locations)){
+      data[i,'gene_family'] <- gene_family
+      data[i,'location'] <- ordered_locations[i]
+      data[i,'number'] <- table(UGT_variants$Location_in_txs)[ordered_locations[i]]
+    }
+  var_data <- rbind(var_data, data)
+}
+  
+var_data$number <- replace(var_data$number, which(is.na(var_data$number)), 0)
+var_data$gene_family <- factor(var_data$gene_family, levels = unique(var_data$gene_family))
+var_data <- var_data[-1,]
+  
+p1 <- ggplot(var_data, aes(fill=factor(location, levels=ordered_locations), y=number, x=gene_family)) + 
+  geom_bar(position="stack", stat="identity") + 
+  labs(x='UGT gene family', y='Total number of variants in canonical tx of genes', fill='Location') +
+  theme_bw() + 
+  ylim(0, 7200) +
+  scale_fill_manual(values = var_colors) +
+  theme(axis.text = element_text(size = 8),
+        legend.text = element_text(size=9),
+        plot.margin = margin(10, 2, 10, 2))
+  
+
+
+## Plot total number of variants and number of exonic variants per gene family
+data <- data.frame(matrix(ncol = 3))
+colnames(data) <- c('gene_family',  'category' ,'number')
+
+i=1
+for(gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')){
+  UGT_variants <- eval(parse_expr(paste0(gene_family, '_variants_canonical')))
+  ## Exonic variants only: shared variants with one exonic location are exonic by definition (in at least one gene)
+  UGT_exonic_variants <- UGT_variants[grep('Exon', UGT_variants$Location_in_txs),]
+  
+  data[i, ] <- c(gene_family, 'All variants', dim(UGT_variants)[1])
+  data[i+1, ] <- c(gene_family, 'Exonic variants', dim(UGT_exonic_variants)[1])
+  i=i+2
+}
+data$number <- as.numeric(data$number)
+
+p2 <- ggplot(data, aes(y=number, x=gene_family, fill=category)) + 
+  geom_bar(stat="identity", position=position_dodge()) + 
+  labs(x='UGT gene family', y='Number of variants in canonical tx of genes', fill='Type') +
+  theme_bw() + 
+  scale_fill_manual(values = var_colors) +
+  ylim(0, 7200) +
+  theme(axis.text = element_text(size = 8),
+        legend.text = element_text(size=9),
+        plot.margin = margin(10, 2, 10, 2))
+
+
+## Plots for gene families
+plot_grid(p1, p2, nrow = 1, rel_widths = c(0.9, 1))
+ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf'), width = 15, height = 7)
+
+
+###############################################################################################################################################################
 
 
 ####################################
 ####  Annotation of UGT1 variants
 ####################################
 
-## Add variant location for variants in each gene dataset
-add_tx_location('UGT1')
 
-add_tx_location('UGT2')
-
-add_tx_location('UGT3')
-
-add_tx_location('UGT8')
-
-
-###############################################################################################################################################################
-
-
-
-for (i in 1:dim(UGT1_variants_canonical)[1]){
-  pos <- UGT1_variants_canonical$Position[i]
-  txs <- UGT1_variants_canonical[i,which(!is.na(UGT1_variants_canonical[i, 1:9]))]
-  locations <- unlist(sapply(txs, function(x){location_determination(pos, x, NULL)[[1]][1]}))
-  if (length(unique(locations))==1){
-    UGT1_variants_canonical$Location_in_txs[i] <- unique(locations)
-  }
-  else
-    UGT1_variants_canonical$Location_in_txs[i] <- toString(locations)
-}
 
 
 table(UGT1_variants_canonical[, c('VEP_Annotation', 'Location_in_txs')])
