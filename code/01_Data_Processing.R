@@ -365,6 +365,54 @@ UGT3_variants_canonical <- UGT3_variants[UGT3_variants$Canonical_txs==TRUE, ]
 UGT8_variants_canonical <- UGT8_data[UGT8_data$Canonical_txs==TRUE, ]
 rownames(UGT8_variants_canonical) <- UGT8_variants_canonical$Variant_ID
 
+## Define end of 5'-UTR of each tx 
+fiveUTR_end <- list('ENST00000305208.5'= 234668933,
+                    'ENST00000482026.1'= 234637772,
+                    'ENST00000373409.3'= 234627466, 
+                    'ENST00000373414.3'= 234621638,
+                    'ENST00000305139.6'= 234601650,
+                    'ENST00000373426.3'= 234590584,
+                    'ENST00000373450.4'= 234526353,
+                    'ENST00000354728.4'= 234580580,
+                    'ENST00000344644.5'= 234545168,
+                    'ENST00000503640.1'= 70513363, 
+                    'ENST00000457664.2'= 70505358, 
+                    'ENST00000251566.4'= 69817479, 
+                    'ENST00000305107.6'= 70361580, 
+                    'ENST00000305231.7'= 69962238, 
+                    'ENST00000265403.7'= 69681737, 
+                    'ENST00000446444.1'= 70080441, 
+                    'ENST00000338206.5'= 69536337, 
+                    'ENST00000317746.2'= 69434203, 
+                    'ENST00000335568.5'= 70146218, 
+                    'ENST00000274278.3'= 35991343, 
+                    'ENST00000282507.3'= 36066892, 
+                    'ENST00000310836.6'= 115520130)
+
+## Define start of 3'-UTR of each tx (same for all UGT1 genes)
+threeUTR_start <- list('ENST00000305208.5'= 234681206,
+                       'ENST00000482026.1'= 234681206,
+                       'ENST00000373409.3'= 234681206,
+                       'ENST00000373414.3'= 234681206,
+                       'ENST00000305139.6'= 234681206,
+                       'ENST00000373426.3'= 234681206,
+                       'ENST00000373450.4'= 234681206,
+                       'ENST00000354728.4'= 234681206,
+                       'ENST00000344644.5'= 234681206,
+                       'ENST00000503640.1' = 70455089, 
+                       'ENST00000457664.2'= 70455089, 
+                       'ENST00000251566.4'= 69795530, 
+                       'ENST00000305107.6'= 70346351, 
+                       'ENST00000305231.7'= 69978455, 
+                       'ENST00000265403.7'= 69696598, 
+                       'ENST00000446444.1'= 70066157, 
+                       'ENST00000338206.5'= 69512821, 
+                       'ENST00000317746.2'= 69403342, 
+                       'ENST00000335568.5'= 70160528, 
+                       'ENST00000274278.3'= 35954303, 
+                       'ENST00000282507.3'= 36035799,
+                       'ENST00000310836.6'= 115597445)
+
 ## For a given variant, examine where it's located with respect to txs boundaries
 
 ## Function to evaluate the location of a variant according to the boundaries of a gene transcript
@@ -375,24 +423,55 @@ location_determination <- function(variant_pos, tx, feature){
   tx_seq_data <- tx_seq_data[-c(1, dim(tx_seq_data)[1]),]
   ## Column names
   colnames(tx_seq_data)[-1] <- gsub('\\.+', '_', colnames(tx_seq_data)[-1])
-  ## Char to integer for End, Start and Length
+  ## Char to integer for End and Start 
   tx_seq_data$Start <- as.numeric(gsub(',', '', tx_seq_data$Start))
   tx_seq_data$End <- as.numeric(gsub(',', '', tx_seq_data$End))
-  tx_seq_data$Length <- as.numeric(gsub(',', '', tx_seq_data$Length))
+  tx_seq_data <- tx_seq_data[, c('No.', 'Exon_Intron', 'Start', 'End')]
   
   
   ## Overall transcript composition:  
-  ## (5' upstream seq) ... [5'UTR + Exon A] + Intron A-B + Exon B + Intron B-C + Exon C + Intron C-D + Exon D + ... + [Exon Z + 3'UTR] ... (3' downstream seq)
-  rownames(tx_seq_data) <- tx_seq_data$Exon_Intron
+  ## (5' upstream seq) ... (5'UTR) + Exon A + Intron A-B + Exon B + Intron B-C + Exon C + Intron C-D + Exon D + ... + Exon Z + (3'UTR) ... (3' downstream seq)
+  colnames(tx_seq_data)[2] <- 'Location'
   
-  ## Add exon/intron info
-  tx_seq_data$Exon_Intron <- sapply(tx_seq_data$Exon_Intron, function(x){
-    if(length(grep('Intron', x))==1){x}  else{paste0('Exon ', tx_seq_data[x, 'No.'])}})
+  ## Delimit UTR regions
+  ## 5'-UTR = first position of tx to end of 5'UTR 
+  fiveUTR <- tx_seq_data[1,'Start']:fiveUTR_end[[tx]]
+  ## If UTR is not defined (length 1 from start to end)
+  if (length(fiveUTR)==1){fiveUTR=0}
+  ## 3'-UTR = start of 3'-UTR to end of tx
+  threeUTR <- threeUTR_start[[tx]]:tx_seq_data[nrow(tx_seq_data), 'End']
+  if (length(threeUTR)==1){threeUTR=0}
   
-  ## Specify we have 1st Exon + 5'UTR and last Exon + 3'UTR
-  tx_seq_data$Exon_Intron[1] <- '5-UTR + First Exon'
-  tx_seq_data$Exon_Intron[dim(tx_seq_data)[1]] <- 'Last Exon + 3-UTR'
-  rownames(tx_seq_data) <- tx_seq_data$Exon_Intron
+  ## Delimit real boundaries of first exon
+  first_exon <- tx_seq_data[1, 'Start']:tx_seq_data[1, 'End']
+  ## Remove 5'-UTR region
+  if(!length(which(first_exon %in% fiveUTR))==0){
+    first_exon <- first_exon[-which(first_exon %in% fiveUTR)]
+  }
+  ## Delimit real boundaries of last exon
+  last_exon <- tx_seq_data[nrow(tx_seq_data), 'Start']:tx_seq_data[nrow(tx_seq_data), 'End']
+  ## Remove 3'-UTR region
+  last_exon <- last_exon[-which(last_exon %in% threeUTR)]
+  
+  ## Replace exon 1 limits
+  if (length(first_exon)==0){first_exon <- c(0,0)}
+  tx_seq_data[1,'Start'] <- first_exon[1]
+  tx_seq_data[1,'End'] <- first_exon[length(first_exon)]
+  
+  ## Replace last exon limits
+  if (length(last_exon)==0){last_exon <- c(0,0)}
+  tx_seq_data[nrow(tx_seq_data),'Start'] <- last_exon[1]
+  tx_seq_data[nrow(tx_seq_data),'End'] <- last_exon[length(last_exon)]
+  
+  ## Add UTRs
+  tx_seq_data <- rbind(c(NA, '5\'UTR', fiveUTR[1], fiveUTR[length(fiveUTR)]), tx_seq_data)
+  tx_seq_data <- rbind(tx_seq_data, c(NA, '3\'UTR', threeUTR[1], threeUTR[length(threeUTR)]))
+  
+  ## Location categories
+  tx_seq_data$Location <- sapply(1:nrow(tx_seq_data), 
+                                 function(i){if(length(grep('ENSE', tx_seq_data$Location[i]))==1){paste0('Exon ', tx_seq_data$No.[i])}
+                                             else{tx_seq_data$Location[i]}})
+  rownames(tx_seq_data) <- tx_seq_data$Location
   
   ## Evaluate if the variant is within a tx exon/intron/UTR or outside
   location_within_tx <- unlist(sapply(rownames(tx_seq_data), function(x){
@@ -400,13 +479,33 @@ location_determination <- function(variant_pos, tx, feature){
   
   ## If the variant is not within tx region then is either in the 5' upstream or 3' downstream sequence
   if (is.null(location_within_tx))  {
-    if (variant_pos < tx_seq_data["5-UTR + First Exon", 'Start']){
-      location <- '5\' upstream'
+    
+    ## If no 5'-UTR present, take start of first exon
+    if (! as.numeric(tx_seq_data["5\'UTR", 'Start'])==0) {start <- as.numeric(tx_seq_data["5\'UTR", 'Start'])}
+    else {start <- as.numeric(tx_seq_data["Exon 1", 'Start'])}
+    
+    ## If tx goes from 5'-3'
+    if (tx_seq_data$Start[3]<tx_seq_data$End[3]){
+      
+      if (variant_pos < start){
+        location <- '5\' upstream'
+      }
+      
+      if (variant_pos > as.numeric(tx_seq_data["3\'UTR", 'End'])){
+        location <- '3\' downstream'
+      }
     }
     
-    if (variant_pos > tx_seq_data["Last Exon + 3-UTR", 'End']){
-      location <- '3\' downstream'
-    }
+  ## If tx goes from 3'-5'
+   else{
+     if (variant_pos > start){
+       location <- '5\' upstream'
+     }
+     
+     if (variant_pos < as.numeric(tx_seq_data["3\'UTR", 'End'])){
+       location <- '3\' downstream'
+     }
+   }
   }
   
   else {
@@ -425,22 +524,137 @@ location_determination <- function(variant_pos, tx, feature){
 }
 
 
+## Function to add variant location in all genes of a family
+
+add_tx_location <- function(gene_family){
+  genes<- eval(parse_expr(paste0(gene_family, '_genes')))
+  UGT_variants <- eval(parse_expr(paste0(gene_family, '_variants_canonical')))
+  
+  for (gene in genes){
+    gene_data <- eval(parse_expr(paste0(gene, '_data')))
+    ## Variants in canonical tx only
+    gene_data <- gene_data[which(gene_data$Variant_ID %in% rownames(UGT_variants)), ]
+    ## Location
+    gene_data$Location_in_txs <- sapply(gene_data$Position, function(x){
+      location_determination(x, unique(gene_data$Transcript), NULL)[[1]]})
+    assign(paste0(gene, '_data'), gene_data, envir = parent.frame())
+  }
+}
+
+
+## Plot number of variants from each category in each gene
+
+## Define colors for variant categories
+var_colors <- list('Exon 1'= 'mistyrose2',
+                   'Exon 2'= 'lightpink1',
+                   'Exon 3'= 'rosybrown3',
+                   'Exon 4'= 'palevioletred2',
+                   'Exon 5'= 'palevioletred3',
+                   'Exon 6'= 'plum3',
+                   'Exon 7'= 'orchid3',
+                   'Intron 1-2'= 'lightblue2',
+                   'Intron 2-3'= 'lightsteelblue1', 
+                   'Intron 3-4'= 'lightsteelblue2',
+                   'Intron 4-5'= 'lightsteelblue',
+                   'Intron 5-6'= 'lightsteelblue3',
+                   'Intron 6-7'= 'lightsteelblue4',
+                   '5\'UTR'='royalblue2',
+                   '3\'UTR'= 'slateblue4',
+                   '5\' upstream'= 'thistle3', 
+                   '3\' downstream'='khaki1')
+
+## Function to create barplot for all variants in genes of a certain family
+barplot_gene_fam<- function(gene_family){
+  
+  ## Location of variants in each gene of the family
+  genes<- eval(parse_expr(paste0(gene_family, '_genes')))
+  
+  var_data <- data.frame(matrix(ncol = 3))
+  colnames(var_data) <- c('gene', 'location', 'number')
+  
+  for (gene in genes){
+    gene_data <- eval(parse_expr(paste0(gene, '_data')))
+    data <- data.frame(matrix(ncol = 3))
+    colnames(data) <- c('gene', 'location', 'number')
+    
+    if (gene_family=='UGT1'){
+      ordered_locations <- c('5\' upstream', '5\'UTR', 'Intron 4-5', 'Intron 3-4', 'Intron 2-3', 'Intron 1-2',
+                             'Exon 1', 'Exon 2', 'Exon 3', 'Exon 4', 'Exon 5', '3\'UTR', '3\' downstream')
+      var_colors[['Exon 1']]='honeydew3'
+    }
+    
+    else if(gene_family=='UGT2' | gene_family=='UGT8') {
+      ordered_locations <- c('5\' upstream', '5\'UTR', 'Intron 5-6', 'Intron 4-5', 'Intron 3-4', 'Intron 2-3', 'Intron 1-2',
+                             'Exon 1', 'Exon 2', 'Exon 3', 'Exon 4', 'Exon 5', 'Exon 6', '3\'UTR', '3\' downstream')
+    }
+    
+    else {
+      ordered_locations <- c('5\' upstream', '5\'UTR', 'Intron 6-7', 'Intron 5-6', 'Intron 4-5', 'Intron 3-4', 'Intron 2-3', 'Intron 1-2',
+                             'Exon 1', 'Exon 2', 'Exon 3', 'Exon 4', 'Exon 5', 'Exon 6', 'Exon 7', '3\'UTR', '3\' downstream')
+    }
+    
+    locations <- unique(gene_data$Location_in_txs)
+    
+    for (i in 1:length(ordered_locations)){
+      data[i,'gene'] <- gene
+      data[i,'location'] <- ordered_locations[i]
+      data[i,'number'] <- table(gene_data$Location_in_txs)[ordered_locations[i]]
+    }
+    var_data <- rbind(var_data, data)
+  }
+  
+  var_data$number <- replace(var_data$number, which(is.na(var_data$number)), 0)
+  var_data$gene <- factor(var_data$gene, levels = unique(var_data$gene))
+  var_data <- var_data[-1,]
+  
+  p <- ggplot(var_data, aes(fill=factor(location, levels=ordered_locations), y=number, x=gene)) + 
+    geom_bar(position="stack", stat="identity") + 
+    labs(x=paste(gene_family, 'genes', sep=' '), y='Number of variants in canonical tx', fill='Predicted effect') +
+    theme_bw() + 
+    ylim(0, 2170) +
+    scale_fill_manual(values = var_colors) +
+    theme(axis.text = element_text(size = 8),
+          legend.text = element_text(size=9))
+  
+  return(p)
+}
+
+## Plot number of variants in general categories for each gene
+## More general categories
+unlist(sapply(UGT1A1_data$Location_in_txs, function(x){if(length(grep('Intron', x))==1){'Intron'}
+  else if(length(grep('Exon', x))==1){'Exon'}
+  else {x}}))
+
+
 ####################################
 ####  Annotation of UGT1 variants
 ####################################
 
-## For each variant, obtain in which txs it is present and its location for each one
+## Add variant location for variants in each gene dataset
+add_tx_location('UGT1')
+
+add_tx_location('UGT2')
+
+add_tx_location('UGT3')
+
+add_tx_location('UGT8')
+
+
+###############################################################################################################################################################
+
+
 
 for (i in 1:dim(UGT1_variants_canonical)[1]){
- pos <- UGT1_variants_canonical$Position[i]
- txs <- UGT1_variants_canonical[i,which(!is.na(UGT1_variants_canonical[i, 1:9]))]
- locations <- unlist(sapply(txs, function(x){location_determination(pos, x, NULL)[[1]][1]}))
- if (length(unique(locations))==1){
-   UGT1_variants_canonical$Location_in_txs[i] <- unique(locations)
- }
- else
-   UGT1_variants_canonical$Location_in_txs[i] <- toString(locations)
+  pos <- UGT1_variants_canonical$Position[i]
+  txs <- UGT1_variants_canonical[i,which(!is.na(UGT1_variants_canonical[i, 1:9]))]
+  locations <- unlist(sapply(txs, function(x){location_determination(pos, x, NULL)[[1]][1]}))
+  if (length(unique(locations))==1){
+    UGT1_variants_canonical$Location_in_txs[i] <- unique(locations)
+  }
+  else
+    UGT1_variants_canonical$Location_in_txs[i] <- toString(locations)
 }
+
 
 table(UGT1_variants_canonical[, c('VEP_Annotation', 'Location_in_txs')])
 
