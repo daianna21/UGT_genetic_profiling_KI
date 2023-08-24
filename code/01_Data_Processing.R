@@ -48,9 +48,62 @@ for (gene in UGT_genes){
 #  1.1.1 Detect overlapping variants between different genes of the same family 
 # _______________________________________________________________________________
 
+## For each variant, determine in what UGT genes' txs they are present 
+
+create_gene_fam_table <- function(gene_family){
+  
+  ## Genes of gene family
+  genes <- eval(parse_expr(paste0(gene_family, '_genes')))
+  
+  ## Unique variants in gene family
+  unique_UGT_variants <- unique(unlist(sapply(paste0(genes, '_data$Variant_ID'), function(x){eval(parse_expr(x))})))
+  
+  ## Compute in which transcript each variant appears for each gene 
+  ## (if present in a gene, variants are expected to appear only in one transcript since they are all unique in each gene dataset)
+  UGT_variants <- data.frame(matrix(ncol = length(genes)+2, nrow = 0))
+  colnames(UGT_variants) <- c(genes, 'VEP_Annotation', 'Position')
+  
+  i=1
+  for (variant in unique_UGT_variants){
+    
+    ## Search variant in each gene; if present, annotate tx
+    variant_txs <- sapply(genes, function(gene){
+      tx <- eval(parse_expr(paste0(gene, '_data')))[which(eval(parse_expr(paste0(gene, '_data$Variant_ID'))) == variant), 'Transcript']
+      if (length(tx)==0) {NA}
+      else {tx}
+    })
+    
+    UGT_variants[i, 1:length(genes)] <- variant_txs
+    
+    ## VEP annotation for variant in each gene that contains it
+    variant_anno <- unlist(sapply(genes, function(gene){
+      eval(parse_expr(paste0(gene, '_data')))[which(eval(parse_expr(paste0(gene, '_data$Variant_ID'))) == variant), 'VEP_Annotation']
+    }))
+    ## Evaluate if the anno of a shared variable is the same across all genes
+    if (length(unique(variant_anno))==1){
+      UGT_variants$VEP_Annotation[i] <- unique(variant_anno)
+    }
+    else{
+      UGT_variants$VEP_Annotation[i] <- toString(variant_anno)
+    }
+    
+    ## Add variant position
+    UGT_variants$Position[i] <- as.numeric(strsplit(variant, '-')[[1]][2])
+    
+    i=i+1
+  }
+  
+  rownames(UGT_variants) <- unique_UGT_variants
+  
+  assign(paste0('unique_', gene_family, '_variants'), unique_UGT_variants, envir = parent.frame())
+  assign(paste0(gene_family, '_variants'), UGT_variants, envir = parent.frame())
+}
+
+
 ############################
 ####      UGT1 genes 
 ############################
+
 UGT1_genes <- c('UGT1A1', 'UGT1A3', 'UGT1A4', 'UGT1A5', 'UGT1A6', 'UGT1A7', 'UGT1A8', 'UGT1A9', 'UGT1A10')
 
 ## Confirm all variants in UGT1 genes are in the same chr
@@ -58,53 +111,12 @@ sapply(UGT1_genes, function(x){unique(eval(parse_expr(paste0(x, '_data$Chromosom
 # UGT1A1  UGT1A3  UGT1A4  UGT1A5  UGT1A6  UGT1A7  UGT1A8  UGT1A9 UGT1A10 
 #      2       2       2       2       2       2       2       2       2 
 
-
-## For each variant, determine in what UGT1 genes' txs they are present 
-
 ########## *** UGT1A1 and UGT1A8 txs are swapped; take only the canonical tx of these genes for all of their variants *** ##########
 
 UGT1A1_data$Transcript <- rep('ENST00000305208.5', dim(UGT1A1_data)[1])
 UGT1A8_data$Transcript <- rep('ENST00000373450.4', dim(UGT1A8_data)[1])
 
-## Unique variants in UGT1 genes
-unique_UGT1_variants <- unique(c(UGT1A1_data$Variant_ID, UGT1A3_data$Variant_ID, UGT1A4_data$Variant_ID, UGT1A5_data$Variant_ID, UGT1A6_data$Variant_ID, UGT1A7_data$Variant_ID, UGT1A8_data$Variant_ID, UGT1A9_data$Variant_ID, UGT1A10_data$Variant_ID))
-
-## Compute in which transcript each variant appears for each gene 
-## (if present in a gene, variants are expected to appear only in one transcript since they are all unique in each gene dataset)
-UGT1_variants <- data.frame(matrix(ncol = 11, nrow = 0))
-colnames(UGT1_variants) <- c(UGT1_genes, 'VEP_Annotation', 'Position')
-
-i=1
-for (variant in unique_UGT1_variants){
-  
-  ## Search variant in each gene; if present, annotate tx
-  variant_txs <- sapply(UGT1_genes, function(gene){
-    tx <- eval(parse_expr(paste0(gene, '_data')))[which(eval(parse_expr(paste0(gene, '_data$Variant_ID'))) == variant), 'Transcript']
-    if (length(tx)==0) {NA}
-    else {tx}
-    })
-  
-  UGT1_variants[i, 1:9] <- variant_txs
-  
-  ## VEP annotation for variant in each gene that contains it
-  variant_anno <- unlist(sapply(UGT1_genes, function(gene){
-                           eval(parse_expr(paste0(gene, '_data')))[which(eval(parse_expr(paste0(gene, '_data$Variant_ID'))) == variant), 'VEP_Annotation']
-                         }))
-  ## Evaluate if the anno of a shared variable is the same across all genes
-  if (length(unique(variant_anno))==1){
-    UGT1_variants$VEP_Annotation[i] <- unique(variant_anno)
-  }
-  else{
-    UGT1_variants$VEP_Annotation[i] <- toString(variant_anno)
-  }
-  
-  ## Add variant position
-  UGT1_variants$Position[i] <- as.numeric(strsplit(variant, '-')[[1]][2])
-  
-  i=i+1
-}
-
-rownames(UGT1_variants) <- unique_UGT1_variants
+create_gene_fam_table('UGT1')
 
 
 ############################
@@ -117,40 +129,7 @@ sapply(UGT2_genes, function(x){unique(eval(parse_expr(paste0(x, '_data$Chromosom
 # UGT2A1  UGT2A2  UGT2A3  UGT2B4  UGT2B7 UGT2B10 UGT2B11 UGT2B15 UGT2B17 UGT2B28 
 #      4       4       4       4       4       4       4       4       4       4 
 
-unique_UGT2_variants <- unique(c(UGT2A1_data$Variant_ID, UGT2A2_data$Variant_ID, UGT2A3_data$Variant_ID, 
-                                          UGT2B4_data$Variant_ID, UGT2B7_data$Variant_ID, UGT2B10_data$Variant_ID, UGT2B11_data$Variant_ID, 
-                                          UGT2B15_data$Variant_ID, UGT2B17_data$Variant_ID, UGT2B28_data$Variant_ID))
-UGT2_variants <- data.frame(matrix(ncol = 12, nrow = 0))
-colnames(UGT2_variants) <- c(UGT2_genes, 'VEP_Annotation', 'Position')
-
-i=1
-for (variant in unique_UGT2_variants){
-  
-  variant_txs <- sapply(UGT2_genes, function(gene){
-    tx <- eval(parse_expr(paste0(gene, '_data')))[which(eval(parse_expr(paste0(gene, '_data$Variant_ID'))) == variant), 'Transcript']
-    if (length(tx)==0) {NA}
-    else {tx}
-  })
-  
-  UGT2_variants[i, 1:10] <- variant_txs
-  
-  variant_anno <- unlist(sapply(UGT2_genes, function(gene){
-    eval(parse_expr(paste0(gene, '_data')))[which(eval(parse_expr(paste0(gene, '_data$Variant_ID'))) == variant), 'VEP_Annotation']
-  }))
-  
-  if (length(unique(variant_anno))==1){
-    UGT2_variants$VEP_Annotation[i] <- unique(variant_anno)
-  }
-  else{
-    UGT2_variants$VEP_Annotation[i] <- toString(variant_anno)
-  }
-  
-  UGT2_variants$Position[i] <- as.numeric(strsplit(variant, '-')[[1]][2])
-  
-  i=i+1
-}
-
-rownames(UGT2_variants) <- unique_UGT2_variants
+create_gene_fam_table('UGT2')
 
 
 ############################
@@ -163,38 +142,7 @@ sapply(UGT3_genes, function(x){unique(eval(parse_expr(paste0(x, '_data$Chromosom
 # UGT3A1 UGT3A2 
 #      5      5 
 
-unique_UGT3_variants <- unique(c(UGT3A1_data$Variant_ID, UGT3A2_data$Variant_ID))
-UGT3_variants <- data.frame(matrix(ncol = 4, nrow = 0))
-colnames(UGT3_variants) <- c(UGT3_genes, 'VEP_Annotation', 'Position')
-
-i=1
-for (variant in unique_UGT3_variants){
-  
-  variant_txs <- sapply(UGT3_genes, function(gene){
-    tx <- eval(parse_expr(paste0(gene, '_data')))[which(eval(parse_expr(paste0(gene, '_data$Variant_ID'))) == variant), 'Transcript']
-    if (length(tx)==0) {NA}
-    else {tx}
-  })
-  
-  UGT3_variants[i, 1:2] <- variant_txs
-  
-  variant_anno <- unlist(sapply(UGT3_genes, function(gene){
-    eval(parse_expr(paste0(gene, '_data')))[which(eval(parse_expr(paste0(gene, '_data$Variant_ID'))) == variant), 'VEP_Annotation']
-  }))
-
-  if (length(unique(variant_anno))==1){
-    UGT3_variants$VEP_Annotation[i] <- unique(variant_anno)
-  }
-  else{
-    UGT3_variants$VEP_Annotation[i] <- toString(variant_anno)
-  }
-  
-  UGT3_variants$Position[i] <- as.numeric(strsplit(variant, '-')[[1]][2])
-  
-  i=i+1
-}
-
-rownames(UGT3_variants) <- unique_UGT3_variants
+create_gene_fam_table('UGT3')
 
 
 ############################
@@ -206,8 +154,8 @@ unique(UGT8_data$Chromosome)
 ## Variant_ID's are unique so they all appear once in UGT8
 which(duplicated(UGT8_data$Variant_ID))
 #  integer(0)
-
-
+unique_UGT8_variants <- UGT8_data$Variant_ID
+  
 # ________________________________________________________________________________________
 #  1.1.1.1 Verify there are no overlapping variants between genes from different families
 
