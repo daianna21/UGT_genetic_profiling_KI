@@ -111,10 +111,10 @@ sapply(UGT1_genes, function(x){unique(eval(parse_expr(paste0(x, '_data$Chromosom
 # UGT1A1  UGT1A3  UGT1A4  UGT1A5  UGT1A6  UGT1A7  UGT1A8  UGT1A9 UGT1A10 
 #      2       2       2       2       2       2       2       2       2 
 
-########## *** UGT1A1 and UGT1A8 txs are swapped; take only the canonical tx of these genes for all of their variants *** ##########
-
+########## *** UGT1A1 and UGT1A8 txs are swapped; take only the unique / most likely tx of these genes for all of their variants *** ##########
+ 
 UGT1A1_data$Transcript <- rep('ENST00000305208.5', dim(UGT1A1_data)[1])
-UGT1A8_data$Transcript <- rep('ENST00000373450.4', dim(UGT1A8_data)[1])
+UGT1A8_data$Transcript <- rep('ENST00000360418.3', dim(UGT1A8_data)[1])
 
 create_gene_fam_table('UGT1')
 
@@ -148,13 +148,17 @@ create_gene_fam_table('UGT3')
 ############################
 ####    UGT8 genes 
 ############################
+
+UGT8_genes <- c('UGT8')
 unique(UGT8_data$Chromosome)
 #    4 
 
 ## Variant_ID's are unique so they all appear once in UGT8
 which(duplicated(UGT8_data$Variant_ID))
 #  integer(0)
+create_gene_fam_table('UGT8')
 unique_UGT8_variants <- UGT8_data$Variant_ID
+
   
 # ________________________________________________________________________________________
 #  1.1.1.1 Verify there are no overlapping variants between genes from different families
@@ -184,7 +188,7 @@ length(intersect(unique_UGT3_variants, unique_UGT8_variants))
 ## Define canonical/most common tx for each gene
 canonical_UGT1_txs <- list('UGT1A1'= 'ENST00000305208.5', 'UGT1A3'='ENST00000482026.1', 'UGT1A4'='ENST00000373409.3', 
                            'UGT1A5'='ENST00000373414.3', 'UGT1A6'='ENST00000305139.6', 'UGT1A7'='ENST00000373426.3', 
-                           'UGT1A8'= 'ENST00000373450.4', 'UGT1A9'= 'ENST00000354728.4', 'UGT1A10'='ENST00000344644.5')
+                           'UGT1A8'= 'ENST00000360418.3', 'UGT1A9'= 'ENST00000354728.4', 'UGT1A10'='ENST00000344644.5')
 
 canonical_UGT2_txs <- list('UGT2A1'= 'ENST00000503640.1', 'UGT2A2'='ENST00000457664.2', 'UGT2A3'='ENST00000251566.4', 
                            'UGT2B4'='ENST00000305107.6', 'UGT2B7'='ENST00000305231.7', 'UGT2B10'='ENST00000265403.7', 
@@ -198,31 +202,47 @@ canonical_UGT8_txs <- list('UGT8'= 'ENST00000310836.6')
 
 ## % of variants in a gene that are present in the canonical tx of the gene
 
+for (gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')) {
+  UGT_variants <- eval(parse_expr(paste0(gene_family, '_variants')))
+  canonical_UGT_txs <- eval(parse_expr(paste0('canonical_', gene_family, '_txs')))
+  
+  for(gene in gene_family){
+    
+    ## Genes of gene family
+    genes <- eval(parse_expr(paste0(gene_family, '_genes')))
+    
+    ## For each gene
+    print(sapply(genes, function(x){
+      length(which(UGT_variants[[x]] == canonical_UGT_txs[[x]]))/length(which(!is.na(UGT_variants[[x]]))) * 100}
+    ))
+    
+    ## In the whole family
+    ## (For shared variants, if they are in canonical txs of all genes in which they are)
+    for (i in 1:dim(UGT_variants)[1]){
+      var_txs <- UGT_variants[i, which(!is.na(UGT_variants[i, 1:length(genes)]))] 
+      ## If all txs of a variant are canonical
+      if (length(which(var_txs %in% unlist(canonical_UGT_txs))) == length(var_txs)){
+        UGT_variants$Canonical_txs[i] <- TRUE
+      }
+      else{
+        UGT_variants$Canonical_txs[i] <- FALSE
+      }
+    }
+    
+    assign(paste0(gene, '_variants'), UGT_variants)
+    print(table(UGT_variants$Canonical_txs)['TRUE'] / dim(UGT_variants)[1] * 100)
+  }
+}
+
 ###################
 ####  UGT1 genes
 ###################
 
-## For each gene
-sapply(UGT1_genes, function(x){
-  length(which(UGT1_variants[[x]] == canonical_UGT1_txs[[x]]))/length(which(!is.na(UGT1_variants[[x]]))) * 100}
-  )
+## % of variants in each gene that are in the canonical tx
+
 # UGT1A1    UGT1A3    UGT1A4    UGT1A5    UGT1A6    UGT1A7    UGT1A8    UGT1A9   UGT1A10 
 # 100.00000 100.00000 100.00000 100.00000  96.03524  95.40682 100.00000 100.00000  97.13262 
 
-
-## In the whole family
-## (For shared variants, if they are in canonical txs of all genes in which they are)
-for (i in 1:dim(UGT1_variants)[1]){
-  var_txs <- UGT1_variants[i, which(!is.na(UGT1_variants[i, 1:9]))] 
-  ## If all txs of a variant are canonical
-  if (length(which(var_txs %in% unlist(canonical_UGT1_txs))) == length(var_txs)){
-    UGT1_variants$Canonical_txs[i] <- TRUE
-  }
-  else{
-    UGT1_variants$Canonical_txs[i] <- FALSE
-  }
-}
-table(UGT1_variants$Canonical_txs)['TRUE'] / dim(UGT1_variants)[1] * 100
 ## % of total UGT1 variants that appear in canonical txs
 # 98.31384 
 
@@ -231,22 +251,9 @@ table(UGT1_variants$Canonical_txs)['TRUE'] / dim(UGT1_variants)[1] * 100
 ####  UGT2 genes
 ###################
 
-sapply(UGT2_genes, function(x){
-  length(which(UGT2_variants[[x]] == canonical_UGT2_txs[[x]]))/length(which(!is.na(UGT2_variants[[x]]))) * 100}
-)
 # UGT2A1    UGT2A2    UGT2A3    UGT2B4    UGT2B7   UGT2B10   UGT2B11   UGT2B15   UGT2B17   UGT2B28 
 # 97.41268  99.86339  98.91041  94.64752  99.47507  99.88208 100.00000 100.00000 100.00000 100.00000  
 
-for (i in 1:dim(UGT2_variants)[1]){
-  var_txs <- UGT2_variants[i, which(!is.na(UGT2_variants[i, 1:10]))] 
-  if (length(which(var_txs %in% unlist(canonical_UGT2_txs))) == length(var_txs)){
-    UGT2_variants$Canonical_txs[i] <- TRUE
-  }
-  else{
-    UGT2_variants$Canonical_txs[i] <- FALSE
-  }
-}
-table(UGT2_variants$Canonical_txs)['TRUE'] / dim(UGT2_variants)[1] * 100
 ## % of total UGT2 variants in canonical txs
 # 98.95475
 
@@ -255,22 +262,9 @@ table(UGT2_variants$Canonical_txs)['TRUE'] / dim(UGT2_variants)[1] * 100
 ####  UGT3 genes
 ###################
 
-sapply(UGT3_genes, function(x){
-  length(which(UGT3_variants[[x]] == canonical_UGT3_txs[[x]]))/length(which(!is.na(UGT3_variants[[x]]))) * 100}
-)
 # UGT3A1   UGT3A2 
 # 93.36735 99.56012 
 
-for (i in 1:dim(UGT3_variants)[1]){
-  var_txs <- UGT3_variants[i, which(!is.na(UGT3_variants[i, 1:2]))] 
-  if (length(which(var_txs %in% unlist(canonical_UGT3_txs))) == length(var_txs)){
-    UGT3_variants$Canonical_txs[i] <- TRUE
-  }
-  else{
-    UGT3_variants$Canonical_txs[i] <- FALSE
-  }
-}
-table(UGT3_variants$Canonical_txs)['TRUE'] / dim(UGT3_variants)[1] * 100
 ## % of total UGT3 variants in canonical txs
 # 96.24829 
 
@@ -279,9 +273,6 @@ table(UGT3_variants$Canonical_txs)['TRUE'] / dim(UGT3_variants)[1] * 100
 ####  UGT8 gene
 ###################
 
-sapply(UGT8_genes, function(x){
-  length(which(UGT8_data$Transcript == canonical_UGT8_txs[[x]]))/length(which(!is.na(UGT8_data$Transcript))) * 100}
-)
 # UGT8 
 # 97.22222 
 
@@ -290,11 +281,14 @@ sapply(UGT8_genes, function(x){
 ####  All UGT genes
 ######################
 
-## % of total UGT variants in canonical txs
-vars_in_canonical_txs <- sum(table(UGT1_variants$Canonical_txs)['TRUE'], table(UGT2_variants$Canonical_txs)['TRUE'], table(UGT3_variants$Canonical_txs)['TRUE'], 
-    length(which(UGT8_data$Transcript == canonical_UGT8_txs)))
-total_vars <- sum(dim(UGT1_variants)[1], dim(UGT2_variants)[1], dim(UGT3_variants)[1], dim(UGT8_data)[1])
+gene_families <- c('UGT1', 'UGT2', 'UGT3', 'UGT8')
 
+## Total number of UGT variants in canonical txs
+vars_in_canonical_txs <- sum(unlist(sapply(paste0('table(', gene_families, '_variants$Canonical_txs)[\'TRUE\']'), function(x){eval(parse_expr(x))})))
+## Total variants in all UGT families
+total_vars <- sum(unlist(sapply(paste0('dim(', gene_families, '_variants)[1]'), function(x){eval(parse_expr(x))})))
+
+## % of total UGT variants in canonical txs
 vars_in_canonical_txs / total_vars * 100
 # [1] 98.39432
 
@@ -306,12 +300,10 @@ vars_in_canonical_txs / total_vars * 100
 # _____________________________________________________________________________
 
 ## Conserve variants in canonical txs only
-
 UGT1_variants_canonical <- UGT1_variants[UGT1_variants$Canonical_txs==TRUE, ]
 UGT2_variants_canonical <- UGT2_variants[UGT2_variants$Canonical_txs==TRUE, ]
 UGT3_variants_canonical <- UGT3_variants[UGT3_variants$Canonical_txs==TRUE, ]
-UGT8_variants_canonical <- UGT8_data[UGT8_data$Canonical_txs==TRUE, c('Transcript', 'VEP_Annotation', 'Position', 'Canonical_txs')]
-rownames(UGT8_variants_canonical) <- UGT8_data[UGT8_data$Canonical_txs==TRUE, 'Variant_ID']
+UGT8_variants_canonical <- UGT8_variants[UGT8_variants$Canonical_txs==TRUE, ]
 
 ## Define end of 5'-UTR of each tx 
 fiveUTR_end <- list('ENST00000305208.5'= 234668933,
@@ -320,7 +312,7 @@ fiveUTR_end <- list('ENST00000305208.5'= 234668933,
                     'ENST00000373414.3'= 234621638,
                     'ENST00000305139.6'= 234601650,
                     'ENST00000373426.3'= 234590584,
-                    'ENST00000373450.4'= 234526353,
+                    'ENST00000360418.3'= 234668934, ##
                     'ENST00000354728.4'= 234580580,
                     'ENST00000344644.5'= 234545168,
                     'ENST00000503640.1'= 70513363, 
@@ -344,7 +336,7 @@ threeUTR_start <- list('ENST00000305208.5'= 234681206,
                        'ENST00000373414.3'= 234681206,
                        'ENST00000305139.6'= 234681206,
                        'ENST00000373426.3'= 234681206,
-                       'ENST00000373450.4'= 234681206,
+                       'ENST00000360418.3'= 234678208, ##
                        'ENST00000354728.4'= 234681206,
                        'ENST00000344644.5'= 234681206,
                        'ENST00000503640.1' = 70455089, 
@@ -488,8 +480,15 @@ add_tx_location <- function(gene_family){
   }
 }
 
+## Add variant location for variants in each gene dataset
+add_tx_location('UGT1')
+add_tx_location('UGT2')
+add_tx_location('UGT3')
+add_tx_location('UGT8')
+
+
 ############################################################################
-############################  Variants per gene  ###########################
+###########################  Variants per gene  ############################ 
 
 ## Plot number of variants from each category in each gene
 
@@ -578,12 +577,6 @@ barplot_gene_fam<- function(gene_family){
   
   return(p)
 }
-
-## Add variant location for variants in each gene dataset
-add_tx_location('UGT1')
-add_tx_location('UGT2')
-add_tx_location('UGT3')
-add_tx_location('UGT8')
 
 p1 <- barplot_gene_fam('UGT1')
 p2 <- barplot_gene_fam('UGT2')
