@@ -1225,6 +1225,13 @@ ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf')
 
 ## FUTURE
 
+## Define functional categories of predicted effects of exonic variants
+
+LoF <- c('splice_donor', 'splice_acceptor', 'stop_lost', 'stop_gained', 'frameshift')
+neutral <- c('synonymous')
+## missense functions with ANOVA
+# deletereous?
+  
 # 
 # for (gene in UGT_genes){
 #   
