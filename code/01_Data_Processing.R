@@ -111,13 +111,12 @@ sapply(UGT1_genes, function(x){unique(eval(parse_expr(paste0(x, '_data$Chromosom
 # UGT1A1  UGT1A3  UGT1A4  UGT1A5  UGT1A6  UGT1A7  UGT1A8  UGT1A9 UGT1A10 
 #      2       2       2       2       2       2       2       2       2 
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-## !! UGT1A1 and UGT1A8 txs are swapped; take only the unique / canonical tx of these 
-##                     genes for all of their variants !!
-
-UGT1A1_data$Transcript <- rep('ENST00000305208.5', dim(UGT1A1_data)[1])
-UGT1A8_data$Transcript <- rep('ENST00000373450.4', dim(UGT1A8_data)[1])
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## !! UGT1A1 and UGT1A8 txs are swapped; take only the unique / canonical tx of these   # |
+##                     genes for all of their variants !!                               # |
+UGT1A1_data$Transcript <- rep('ENST00000305208.5', dim(UGT1A1_data)[1])                 # |
+UGT1A8_data$Transcript <- rep('ENST00000373450.4', dim(UGT1A8_data)[1])                 # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 
 create_gene_fam_table('UGT1')
 
@@ -186,7 +185,7 @@ length(intersect(unique_UGT3_variants, unique_UGT8_variants))
 #  1.1.2 Quantify the proportion of variants present in the canonical transcripts* of UGT genes
 # _______________________________________________________________________________________________
 
-##  *Canonical transcript in GRCh38.p14 or the most frequent/unique transcript for the gene
+##  * Canonical transcript in GRCh38.p14 or the most frequent/unique transcript for the gene
 
 ## Define canonical/most common tx for each gene
 canonical_UGT1_txs <- list('UGT1A1'= 'ENST00000305208.5', 'UGT1A3'='ENST00000482026.1', 'UGT1A4'='ENST00000373409.3', 
