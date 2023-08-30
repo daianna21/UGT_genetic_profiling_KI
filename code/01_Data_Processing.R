@@ -39,7 +39,6 @@ for (gene in UGT_genes){
 }
 
 
-
 ################################################################################
 ##           1.1  Correct variant counts within each gene family
 ################################################################################
@@ -110,13 +109,6 @@ UGT1_genes <- c('UGT1A1', 'UGT1A3', 'UGT1A4', 'UGT1A5', 'UGT1A6', 'UGT1A7', 'UGT
 sapply(UGT1_genes, function(x){unique(eval(parse_expr(paste0(x, '_data$Chromosome'))))})
 # UGT1A1  UGT1A3  UGT1A4  UGT1A5  UGT1A6  UGT1A7  UGT1A8  UGT1A9 UGT1A10 
 #      2       2       2       2       2       2       2       2       2 
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
-## !! UGT1A1 and UGT1A8 txs are swapped; take only the unique / canonical tx of these   # |
-##                     genes for all of their variants !!                               # |
-UGT1A1_data$Transcript <- rep('ENST00000305208.5', dim(UGT1A1_data)[1])                 # |
-UGT1A8_data$Transcript <- rep('ENST00000373450.4', dim(UGT1A8_data)[1])                 # |
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 
 create_gene_fam_table('UGT1')
 
