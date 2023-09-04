@@ -1199,7 +1199,7 @@ for (gene_family in gene_families){
 # [1] "UGT1A5: 2.085"
 # [1] "UGT1A6: 2.406"
 # [1] "UGT1A7: 2.188"
-# [1] "UGT1A8: 2.335"
+# [1] "UGT1A8: 2.107"
 # [1] "UGT1A9: 2.241"
 # [1] "UGT1A10: 2.23"
 
@@ -1234,8 +1234,6 @@ for (gene_family in gene_families){
 
 ################# Expected proportions in each gene #################
 
-  ## Read coding sequence (CDS) and protein sequence of each gene tx
-  
 for (gene_family in gene_families){
   
   genes <- eval(parse_expr(paste0(gene_family, '_genes')))
@@ -1245,6 +1243,7 @@ for (gene_family in gene_families){
     
     tx <- txs[[gene]]
     
+    ## Read coding sequence (CDS) and protein sequence of each gene tx
     fastaFile = read.fasta(paste0("raw-data/CDS_seq_data/Homo_sapiens_", tx, "_sequence.fasta"))
     ## Extract CDS and peptide sequence
     cds_sequence = strsplit(fastaFile$seq.text[1], '')[[1]] 
@@ -1282,7 +1281,11 @@ for (gene_family in gene_families){
         }
         
         ## Evaluate if each mutation changes aa or not (i.e. is missense or synonymous)
-        effects <- append(effects, sapply(mutations, function(mutation){if (GENETIC_CODE[mutation] != aa){'missense'} else{'synonymous'} }))
+        ## Exclude stop-gained mutations (that result in a stop codon identified as '*')
+        effects <- append(effects, sapply(mutations, function(mutation){if (GENETIC_CODE[mutation] != "*"){
+                                                                          if (GENETIC_CODE[mutation] != aa){'missense'} else{'synonymous'}
+                                                                        } else {'stop gained'}
+                                                      }))
         
         ## Next codon and aa
         i=i+3
@@ -1306,7 +1309,7 @@ for (gene_family in gene_families){
 # [1] "UGT1A5: 3.314"
 # [1] "UGT1A6: 3.487"
 # [1] "UGT1A7: 3.45"
-# [1] "UGT1A8: 3.385"
+# [1] "UGT1A8: 3.45"
 # [1] "UGT1A9: 3.483"
 # [1] "UGT1A10: 3.5"
 
@@ -1338,7 +1341,11 @@ for (gene_family in gene_families){
 # [1] "UGT8: 3.446"
 
 
-################# Proportions in each gene family #################
+
+
+
+
+
 
 
 
