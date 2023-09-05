@@ -1,11 +1,10 @@
 
-
 library(here)
 library(readr)
 library(rlang)
 library(ggplot2)
 library(cowplot)
-library(phylotools)
+
 
 ####################################################################################################
 ##                                1. Data Processing and Correction
@@ -107,6 +106,11 @@ canonical_UGT3_txs <- list('UGT3A1'= 'ENST00000274278.3', 'UGT3A2'='ENST00000282
 
 canonical_UGT8_txs <- list('UGT8'= 'ENST00000310836.6')
 
+save(canonical_UGT1_txs, file = paste0('processed-data/01_Data_Processing/canonical_UGT1_txs.Rdata'))
+save(canonical_UGT2_txs, file = paste0('processed-data/01_Data_Processing/canonical_UGT2_txs.Rdata'))
+save(canonical_UGT3_txs, file = paste0('processed-data/01_Data_Processing/canonical_UGT3_txs.Rdata'))
+save(canonical_UGT8_txs, file = paste0('processed-data/01_Data_Processing/canonical_UGT8_txs.Rdata'))
+
 
 ## % of variants in a gene that are present in the canonical tx of the gene
 
@@ -131,6 +135,7 @@ for (gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')) {
     
     assign(paste0(gene, '_data'), gene_data)
     assign(paste0(gene, '_canonical_data'), gene_canonical_data)
+    save(gene_data, file = paste0('processed-data/01_Data_Processing/', gene, '_data.Rdata'))
   }
   
 }
@@ -486,6 +491,7 @@ add_tx_location <- function(gene_family){
     gene_data$Location_in_txs <- sapply(1:dim(gene_data)[1], function(i){
       location_determination(gene_data$Position[i], gene_data$Transcript[i], NULL)[[1]]})
     assign(paste0(gene, '_canonical_data'), gene_data, envir = parent.frame())
+    save(gene_data, file = paste0('processed-data/01_Data_Processing/', gene, '_canonical_data.Rdata'))
   }
 }
 
@@ -512,6 +518,7 @@ for (gene_family in gene_families){
       UGT_variants$Location_in_txs[i] <- toString(locations)
   }
   assign(paste0(gene_family, '_variants'), UGT_variants)
+  save(UGT_variants, file = paste0('processed-data/01_Data_Processing/', gene_family, '_variants.Rdata'))
 }
 
 
@@ -643,7 +650,7 @@ table(sapply(pos, function(x){location_determination(x, canonical_UGT1_txs[['UGT
 
 # ------------------------------------------------------
 ## 3.  Genes with Intron 1-2 variants
-vars <- which(UGT1_variants$Location_in_txs == 'Intron 1-2' & rownames(UGT1_variants) %in% UGT1_shared_variants_twoGenes)
+vars <- which(UGT1_variants$Location_in_txs == 'Intron 1-2' & rownames(UGT1_variants) %in% UGT1_shared_variants_2Genes)
 table(apply(sapply(vars, function(x){colnames(UGT1_variants[x, which(!is.na(UGT1_variants[x, 1:9]))])}), 2, toString))
 # UGT1A5, UGT1A8      UGT1A8, UGT1A9 
 #             21                  13 
@@ -829,6 +836,7 @@ exonic_variants_per_gene <- function(gene_family){
     gene_data <- eval(parse_expr(paste0(gene, '_canonical_data')))
     exonic_vars <- gene_data[grep('Exon', gene_data$Location_in_txs), ]
     assign(paste0(gene, '_exonic_data'), exonic_vars, envir = parent.frame())
+    save(exonic_vars, file = paste0('processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata'))
   }
 }  
 
@@ -1118,6 +1126,7 @@ create_exonic_gene_fam_table <- function(gene_family){
   
   assign(paste0('unique_', gene_family, '_exonic_variants'), unique_UGT_exonic_variants, envir = parent.frame())
   assign(paste0(gene_family, '_exonic_variants'), UGT_exonic_variants, envir = parent.frame())
+  save(UGT_exonic_variants, file = paste0('processed-data/01_Data_Processing/', gene_family, '_exonic_variants.Rdata'))
 }
 
 create_exonic_gene_fam_table('UGT1')
@@ -1170,184 +1179,11 @@ ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf')
 
 
 
-# _______________________________________________________________________________________
-#  1.1.4 Compare expected vs observed proportions of missense and synonymous variants
-# _______________________________________________________________________________________
+# _____________________________________________________________________________
+#  1.1.4 Integration of additional variants of interest
+# _____________________________________________________________________________
 
-################# Observed proportions in each gene #################
-
-## Proportions given by # missense variants / # synonymous variants
-for (gene_family in gene_families){
-  
-  genes<- eval(parse_expr(paste0(gene_family, '_genes')))
-  
-  for (gene in genes){
-    exonic_gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
-    print(paste0(gene, ': ', signif(table(exonic_gene_data$VEP_Annotation)['missense_variant'] 
-                                  / table(exonic_gene_data$VEP_Annotation)['synonymous_variant'], digits = 4) ))
-    
-  }
-}
-
-######################
-####  UGT1 variants
-######################
-
-# [1] "UGT1A1: 2.384"
-# [1] "UGT1A3: 2.335"
-# [1] "UGT1A4: 2.275"
-# [1] "UGT1A5: 2.085"
-# [1] "UGT1A6: 2.406"
-# [1] "UGT1A7: 2.188"
-# [1] "UGT1A8: 2.107"
-# [1] "UGT1A9: 2.241"
-# [1] "UGT1A10: 2.23"
-
-######################
-####  UGT2 variants
-######################
-
-# [1] "UGT2A1: 3.118"
-# [1] "UGT2A2: 3.056"
-# [1] "UGT2A3: 2.725"
-# [1] "UGT2B4: 2.784"
-# [1] "UGT2B7: 2.927"
-# [1] "UGT2B10: 3.211"
-# [1] "UGT2B11: 3.099"
-# [1] "UGT2B15: 2.798"
-# [1] "UGT2B17: 2.924"
-# [1] "UGT2B28: 2.831"
-
-######################
-####  UGT3 variants
-######################
-
-# [1] "UGT3A1: 2.382"
-# [1] "UGT3A2: 2.424"
-
-######################
-####  UGT8 variants
-######################
-
-# [1] "UGT8: 1.606"
-
-
-################# Expected proportions in each gene #################
-
-for (gene_family in gene_families){
-  
-  genes <- eval(parse_expr(paste0(gene_family, '_genes')))
-  txs <- eval(parse_expr(paste0('canonical_', gene_family, '_txs')))
-
-  for (gene in genes){
-    
-    tx <- txs[[gene]]
-    
-    ## Read coding sequence (CDS) and protein sequence of each gene tx
-    fastaFile = read.fasta(paste0("raw-data/CDS_seq_data/Homo_sapiens_", tx, "_sequence.fasta"))
-    ## Extract CDS and peptide sequence
-    cds_sequence = strsplit(fastaFile$seq.text[1], '')[[1]] 
-    ## Remove initial 3 nts (to avoid start codon variants)
-    cds_sequence = cds_sequence[-c(1:3)]
-    ## Remove last 3 nts (avoid stop codon variants)
-    cds_sequence = cds_sequence[-(c(length(cds_sequence)-2):length(cds_sequence))]
-    pep_sequence = strsplit(fastaFile$seq.text[2], '')[[1]]
-    ## Remove initial aa (Met)
-    pep_sequence = pep_sequence[-1]
-    
-    ## Verify # nts in CDS = # amino acids x 3
-    if (length(cds_sequence) == length(pep_sequence) *3) {
-    
-      nts <- c('A', 'G', 'T', 'C')
-      effects <- vector()
-      i=1
-      j=1
-      while (i< length(cds_sequence)-1) {
-        
-        ## Each codon
-        codon = cds_sequence[i:(i+2)]
-        ## Codified amino acid 
-        aa = pep_sequence[j]
-        
-        ## 9 possible point mutations for codon
-        mutations <- vector()
-        for (nt in 1:3){
-          mutations <- append(mutations, unlist(sapply(nts, function(nt2){
-            if (codon[nt]!=nt2){
-              ## Replace nt in codon 
-              codon[nt] <- nt2
-              paste(codon, collapse = '')} 
-          })))
-        }
-        
-        ## Evaluate if each mutation changes aa or not (i.e. is missense or synonymous)
-        ## Exclude stop-gained mutations (that result in a stop codon identified as '*')
-        effects <- append(effects, sapply(mutations, function(mutation){if (GENETIC_CODE[mutation] != "*"){
-                                                                          if (GENETIC_CODE[mutation] != aa){'missense'} else{'synonymous'}
-                                                                        } else {'stop gained'}
-                                                      }))
-        
-        ## Next codon and aa
-        i=i+3
-        j=j+1
-      }
-      
-      ## Proportion 
-      print(paste0(gene, ': ', signif(table(effects)['missense']/table(effects)['synonymous'], digits=4)))
-      
-    }
-  }
-}
-  
-######################
-####  UGT1 variants
-######################
-
-# [1] "UGT1A1: 3.333"
-# [1] "UGT1A3: 3.385"
-# [1] "UGT1A4: 3.31"
-# [1] "UGT1A5: 3.314"
-# [1] "UGT1A6: 3.487"
-# [1] "UGT1A7: 3.45"
-# [1] "UGT1A8: 3.45"
-# [1] "UGT1A9: 3.483"
-# [1] "UGT1A10: 3.5"
-
-######################
-####  UGT2 variants
-######################
-
-# [1] "UGT2A1: 3.605"
-# [1] "UGT2A2: 3.59"
-# [1] "UGT2A3: 3.61"
-# [1] "UGT2B4: 3.623"
-# [1] "UGT2B7: 3.719"
-# [1] "UGT2B10: 3.715"
-# [1] "UGT2B11: 3.71"
-# [1] "UGT2B15: 3.723"
-# [1] "UGT2B17: 3.785"
-# [1] "UGT2B28: 3.714"
-
-######################
-####  UGT3 variants
-######################
-
-# [1] "UGT3A1: 3.407"
-# [1] "UGT3A2: 3.509"
-
-######################
-####  UGT8 variants
-######################
-# [1] "UGT8: 3.446"
-
-
-
-
-
-
-
-
-
+#################  #################
 
 
 
