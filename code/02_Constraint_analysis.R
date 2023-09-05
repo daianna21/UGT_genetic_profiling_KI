@@ -208,8 +208,8 @@ for (gene_family in gene_families){
 
 ## Create table with constraint metrics for each gene
 
-constraint_metrics <- data.frame(matrix(ncol = 14, nrow = 22))
-colnames(constraint_metrics) <- c('Gene', 'Gene_family', 'Num_miss_ob', 'Num_syn_ob', 'Prop_ob', 'Num_miss_exp', 'Num_syn_exp', 'Prop_exp',
+constraint_metrics <- data.frame(matrix(ncol = 15, nrow = 22))
+colnames(constraint_metrics) <- c('Gene', 'Gene_family', 'Num_miss_ob', 'Num_syn_ob', 'Prop_ob', 'Num_miss_exp', 'Num_syn_exp', 'Prop_exp', 'diff_Prop_ob_exp',
                                   'Num_miss_ob_gnomAD', 'Num_syn_ob_gnomAD', 'Num_miss_exp_gnomAD', 'Num_syn_exp_gnomAD', 'oe_miss', 'oe_syn')
 constraint_metrics$Gene <- UGT_genes
 constraint_metrics$Gene_family <- rep(c('UGT1', 'UGT2', 'UGT3', 'UGT8'), c(9,10,2,1))
@@ -217,6 +217,7 @@ constraint_metrics$Num_miss_exp <- sapply(paste0('table(', UGT_genes, '_expected
 constraint_metrics$Num_syn_exp <-  sapply(paste0('table(', UGT_genes, '_expected_variant_num)[\'synonymous\']'), function(x){eval(parse_expr(x))})
 constraint_metrics$Prop_exp <- sapply(paste0('signif(table(', UGT_genes, '_expected_variant_num)[\'missense\']/table(', UGT_genes,
                                              '_expected_variant_num)[\'synonymous\'], digits=4)'), function(x){eval(parse_expr(x))})
+constraint_metrics$diff_Prop_ob_exp <- constraint_metrics$Prop_ob - constraint_metrics$Prop_exp
 constraint_metrics$Num_miss_ob <- sapply(paste0('table(', UGT_genes, '_exonic_data$VEP_Annotation)[\'missense_variant\']'), function(x){eval(parse_expr(x))})
 constraint_metrics$Num_syn_ob <- sapply(paste0('table(', UGT_genes, '_exonic_data$VEP_Annotation)[\'synonymous_variant\']'), function(x){eval(parse_expr(x))})
 constraint_metrics$Prop_ob <- sapply(paste0('signif(table(', UGT_genes, '_exonic_data$VEP_Annotation)[\'missense_variant\']/table(', UGT_genes,
@@ -241,7 +242,7 @@ colors_gene_fam <- list('UGT1'='hotpink', 'UGT2'='tan1', 'UGT3'='purple1', 'UGT8
 
 ###############  Correlation between manually computed observed and expected miss/syn proportions  ###############
 
-p1 <- ggplot(constraint_metrics, aes(x=Prop_ob, y=Prop_exp, color = Gene_family)) +
+p1 <- ggplot(constraint_metrics, aes(x=Prop_exp, y=Prop_ob, color = Gene_family)) +
   ## Add scatterplot
   geom_point(size=2) +
   ## Add regression line
@@ -251,10 +252,10 @@ p1 <- ggplot(constraint_metrics, aes(x=Prop_ob, y=Prop_exp, color = Gene_family)
   theme_bw() +
   ## Add Pearson correlation coefficient as subtitle
   labs(
-    subtitle = paste0("Corr: ", signif(cor(constraint_metrics$Prop_ob, constraint_metrics$Prop_exp, method = "pearson"), digits = 3)),
+    subtitle = paste0("Corr: ", signif(cor(constraint_metrics$Prop_exp, constraint_metrics$Prop_ob, method = "pearson"), digits = 3)),
     ## Add axis labels
-    x = 'Observed proportion of missense/synonymous variants',
-    y = 'Expected proportion of missense/synonymous variants',
+    x = 'Expected proportion of missense/synonymous variants',
+    y = 'Observed proportion of missense/synonymous variants',
     color='Gene family'
   ) +
   ## Plot margins and text size
@@ -355,7 +356,51 @@ p5 <- ggplot(constraint_metrics, aes(x=Prop_exp, y=oe_syn, color = Gene_family))
     legend.title = element_text(size =10))
 
 
-plot_grid(p1, p2, p3, p4, p5, nrow=2, rel_widths = c(1,1,1,1,1))
-ggsave('plots/02_Constraint_analysis/Corr_plots.pdf', width = 17, height = 8.5)
+###############  Correlation between missense oe ratio and observed - expected miss/syn proportion ###############  
+
+p6 <- ggplot(constraint_metrics, aes(x=diff_Prop_ob_exp, y=oe_miss, color = Gene_family)) +
+  geom_point(size=2) +
+  stat_smooth(geom = "line", alpha = 0.6, size = 0.7, span = 0.25, method = lm, color = "orangered3") +
+  scale_color_manual(values = colors_gene_fam) +
+  theme_bw() +
+  labs(
+    subtitle = paste0("Corr: ", signif(cor(constraint_metrics$diff_Prop_ob_exp, constraint_metrics$oe_miss, method = "pearson"), digits = 3)),
+    x = 'Observed - Expected proportion of missense/synonymous variants',
+    y = 'oe ratio for number of missense variants (gnomAD)',
+    color='Gene family'
+  ) +
+  theme(
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    axis.title = element_text(size = (11)),
+    axis.text = element_text(size = (10)),
+    plot.subtitle = element_text(size = 9, color = "gray30"),
+    legend.text = element_text(size = 9),
+    legend.title = element_text(size =10))
+
+
+###############  Correlation between synonymous oe ratio and observed - expected miss/syn proportion ###############  
+
+p7 <- ggplot(constraint_metrics, aes(x=diff_Prop_ob_exp, y=oe_syn, color = Gene_family)) +
+  geom_point(size=2) +
+  stat_smooth(geom = "line", alpha = 0.6, size = 0.7, span = 0.25, method = lm, color = "orangered3") +
+  scale_color_manual(values = colors_gene_fam) +
+  theme_bw() +
+  labs(
+    subtitle = paste0("Corr: ", signif(cor(constraint_metrics$diff_Prop_ob_exp, constraint_metrics$oe_syn, method = "pearson"), digits = 3)),
+    x = 'Observed - Expected proportion of missense/synonymous variants',
+    y = 'oe ratio for number of synonymous variants (gnomAD)',
+    color='Gene family'
+  ) +
+  theme(
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    axis.title = element_text(size = (11)),
+    axis.text = element_text(size = (10)),
+    plot.subtitle = element_text(size = 9, color = "gray30"),
+    legend.text = element_text(size = 9),
+    legend.title = element_text(size =10))
+
+
+plot_grid(p1, p2, p3, p4, p5, p6, p7, nrow=2, rel_widths = c(1,1,1,1,1,1.5,1.5))
+ggsave('plots/02_Constraint_analysis/Corr_plots.pdf', width = 25, height = 8.5)
 
 

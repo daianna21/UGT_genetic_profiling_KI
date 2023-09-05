@@ -746,7 +746,7 @@ var_colors <- list('Exon 1'= 'mistyrose2',
                    'Exon 7'= 'orchid3',
                    'Exon'= 'salmon',
                    '5\'UTR, Intron 1-2'= 'firebrick4',
-                   '5\' upstream, Intron 1-2'= 'olivedrab1',
+                   'Intron 1-2, 5\'UTR'= 'olivedrab1',
                    'Intron 1-2'= 'lightblue2',
                    'Intron 2-3'= 'lightsteelblue1', 
                    'Intron 3-4'= 'lightsteelblue2',
@@ -1008,8 +1008,8 @@ ggsave(filename=paste0('plots/01_Data_Processing/Exonic_variants_genes_anno.pdf'
 var_data <- data.frame(matrix(ncol = 3))
 colnames(var_data) <- c('gene_family', 'location', 'number')
 
-locations <- c('5\'UTR',  'Intron 6-7', 'Intron 5-6',  'Intron 4-5', 'Intron 3-4', 'Intron 2-3', 'Intron 1-2', 
-                       '5\'UTR, Intron 1-2', '5\' upstream, Intron 1-2', 
+locations <- c('5\' upstream', '5\'UTR',  'Intron 6-7', 'Intron 5-6',  'Intron 4-5', 'Intron 3-4', 'Intron 2-3', 'Intron 1-2', 
+                       '5\'UTR, Intron 1-2', 'Intron 1-2, 5\'UTR', 
                        'Exon 1', 'Exon 2', 'Exon 3', 'Exon 4', 'Exon 5', 'Exon 6', 'Exon 7', '3\'UTR')
 
 for(gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')){
