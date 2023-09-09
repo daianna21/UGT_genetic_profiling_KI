@@ -1179,27 +1179,312 @@ ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf')
 
 
 
-# _____________________________________________________________________________
-#  1.1.4 Integration of additional variants of interest
-# _____________________________________________________________________________
 
-#################  #################
+################################################################################
+##    1.2  Integration of additional variants of pharmacogenomic relevance
+################################################################################
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Add missing regulatory variant '2-234668879-C-CAT' (UGT1A1*28) for UGT1A1                                                    # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                               # |                 
+## Identify variant in datasets                                                                                                 # |
+unlist(sapply(UGT1_genes, function(gene){if('2-234668879-C-CAT' %in% eval(parse_expr(paste0(gene,'_data$Variant_ID')))){gene}   # |
+                                         else {NULL}}))                                                                         # |
+#  UGT1A8                                                                                                                       # |
+# "UGT1A8"                                                                                                                      # |
+#                                                                                                                               # | 
+## Extract variant info from such gene dataset                                                                                  # | 
+var_data <- UGT1A8_data[UGT1A8_data$Variant_ID=='2-234668879-C-CAT',]                                                           # | 
+#                                                                                                                               # | 
+#   #---------------------------------------------------------------------------------#                                         # |
+#   #                             !!! Warning !!!                                     #                                         # |
+#   #  Consider HGVS, transcript and protein consequence, as well as VEP annotation   #                                         # |
+#   #          can differ between genes based on their tx boundaries.                 #                                         # |
+#   #                                                                                 #                                         # |
+#   #---------------------------------------------------------------------------------#                                         # |
+#                                                                                                                               # | 
+## Change Transcript and VEP Annotation data from UGT1A8 to A1                                                                  # |
+var_data$Transcript <- canonical_UGT1_txs[['UGT1A1']]                                                                           # |
+var_data$Canonical_txs <- TRUE                                                                                                  # |
+var_data$VEP_Annotation <- '5\' upstream'                                                                                       # |
+## Add location in tx for the variant (5' upstream)                                                                             # |
+var_data$Location_in_txs <- location_determination(var_data$Position, var_data$Transcript, NULL)[[1]]                           # |
+                                                                                                                                # | 
+## Add variant data to UGT1A1 complete dataset                                                                                  # |
+UGT1A1_data <- rbind(UGT1A1_data, var_data[,-56])                                                                               # |
+save(UGT1A1_data, file = 'processed-data/01_Data_Processing/UGT1A1_data.Rdata')                                                 # | 
+                                                                                                                                # | 
+## Add variant data to UGT1A1 canonical and exonic dataset                                                                      # |
+UGT1A1_canonical_data <- rbind(UGT1A1_canonical_data, var_data)                                                                 # |
+save(UGT1A1_canonical_data , file = 'processed-data/01_Data_Processing/UGT1A1_canonical_data.Rdata')                            # |
+                                                                                                                                # | 
+UGT1A1_exonic_data <- rbind(UGT1A1_exonic_data, var_data)                                                                       # |
+save(UGT1A1_exonic_data , file = 'processed-data/01_Data_Processing/UGT1A1_exonic_data.Rdata')                                  # |
+#                                                                                                                               # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Check missense variant '2-234669144-G-A' (UGT1A1*6) is present in exonic UGT1A1 data                                               # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                                     # |               
+## Identify variant in datasets                                                                                                       # |
+unlist(sapply(UGT1_genes, function(gene){if('2-234669144-G-A' %in% eval(parse_expr(paste0(gene,'_exonic_data$Variant_ID')))){gene}    # |
+                                         else {NULL}}))                                                                               # |
+#  UGT1A1                                                                                                                             # |
+# "UGT1A1"                                                                                                                            # |
+#                                                                                                                                     # | 
+## Explore data                                                                                                                       # | 
+UGT1A1_exonic_data[UGT1A1_exonic_data$Variant_ID=='2-234669144-G-A', c('Chromosome', 'Position', 'rsIDs', 'Reference', 'Alternate',   # |
+                                                                       'Transcript', 'Protein_Consequence', 'Transcript_Consequence', # |
+                                                                       'VEP_Annotation', 'Location_in_txs')]                          # | 
+#                                                                                                                                     # |
+# Chromosome    Position       rsIDs    Reference   Alternate          Transcript   Protein_Consequence   Transcript_Consequence      # |
+#          2   234669144   rs4148323            G           A   ENST00000305208.5            p.Gly71Arg                 c.211G>A      # |
+#    VEP_Annotation    Location_in_txs                                                                                                # |
+#  missense_variant             Exon 1                                                                                                # |
+#                                                                                                                                     # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
-## Add missing regulatory variant (2-234668879-C-CAT) in UGT1A1 data          # |
-var_data <- UGT1A8_data[UGT1A8_data$Variant_ID=='2-234668879-C-CAT',]
-var_data$Transcript <- unique(UGT1A1_data$Transcript)
-UGT1A1_data <- rbind(var_data, UGT1A1_data)
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Add missing regulatory variant '2-234637707-T-C' for UGT1A3                                                                  # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                               # |                 
+## Identify variant                                                                                                             # |
+unlist(sapply(UGT1_genes, function(gene){if('2-234637707-T-C' %in% eval(parse_expr(paste0(gene,'_data$Variant_ID')))){gene}     # |
+  else {NULL}}))                                                                                                                # |
+#                                                                                                                               # | 
+#  UGT1A8                                                                                                                       # |
+# "UGT1A8"                                                                                                                      # |
+var_data <- UGT1A8_data[UGT1A8_data$Variant_ID=='2-234637707-T-C',]                                                             # | 
+                                                                                                                                # | 
+## Change Transcript and VEP Annotation data from UGT1A8 to A3                                                                  # |
+var_data$Transcript <- canonical_UGT1_txs[['UGT1A3']]                                                                           # |
+var_data$Canonical_txs <- TRUE                                                                                                  # |
+var_data$VEP_Annotation <- '5\' upstream'                                                                                       # |
+## Add location in tx (5' upstream)                                                                                             # |
+var_data$Location_in_txs <- location_determination(var_data$Position, var_data$Transcript, NULL)[[1]]                           # |
+                                                                                                                                # | 
+## Add variant data to UGT1A3 complete, canonical and exonic datasets                                                           # |
+UGT1A3_data <- rbind(UGT1A3_data, var_data[,-56])                                                                               # |
+save(UGT1A3_data, file = 'processed-data/01_Data_Processing/UGT1A3_data.Rdata')                                                 # | 
+                                                                                                                                # | 
+UGT1A3_canonical_data <- rbind(UGT1A3_canonical_data, var_data)                                                                 # |
+save(UGT1A3_canonical_data , file = 'processed-data/01_Data_Processing/UGT1A3_canonical_data.Rdata')                            # |
+                                                                                                                                # | 
+UGT1A3_exonic_data <- rbind(UGT1A3_exonic_data, var_data)                                                                       # |
+save(UGT1A3_exonic_data , file = 'processed-data/01_Data_Processing/UGT1A3_exonic_data.Rdata')                                  # |
+#                                                                                                                               # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Check missense variant '2-234602191-A-G' (UGT1A6*2) is present in exonic UGT1A6 data                                               # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                                     # |               
+## Identify variant in datasets                                                                                                       # |
+unlist(sapply(UGT1_genes, function(gene){if('2-234602191-A-G' %in% eval(parse_expr(paste0(gene,'_exonic_data$Variant_ID')))){gene}    # |
+                                         else {NULL}}))                                                                               # |
+#  UGT1A6                                                                                                                             # |
+# "UGT1A6"                                                                                                                            # |
+#                                                                                                                                     # | 
+## Explore data                                                                                                                       # | 
+UGT1A6_exonic_data[UGT1A6_exonic_data$Variant_ID=='2-234602191-A-G', c('Chromosome', 'Position', 'rsIDs', 'Reference', 'Alternate',   # |
+                                                                       'Transcript', 'Protein_Consequence', 'Transcript_Consequence', # |
+                                                                       'VEP_Annotation', 'Location_in_txs')]                          # | 
+#                                                                                                                                     # |
+# Chromosome    Position       rsIDs    Reference   Alternate          Transcript   Protein_Consequence   Transcript_Consequence      # |
+#          2   234602191   rs2070959            A           G   ENST00000305139.6           p.Thr181Ala                 c.541A>G      # |
+#    VEP_Annotation    Location_in_txs                                                                                                # |
+#  missense_variant             Exon 1                                                                                                # |
+#                                                                                                                                     # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Check missense variant '2-234602202-A-C' (UGT1A6*2) is present in exonic UGT1A6 data                                               # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                                     # |               
+## Identify variant in datasets                                                                                                       # |
+unlist(sapply(UGT1_genes, function(gene){if('2-234602202-A-C' %in% eval(parse_expr(paste0(gene,'_exonic_data$Variant_ID')))){gene}    # |
+  else {NULL}}))                                                                               # |
+#  UGT1A6                                                                                                                             # |
+# "UGT1A6"                                                                                                                            # |
+#                                                                                                                                     # | 
+## Explore data                                                                                                                       # | 
+UGT1A6_exonic_data[UGT1A6_exonic_data$Variant_ID=='2-234602202-A-C', c('Chromosome', 'Position', 'rsIDs', 'Reference', 'Alternate',   # |
+                                                                       'Transcript', 'Protein_Consequence', 'Transcript_Consequence', # |
+                                                                       'VEP_Annotation', 'Location_in_txs')]                          # | 
+#                                                                                                                                     # |
+# Chromosome    Position       rsIDs    Reference   Alternate          Transcript   Protein_Consequence   Transcript_Consequence      # |
+#          2   234602202   rs1105879            A           C   ENST00000305139.6           p.Arg184Ser                 c.552A>C      # |
+#    VEP_Annotation    Location_in_txs                                                                                                # |
+#  missense_variant             Exon 1                                                                                                # |
+#                                                                                                                                     # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Check missense variant '2-234601669-T-G' is present in exonic UGT1A6 data                                                          # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                                     # |               
+## Identify variant in datasets                                                                                                       # |
+unlist(sapply(UGT1_genes, function(gene){if('2-234601669-T-G' %in% eval(parse_expr(paste0(gene,'_exonic_data$Variant_ID')))){gene}    # |
+                                         else {NULL}}))                                                                               # |
+#  UGT1A6                                                                                                                             # |
+# "UGT1A6"                                                                                                                            # |
+#                                                                                                                                     # | 
+## Explore data                                                                                                                       # | 
+UGT1A6_exonic_data[UGT1A6_exonic_data$Variant_ID=='2-234601669-T-G', c('Chromosome', 'Position', 'rsIDs', 'Reference', 'Alternate',   # |
+                                                                       'Transcript', 'Protein_Consequence', 'Transcript_Consequence', # |
+                                                                       'VEP_Annotation', 'Location_in_txs')]                          # | 
+#                                                                                                                                     # |
+# Chromosome    Position       rsIDs    Reference   Alternate          Transcript   Protein_Consequence   Transcript_Consequence      # |
+#          2   234601669   rs6759892            T           G   ENST00000305139.6             p.Ser7Ala                  c.19T>G      # |
+#    VEP_Annotation    Location_in_txs                                                                                                # |
+#  missense_variant             Exon 1                                                                                                # |
+#                                                                                                                                     # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Check missense variant '2-234591205-T-C' is present in exonic UGT1A7 data                                                          # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                                     # |               
+## Identify variant in datasets                                                                                                       # |
+unlist(sapply(UGT1_genes, function(gene){if('2-234591205-T-C' %in% eval(parse_expr(paste0(gene,'_exonic_data$Variant_ID')))){gene}    # |
+                                         else {NULL}}))                                                                               # |
+#  UGT1A7                                                                                                                             # |
+# "UGT1A7"                                                                                                                            # |
+#                                                                                                                                     # | 
+## Explore data                                                                                                                       # | 
+UGT1A7_exonic_data[UGT1A7_exonic_data$Variant_ID=='2-234591205-T-C', c('Chromosome', 'Position', 'rsIDs', 'Reference', 'Alternate',   # |
+                                                                       'Transcript', 'Protein_Consequence', 'Transcript_Consequence', # |
+                                                                       'VEP_Annotation', 'Location_in_txs')]                          # | 
+#                                                                                                                                     # |
+# Chromosome    Position       rsIDs    Reference   Alternate          Transcript   Protein_Consequence   Transcript_Consequence      # |
+#          2   234591205   rs11692021           T           C   ENST00000373426.3           p.Trp208Arg                 c.622T>C      # |
+#    VEP_Annotation    Location_in_txs                                                                                                # |
+#  missense_variant             Exon 1                                                                                                # |
+#                                                                                                                                     # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Check missense variant '2-234526871-C-G' is present in exonic UGT1A8 data                                                          # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                                     # |               
+## Identify variant in datasets                                                                                                       # |
+unlist(sapply(UGT1_genes, function(gene){if('2-234526871-C-G' %in% eval(parse_expr(paste0(gene,'_exonic_data$Variant_ID')))){gene}    # |
+                                         else {NULL}}))                                                                               # |
+#  UGT1A8                                                                                                                             # |
+# "UGT1A8"                                                                                                                            # |
+#                                                                                                                                     # | 
+## Explore data                                                                                                                       # | 
+UGT1A8_exonic_data[UGT1A8_exonic_data$Variant_ID=='2-234526871-C-G', c('Chromosome', 'Position', 'rsIDs', 'Reference', 'Alternate',   # |
+                                                                       'Transcript', 'Protein_Consequence', 'Transcript_Consequence', # |
+                                                                       'VEP_Annotation', 'Location_in_txs')]                          # | 
+#                                                                                                                                     # |
+# Chromosome    Position       rsIDs    Reference   Alternate          Transcript   Protein_Consequence   Transcript_Consequence      # |
+#          2   234526871   rs1042597            C           G   ENST00000373450.4           p.Ala173Gly                 c.518C>G      # |
+#    VEP_Annotation    Location_in_txs                                                                                                # |
+#  missense_variant             Exon 1                                                                                                # |
+#                                                                                                                                     # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Check missense variant '4-70346565-A-T' is present in exonic UGT2B4 data                                                           # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                                     # |               
+## Identify variant in datasets                                                                                                       # |
+unlist(sapply(UGT2_genes, function(gene){if('4-70346565-A-T' %in% eval(parse_expr(paste0(gene,'_exonic_data$Variant_ID')))){gene}     # |
+                                        else {NULL}}))                                                                                # |
+#  UGT2B4                                                                                                                             # |
+# "UGT2B4"                                                                                                                            # |
+#                                                                                                                                     # | 
+## Explore data                                                                                                                       # | 
+UGT2B4_exonic_data[UGT2B4_exonic_data$Variant_ID=='4-70346565-A-T', c('Chromosome', 'Position', 'rsIDs', 'Reference', 'Alternate',    # |
+                                                                       'Transcript', 'Protein_Consequence', 'Transcript_Consequence', # |
+                                                                       'VEP_Annotation', 'Location_in_txs')]                          # | 
+#                                                                                                                                     # |
+# Chromosome    Position        rsIDs    Reference   Alternate          Transcript   Protein_Consequence   Transcript_Consequence     # |
+#          4    70346565   rs13119049            A           T   ENST00000305107.6           p.Asp458Glu                c.1374T>A     # |
+#    VEP_Annotation    Location_in_txs                                                                                                # |
+#  missense_variant             Exon 6                                                                                                # |
+#                                                                                                                                     # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Check missense variant '4-69964338-T-C' is present in exonic UGT2B7 data                                                           # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                                     # |               
+## Identify variant in datasets                                                                                                       # |
+unlist(sapply(UGT2_genes, function(gene){if('4-69964338-T-C' %in% eval(parse_expr(paste0(gene,'_exonic_data$Variant_ID')))){gene}     # |
+                                         else {NULL}}))                                                                               # |
+#  UGT2B7                                                                                                                             # |
+# "UGT2B7"                                                                                                                            # |
+#                                                                                                                                     # | 
+## Explore data                                                                                                                       # | 
+UGT2B7_exonic_data[UGT2B7_exonic_data$Variant_ID=='4-69964338-T-C', c('Chromosome', 'Position', 'rsIDs', 'Reference', 'Alternate',    # |
+                                                                      'Transcript', 'Protein_Consequence', 'Transcript_Consequence',  # |
+                                                                      'VEP_Annotation', 'Location_in_txs')]                           # | 
+#                                                                                                                                     # |
+# Chromosome    Position        rsIDs    Reference   Alternate          Transcript   Protein_Consequence   Transcript_Consequence     # |
+#          4    69964338    rs7439366            T           C   ENST00000305231.7           p.Tyr268His                 c.802T>C     # |
+#    VEP_Annotation    Location_in_txs                                                                                                # |
+#  missense_variant             Exon 2                                                                                                # |
+#                                                                                                                                     # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Check LoF variant '4-69962449-G-T' is present in exonic UGT2B7 data                                                                # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                                     # |               
+## Identify variant in datasets                                                                                                       # |
+unlist(sapply(UGT2_genes, function(gene){if('4-69962449-G-T' %in% eval(parse_expr(paste0(gene,'_exonic_data$Variant_ID')))){gene}     # |
+                                         else {NULL}}))                                                                               # |
+#  UGT2B7                                                                                                                             # |
+# "UGT2B7"                                                                                                                            # |
+#                                                                                                                                     # | 
+## Explore data                                                                                                                       # | 
+UGT2B7_exonic_data[UGT2B7_exonic_data$Variant_ID=='4-69962449-G-T', c('Chromosome', 'Position', 'rsIDs', 'Reference', 'Alternate',    # |
+                                                                      'Transcript', 'Protein_Consequence', 'Transcript_Consequence',  # |
+                                                                      'VEP_Annotation', 'Location_in_txs')]                           # | 
+#                                                                                                                                     # |
+# Chromosome    Position        rsIDs    Reference   Alternate          Transcript   Protein_Consequence   Transcript_Consequence     # |
+#          4    69962449    rs12233719           G           T   ENST00000305231.7            p.Ala71Ser                 c.211G>T     # |
+#    VEP_Annotation    Location_in_txs                                                                                                # |
+#  missense_variant             Exon 1                                                                                                # |
+#                                                                                                                                     # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+## Check missense variant '4-69536084-A-C' is present in exonic UGT2B15 data                                                          # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+#                                                                                                                                     # |               
+## Identify variant in datasets                                                                                                       # |
+unlist(sapply(UGT2_genes, function(gene){if('4-69536084-A-C' %in% eval(parse_expr(paste0(gene,'_exonic_data$Variant_ID')))){gene}     # |
+                                         else {NULL}}))                                                                               # |
+#  UGT2B15                                                                                                                            # |
+# "UGT2B15"                                                                                                                           # |
+#                                                                                                                                     # | 
+## Explore data                                                                                                                       # | 
+UGT2B15_exonic_data[UGT2B15_exonic_data$Variant_ID=='4-69536084-A-C', c('Chromosome', 'Position', 'rsIDs', 'Reference', 'Alternate',  # |
+                                                                      'Transcript', 'Protein_Consequence', 'Transcript_Consequence',  # |
+                                                                      'VEP_Annotation', 'Location_in_txs')]                           # | 
+#                                                                                                                                     # |
+# Chromosome    Position        rsIDs    Reference   Alternate          Transcript   Protein_Consequence   Transcript_Consequence     # |
+#          4    69536084    rs1902023            A           C   ENST00000338206.5            p.Tyr85Asp                 c.253T>G     # |
+#    VEP_Annotation    Location_in_txs                                                                                                # |
+#  missense_variant             Exon 1                                                                                                # |
+#                                                                                                                                     # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 
 
 
