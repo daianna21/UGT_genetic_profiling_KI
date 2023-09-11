@@ -1184,45 +1184,45 @@ ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf')
 ##    1.2  Integration of additional variants of pharmacogenomic relevance
 ################################################################################
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
-## Add missing regulatory variant '2-234668879-C-CAT' (UGT1A1*28) for UGT1A1                                                    # |
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
-#                                                                                                                               # |                 
-## Identify variant in datasets                                                                                                 # |
-unlist(sapply(UGT1_genes, function(gene){if('2-234668879-C-CAT' %in% eval(parse_expr(paste0(gene,'_data$Variant_ID')))){gene}   # |
-                                         else {NULL}}))                                                                         # |
-#  UGT1A8                                                                                                                       # |
-# "UGT1A8"                                                                                                                      # |
-#                                                                                                                               # | 
-## Extract variant info from such gene dataset                                                                                  # | 
-var_data <- UGT1A8_data[UGT1A8_data$Variant_ID=='2-234668879-C-CAT',]                                                           # | 
-#                                                                                                                               # | 
-#   #---------------------------------------------------------------------------------#                                         # |
-#   #                             !!! Warning !!!                                     #                                         # |
-#   #  Consider HGVS, transcript and protein consequence, as well as VEP annotation   #                                         # |
-#   #          can differ between genes based on their tx boundaries.                 #                                         # |
-#   #                                                                                 #                                         # |
-#   #---------------------------------------------------------------------------------#                                         # |
-#                                                                                                                               # | 
-## Change Transcript and VEP Annotation data from UGT1A8 to A1                                                                  # |
-var_data$Transcript <- canonical_UGT1_txs[['UGT1A1']]                                                                           # |
-var_data$Canonical_txs <- TRUE                                                                                                  # |
-var_data$VEP_Annotation <- '5\' upstream'                                                                                       # |
-## Add location in tx for the variant (5' upstream)                                                                             # |
-var_data$Location_in_txs <- location_determination(var_data$Position, var_data$Transcript, NULL)[[1]]                           # |
-                                                                                                                                # | 
-## Add variant data to UGT1A1 complete dataset                                                                                  # |
-UGT1A1_data <- rbind(UGT1A1_data, var_data[,-56])                                                                               # |
-save(UGT1A1_data, file = 'processed-data/01_Data_Processing/UGT1A1_data.Rdata')                                                 # | 
-                                                                                                                                # | 
-## Add variant data to UGT1A1 canonical and exonic dataset                                                                      # |
-UGT1A1_canonical_data <- rbind(UGT1A1_canonical_data, var_data)                                                                 # |
-save(UGT1A1_canonical_data , file = 'processed-data/01_Data_Processing/UGT1A1_canonical_data.Rdata')                            # |
-                                                                                                                                # | 
-UGT1A1_exonic_data <- rbind(UGT1A1_exonic_data, var_data)                                                                       # |
-save(UGT1A1_exonic_data , file = 'processed-data/01_Data_Processing/UGT1A1_exonic_data.Rdata')                                  # |
-#                                                                                                                               # | 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+## Add missing promotor variants rs34983651 for UGT1A1, including the regulatory variant '2-234668879-C-CAT' (UGT1A1*28)                     # |
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+#                                                                                                                                            # |      
+## Identify variants in datasets                                                                                                             # |
+unlist(sapply(UGT1_genes, function(gene){if('rs34983651' %in% eval(parse_expr(paste0(gene,'_data$rsIDs')))){gene}                            # |
+                                         else {NULL}}))                                                                                      # |
+#  UGT1A8                                                                                                                                    # |
+# "UGT1A8"                                                                                                                                   # |
+                                                                                                                                             # | 
+## Extract variant info from such gene dataset                                                                                               # | 
+var_data <- UGT1A8_data[UGT1A8_data$rsIDs=='rs34983651',]                                                                                    # | 
+#                                                                                                                                            # | 
+#   #---------------------------------------------------------------------------------#                                                      # |
+#   #                             !!! Warning !!!                                     #                                                      # |
+#   #  Consider HGVS, transcript and protein consequence, as well as VEP annotation   #                                                      # |
+#   #          can differ between genes based on their tx boundaries.                 #                                                      # |
+#   #                                                                                 #                                                      # |
+#   #---------------------------------------------------------------------------------#                                                      # |
+#                                                                                                                                            # | 
+## Change Transcript and VEP Annotation data from UGT1A8 to A1                                                                               # |
+var_data$Transcript <- canonical_UGT1_txs[['UGT1A1']]                                                                                        # |
+var_data$Canonical_txs <- TRUE                                                                                                               # |
+var_data$VEP_Annotation <- '5\' upstream'                                                                                                    # |
+## Add location in UGT1A1 tx of the variants (5' upstream)                                                                                   # |
+var_data$Location_in_txs <- sapply(var_data$Position, function(x){location_determination(x,canonical_UGT1_txs[['UGT1A1']], NULL)[[1]]})      # |
+                                                                                                                                             # | 
+## Add variant data to UGT1A1 data                                                                                                           # |
+UGT1A1_data <- rbind(UGT1A1_data, var_data[,-56])                                                                                            # |
+save(UGT1A1_data, file = 'processed-data/01_Data_Processing/UGT1A1_data.Rdata')                                                              # |
+                                                                                                                                             # | 
+## Add variant data to UGT1A1 canonical and exonic dataset (though these are not exonic variants)                                            # |
+UGT1A1_canonical_data <- rbind(UGT1A1_canonical_data, var_data)                                                                              # |
+save(UGT1A1_canonical_data , file = 'processed-data/01_Data_Processing/UGT1A1_canonical_data.Rdata')                                         # |
+                                                                                                                                             # |  
+UGT1A1_exonic_data <- rbind(UGT1A1_exonic_data, var_data)                                                                                    # |
+save(UGT1A1_exonic_data , file = 'processed-data/01_Data_Processing/UGT1A1_exonic_data.Rdata')                                               # |
+#                                                                                                                                            # | 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
