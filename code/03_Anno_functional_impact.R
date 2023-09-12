@@ -49,13 +49,13 @@ for (gene in UGT_genes){
   ## Evaluate if reference and alternate alleles are single valid characters (no indels nor missing/null) for all missense variants in each gene
   print(paste0(gene, ': ', names(table(
     sapply(1:dim(UGT_missense_vars)[1], function(i){
-    if (length(strsplit(UGT_missense_vars$Reference[i], '')[[1]])==1 & UGT_missense_vars$Reference[i] %in% c('A', 'T', 'C', 'G')){TRUE}
+    if (UGT_missense_vars$Reference[i] %in% c('A', 'T', 'C', 'G')){TRUE}
     else {FALSE}
   }))), ' ',
   
   names(table(
     sapply(1:dim(UGT_missense_vars)[1], function(i){
-      if (length(strsplit(UGT_missense_vars$Alternate[i], '')[[1]])==1 & UGT_missense_vars$Alternate[i] %in% c('A', 'T', 'C', 'G')){TRUE}
+      if (UGT_missense_vars$Alternate[i] %in% c('A', 'T', 'C', 'G')){TRUE}
       else {FALSE}
     })))
   ))
