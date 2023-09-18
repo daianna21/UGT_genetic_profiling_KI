@@ -1,6 +1,7 @@
 
 library(here)
 library(rlang)
+library(readr)
 library(ggplot2)
 library(cowplot)
 
@@ -17,6 +18,13 @@ UGT1_genes <- c('UGT1A1', 'UGT1A3', 'UGT1A4', 'UGT1A5', 'UGT1A6', 'UGT1A7', 'UGT
 UGT2_genes <- c('UGT2A1', 'UGT2A2', 'UGT2A3', 'UGT2B4', 'UGT2B7', 'UGT2B10', 'UGT2B11', 'UGT2B15', 'UGT2B17', 'UGT2B28')
 UGT3_genes <- c('UGT3A1', 'UGT3A2')
 UGT8_genes <- c('UGT8')
+
+## Load exonic data for each gene 
+for (gene in UGT_genes){
+  load(here(paste0('~/Desktop/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata')),
+       verbose=TRUE)
+  assign( paste0(gene, '_exonic_data'), exonic_vars)
+}
 
 ## Define effect of variant types
 
@@ -106,5 +114,497 @@ for (gene in UGT_genes){
   write.table(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/', 
                                                           gene, '_missense_vars_ANNOVAR_format.csv'), row.names = FALSE, col.names = FALSE, sep = '\t')
 }
+
+
+
+# _______________________________________________________________________________
+#  3.1.2  Examination of ANNOVAR gene-based annotation output 
+# _______________________________________________________________________________
+
+## Download ANNOVAR output for each gene
+for (gene in UGT_genes){
+  myanno <- read.csv(paste0('processed-data/03_Anno_functional_impact/ANNOVAR_output/myanno', gene, '.hg19_multianno.csv'))
+  assign(paste0('myanno_', gene), myanno)
+  
+}
+
+############################ 1. Confirm all variants are annotated as exonic  ############################# 
+
+sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', gene, '$Func.refGene')))))})
+
+# $UGT1A1
+# [1] "exonic"
+# 
+# $UGT1A3
+# [1] "exonic"
+# 
+# $UGT1A4
+# [1] "exonic"
+# 
+# $UGT1A5
+# [1] "exonic"
+# 
+# $UGT1A6
+# [1] "exonic"
+# 
+# $UGT1A7
+# [1] "exonic"
+# 
+# $UGT1A8
+# [1] "exonic"
+# 
+# $UGT1A9
+# [1] "exonic"
+# 
+# $UGT1A10
+# [1] "exonic"
+# 
+# $UGT2A1
+# [1] "exonic"
+# 
+# $UGT2A2
+# [1] "exonic"
+# 
+# $UGT2A3
+# [1] "exonic"
+# 
+# $UGT2B4
+# [1] "exonic"
+# 
+# $UGT2B7
+# [1] "exonic"
+# 
+# $UGT2B10
+# [1] "exonic"          "exonic;splicing"
+# 
+# $UGT2B11
+# [1] "exonic"          "exonic;splicing"
+# 
+# $UGT2B15
+# [1] "exonic"
+# 
+# $UGT2B17
+# [1] "exonic"
+# 
+# $UGT2B28
+# [1] "exonic"
+# 
+# $UGT3A1
+# [1] "exonic"
+# 
+# $UGT3A2
+# [1] "exonic"
+# 
+# $UGT8
+# [1] "exonic"
+
+
+# -----------------------------------------------------------  ?  -----------------------------------------------------------
+#                                       Evaluate variants found as exonic and splicing                                      |
+# -----------------------------------------------------------  ?  -----------------------------------------------------------
+
+## In UGT2B10: var 4-69681891-G-A is within exon 1 of NM_001075 and NM_001144767 txs, not in the exon boundaries -> exonic
+## This variant is in 5'-UTR of another UGT2B10 tx (NM_001290091)
+myanno_UGT2B10[which(myanno_UGT2B10$Func.refGene=='exonic;splicing'), 1:10]
+# Chr      Start        End   Ref   Alt      Func.refGene      Gene.refGene        GeneDetail.refGene   ExonicFunc.refGene
+#   4   69681891   69681891     G     A   exonic;splicing   UGT2B10;UGT2B10   NM_001290091:exon1:UTR5    nonsynonymous SNV
+#                                                                 AAChange.refGene
+# UGT2B10:NM_001075:exon1:c.G154A:p.V52M,UGT2B10:NM_001144767:exon1:c.G154A:p.V52M
+
+## Corroborate location of variant in NM_001075, the UGT2B10 canonical tx (ENST00000265403.7) and check Exon 1 boundaries 
+location_determination(69681891, canonical_UGT2_txs[['UGT2B10']], 'Exon 1')
+# "Exon 1"
+#
+#           Start       End
+# Exon 1 69681738  69682455
+
+# - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+## In UGT2B11: variants 4-70066297-G-C and 4-70066297-G-A are both within exon 6 of UGT2B11 NM_001073 tx
+## but in exon 3 of LOC105377267 tx
+myanno_UGT2B11[which(myanno_UGT2B11$Func.refGene=='exonic;splicing'), 1:10]
+# Chr     Start       End  Ref   Alt     Func.refGene           Gene.refGene          GeneDetail.refGene   ExonicFunc.refGene                           AAChange.refGene
+#   4  70066297  70066297    G    C   exonic;splicing   UGT2B11;LOC105377267  NR_136191:exon3:c.484+1G>C    nonsynonymous SNV   UGT2B11:NM_001073:exon6:c.C1451G:p.T484S
+#   4  70066297  70066297    G    A   exonic;splicing   UGT2B11;LOC105377267  NR_136191:exon3:c.484+1G>A    nonsynonymous SNV   UGT2B11:NM_001073:exon6:c.C1451T:p.T484I
+
+location_determination(70066297, canonical_UGT2_txs[['UGT2B11']], 'Exon 6')
+# "Exon 6" 
+#
+#           Start      End
+# Exon 6 70066437 70066158
+# ---------------------------------------------------------------------------------------------------------------------------
+
+
+################################ 2.  Check all variants are non-synonymous  ################################
+
+sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', gene, '$ExonicFunc.refGene')))))})
+
+# $UGT1A1
+# [1] "nonsynonymous SNV"
+# 
+# $UGT1A3
+# [1] "nonsynonymous SNV"
+# 
+# $UGT1A4
+# [1] "nonsynonymous SNV"
+# 
+# $UGT1A5
+# [1] "nonsynonymous SNV"
+# 
+# $UGT1A6
+# [1] "nonsynonymous SNV"
+# 
+# $UGT1A7
+# [1] "nonsynonymous SNV"
+# 
+# $UGT1A8
+# [1] "nonsynonymous SNV"
+# 
+# $UGT1A9
+# [1] "nonsynonymous SNV"
+# 
+# $UGT1A10
+# [1] "nonsynonymous SNV"
+# 
+# $UGT2A1
+# [1] "nonsynonymous SNV"
+# 
+# $UGT2A2
+# [1] "nonsynonymous SNV"
+# 
+# $UGT2A3
+# [1] "nonsynonymous SNV"
+# 
+# $UGT2B4
+# [1] "nonsynonymous SNV"
+# 
+# $UGT2B7
+# [1] "nonsynonymous SNV"
+# 
+# $UGT2B10
+# [1] "nonsynonymous SNV" "startloss"        
+# 
+# $UGT2B11
+# [1] "nonsynonymous SNV"
+# 
+# $UGT2B15
+# [1] "nonsynonymous SNV"
+# 
+# $UGT2B17
+# [1] "nonsynonymous SNV"
+# 
+# $UGT2B28
+# [1] "nonsynonymous SNV"
+# 
+# $UGT3A1
+# [1] "nonsynonymous SNV"
+# 
+# $UGT3A2
+# [1] "nonsynonymous SNV"
+# 
+# $UGT8
+# [1] "nonsynonymous SNV"
+
+
+# -----------------------------------------------------------  ?  -----------------------------------------------------------
+#                                               Evaluate startloss variants:                                                |
+# -----------------------------------------------------------  ?  -----------------------------------------------------------
+
+## Variant 4-69683774-T-G is non-synonymous (aa change in AAChange.refGene) for NM_001075 and NM_001144767 txs of UGT2B10
+## but is start lost for NM_001290091 tx (p.Met1? as protein consequence)
+myanno_UGT2B10[which(myanno_UGT2B10$ExonicFunc.refGene=='startloss'), 1:10]
+# Chr      Start        End   Ref  Alt   Func.refGene   Gene.refGene   GeneDetail.refGene ExonicFunc.refGene
+#   4   69683774   69683774     T    G         exonic        UGT2B10                    .          startloss
+#                                                                                                         AAChange.refGene
+# UGT2B10:NM_001075:exon2:c.T746G:p.M249R,UGT2B10:NM_001144767:exon2:c.T494G:p.M165R,UGT2B10:NM_001290091:exon2:c.T2G:p.M1?
+
+## Corroborate this variant is within exon 2 of canonical tx (NM_001075), not at the beginning of exon 1 (Met)
+location_determination(69683774, canonical_UGT2_txs[['UGT2B10']], 'Exon 2')
+# "Exon 2"
+#
+#           Start      End
+# Exon 2 69683747 69683895
+# ---------------------------------------------------------------------------------------------------------------------------
+
+
+########################### 3.  Check in which genes the variants are present  #############################
+sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', gene, '$Gene.refGene')))))})
+# $UGT1A1
+# [1] "UGT1A1"   "UGT1A1;UGT1A10;UGT1A3;UGT1A4;UGT1A5;UGT1A6;UGT1A7;UGT1A8;UGT1A9"
+# 
+# $UGT1A3
+# [1] "UGT1A1;UGT1A10;UGT1A3;UGT1A4;UGT1A5;UGT1A6;UGT1A7;UGT1A8;UGT1A9"   "UGT1A3"                                                         
+# 
+# $UGT1A4
+# [1] "UGT1A1;UGT1A10;UGT1A3;UGT1A4;UGT1A5;UGT1A6;UGT1A7;UGT1A8;UGT1A9"   "UGT1A4"                                                         
+# 
+# $UGT1A5
+# [1] "UGT1A1;UGT1A10;UGT1A3;UGT1A4;UGT1A5;UGT1A6;UGT1A7;UGT1A8;UGT1A9"   "UGT1A5"                                                         
+# 
+# $UGT1A6
+# [1] "UGT1A1;UGT1A10;UGT1A3;UGT1A4;UGT1A5;UGT1A6;UGT1A7;UGT1A8;UGT1A9"   "UGT1A6"                                                         
+# 
+# $UGT1A7
+# [1] "UGT1A1;UGT1A10;UGT1A3;UGT1A4;UGT1A5;UGT1A6;UGT1A7;UGT1A8;UGT1A9"   "UGT1A7"                                                         
+# 
+# $UGT1A8
+# [1] "UGT1A1;UGT1A10;UGT1A3;UGT1A4;UGT1A5;UGT1A6;UGT1A7;UGT1A8;UGT1A9"   "UGT1A8"                                                         
+# 
+# $UGT1A9
+# [1] "UGT1A1;UGT1A10;UGT1A3;UGT1A4;UGT1A5;UGT1A6;UGT1A7;UGT1A8;UGT1A9"   "UGT1A9"                                                         
+# 
+# $UGT1A10
+# [1] "UGT1A1;UGT1A10;UGT1A3;UGT1A4;UGT1A5;UGT1A6;UGT1A7;UGT1A8;UGT1A9"   "UGT1A10"                                                        
+# 
+# $UGT2A1
+# [1] "UGT2A1"    "UGT2A1;UGT2A2"
+# 
+# $UGT2A2
+# [1] "UGT2A1;UGT2A2"   "UGT2A2"       
+# 
+# $UGT2A3
+# [1] "UGT2A3"
+# 
+# $UGT2B4
+# [1] "UGT2B4"
+# 
+# $UGT2B7
+# [1] "UGT2B7"
+# 
+# $UGT2B10
+# [1] "UGT2B10"    "UGT2B10;UGT2B10"
+# 
+# $UGT2B11
+# [1] "UGT2B11"    "UGT2B11;LOC105377267"
+# 
+# $UGT2B15
+# [1] "UGT2B15"
+# 
+# $UGT2B17
+# [1] "UGT2B17"
+# 
+# $UGT2B28
+# [1] "UGT2B28"
+# 
+# $UGT3A1
+# [1] "UGT3A1"
+# 
+# $UGT3A2
+# [1] "UGT3A2"
+# 
+# $UGT8
+# [1] "UGT8"
+
+
+
+# ___________________________________________________________________________________________
+#  3.1.3  Comparison and evaluation of prediction performance of the algorithms 
+# ___________________________________________________________________________________________
+
+## Scores from algorithms of interest
+scores_algorithms <- c('SIFT_score', 'Polyphen2_HDIV_score', 'Polyphen2_HVAR_score', 'LRT_score','MutationAssessor_score', 'FATHMM_score', 
+                'fathmm.MKL_coding_score', 'PROVEAN_score', 'VEST3_score', 'CADD_raw', 'DANN_score', 'MetaSVM_score', 'MetaLR_score', 
+                'REVEL_score', 'PrimateAI_score', 'M.CAP_score', 'ClinPred_score', 'Eigen.PC.raw_coding', 'MutPred_score', 'MVP_score')
+
+## Categorical predictions per algorithm 
+cat_pred_algorithms <- c('SIFT_pred', 'Polyphen2_HDIV_pred', 'Polyphen2_HVAR_pred', 'LRT_pred', 'MutationAssessor_pred', 'FATHMM_pred', 
+                         'fathmm.MKL_coding_pred', 'PROVEAN_pred', 'MetaSVM_pred', 'MetaLR_pred', 'PrimateAI_pred', 'M.CAP_pred', 'ClinPred_pred')
+
+
+
+####################  3.1.3.1 Compare predictions of different algorithms  ####################
+
+########################################################################
+##  a)  Compare binary effect predictions of variants in all UGT genes
+########################################################################
+
+## Create single dataset for all missense UGT variants and their predicted effects
+
+## Unique variant IDs
+for (gene in UGT_genes){
+  myanno <- eval(parse_expr(paste0('myanno_', gene)))
+  myanno$Variant_ID <- paste(myanno$Chr, myanno$Start, myanno$Ref, myanno$Alt, sep='-')
+  assign(paste0('myanno_', gene), myanno)
+}
+
+## Total unique UGT variants
+unique_UGT_vars <- unique(unlist(sapply(paste0('myanno_', UGT_genes, '$Variant_ID'), function(x){eval(parse_expr(x))})))
+
+variants_predictions <- data.frame(matrix(nrow=0, ncol=35))
+colnames(variants_predictions) <- c('Variant_ID', 'Gene.refGene', scores_algorithms, cat_pred_algorithms)
+
+for (UGT_variant in unique_UGT_vars){
+  ## Search variant in datasets for each gene
+  for(gene in UGT_genes){
+    myanno <- eval(parse_expr(paste0('myanno_', gene)))
+    if (UGT_variant %in% myanno$Variant_ID){
+      ## For shared variants, assume the predictions are the same in all genes and take the ones reported in the first one
+      variants_predictions  <- rbind(variants_predictions, myanno[which(myanno$Variant_ID==UGT_variant), c('Variant_ID', 'Gene.refGene', scores_algorithms, cat_pred_algorithms)])
+      break
+    }
+  }
+}
+
+
+## Percentage of variants with missing scores/predictions in each algorithm 
+
+apply(variants_predictions, 2, function(x){100*length(which(x=='.'))/dim(variants_predictions)[1]})
+# Variant_ID            Gene.refGene              SIFT_score    Polyphen2_HDIV_score    Polyphen2_HVAR_score               LRT_score  MutationAssessor_score 
+# 0.00000000              0.00000000              0.37783375              4.34508816              4.34508816             28.22732997              0.42506297 
+# FATHMM_score   fathmm.MKL_coding_score           PROVEAN_score             VEST3_score                CADD_raw              DANN_score           MetaSVM_score 
+#   0.37783375                0.01574307              0.37783375              0.03148615              0.01574307              0.01574307              0.03148615 
+# MetaLR_score             REVEL_score         PrimateAI_score             M.CAP_score          ClinPred_score     Eigen.PC.raw_coding           MutPred_score 
+#   0.03148615              0.03148615             25.23614610              2.31423174              0.01574307              0.01574307             20.62342569 
+#  MVP_score               SIFT_pred     Polyphen2_HDIV_pred     Polyphen2_HVAR_pred                LRT_pred   MutationAssessor_pred             FATHMM_pred 
+# 0.96032746              0.37783375              4.34508816              4.34508816             28.22732997              0.42506297              0.37783375 
+# fathmm.MKL_coding_pred            PROVEAN_pred            MetaSVM_pred             MetaLR_pred          PrimateAI_pred              M.CAP_pred           ClinPred_pred 
+#             0.01574307              0.37783375              0.03148615              0.03148615             25.23614610              2.31423174              0.01574307 
+
+
+## Remove LRT_score, LRT_pred, PrimateAI_score, PrimateAI_pred and MutPred_score (missing data in >20% of variants)
+filtered_variants_predictions<- variants_predictions[, -c(6,17,21,26,33)]
+
+## Number of missing scores/predictions per variant
+table(apply(filtered_variants_predictions, 1, function(x){length(which(x=='.'))}))
+#    0    2    3    4    5    6    7    8   12   14   28 
+# 5920   79   58  261    1    7    1   18    5    1    1 
+
+## Remove variants with at least 1 missing score/prediction
+filtered_variants_predictions <- filtered_variants_predictions[-which(apply(filtered_variants_predictions, 1, function(x){length(which(x=='.'))})!=0), ]
+
+## Correct category names for FATHMM_pred (TRUE -> 'T')
+filtered_variants_predictions$FATHMM_pred <- replace(filtered_variants_predictions$FATHMM_pred, 
+                                                     which(filtered_variants_predictions$FATHMM_pred==TRUE), 'T')
+## Standardize variable names
+colnames(filtered_variants_predictions)[c(11,18)] <- c('CADD_raw_score', 'Eigen.PC_raw_score')
+
+
+## Density plot of scores for variants predicted as deleterious and neutral by each method
+
+score_density_plot <- function(algorithm_score, algorithm_pred, threshold){
+    p <- ggplot(data = filtered_variants_predictions, aes(x = as.numeric(eval(parse_expr(algorithm_score))), 
+                                                          fill=eval(parse_expr(algorithm_pred))))+
+      geom_density(alpha=0.6)+
+      scale_fill_manual(values=c('D'='tomato2', 'T'='skyblue1', 'N'='skyblue1', 'B'='skyblue1', 'P'='lightsalmon', 
+                                 'H'= 'red4', 'M'='red3', 'L'='dodgerblue3')) +
+      theme_bw() +
+      labs(x = gsub('_', ' ', gsub('\\.', '-', algorithm_score)), y= 'Density', fill='Predicted effect') 
+      #geom_vline(data=threshold, aes(xintercept=, color="grey40"),linetype="dashed")
+
+   return(p)
+}
+  
+
+##################  Plots for algorithms already returning scores and predictions  ##################
+algorithms <- c('SIFT', 'Polyphen2_HDIV', 'Polyphen2_HVAR', 'MutationAssessor', 'FATHMM', 
+                'fathmm.MKL_coding', 'PROVEAN', 'MetaSVM', 'MetaLR', 'M.CAP', 'ClinPred')
+
+plots <- list()
+for (i in 1:length(algorithms)){
+  plots[[i]] <- score_density_plot(paste0(algorithms[i], '_score'), paste0(algorithms[i], '_pred'), NULL)
+}
+
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],
+          plots[[8]], plots[[9]], plots[[10]], plots[[11]], nrow = 3)
+
+ggsave(filename='plots/03_Anno_functional_impact/score_pred_density_plots.pdf', width = 30, height = 15)
+
+
+
+##################  Plots of scores of variants categorized by defined score thresholds  ##################
+## Reported threshold to categorize variants as deleterious (D) and neutral (N) in each algorithm 
+algorithms_thresholds <- list('SIFT'='<=0.05',               # (≤0.05 for D)
+                              'Polyphen2_HDIV'='>0.452',     # (>0.452 for D)
+                              'Polyphen2_HVAR'='>0.446',     # (>0.446 for D)
+                              'MutationAssessor'='>1.9',     # (>1.9 for D)
+                              'FATHMM'= '<= -1.5',            # (≤-1.5 for D) 
+                              'fathmm.MKL_coding'='>0.5',   # (>0.5 for D)
+                              'PROVEAN'= '<= -2.5',         # (≤-2.5 for D)
+                              'MetaSVM'='>=0',               # (≥0 for D)
+                              'MetaLR'='>=0.5',              # (≥0.5 for D)*
+                              'M.CAP'='>=0.025',             # (≥0.025 for D)*
+                              'ClinPred'='>=0.5'            # (≥0.5 for D)*
+                              # 'VEST3'=''  ,               # (>0.9 for D)**
+                              # 'CADD_raw'='',              
+                              # 'DANN'='', 
+                              # 'REVEL'=0.5,               # (≥0.5 for D)
+                              # 'Eigen.PC_raw'='', 
+                              # 'MVP'= ''
+)
+
+## Categorize variants with these thresholds
+categorical_predictions <- data.frame(matrix(nrow=dim(filtered_variants_predictions)[1], ncol=11))
+colnames(categorical_predictions) <- paste0(names(algorithms_thresholds), '_pred')
+
+for(algorithm in names(algorithms_thresholds)){
+  categorical_predictions[paste0(algorithm, '_pred')] <- apply(filtered_variants_predictions, 1, 
+                                                               function(x){if ( eval(parse_expr(paste0('x[paste0(algorithm, \'_score\')]', algorithms_thresholds[[algorithm]]))) ){'D'}
+                                                                          else{'N'} })
+}
+
+
+
+
+
+
+
+
+
+########################################################################
+##  b)  Compare prediction scores of variants in all UGT genes ????????
+########################################################################
+
+
+
+## Normalization of scores using rank percentile
+
+## Scores' distribution 
+
+
+
+
+
+
+## Pair-wise comparisons of algorithms 
+
+
+
+
+
+
+#################################################################################################
+
+
+
+
+
+#################### Evaluate algorithm prediction for well characterized exonic variants  ####################
+
+known_exonic_vars <- list('UGT1A1'=list('2-234669144-G-A'= 'reduced UGT1A1 expression'),
+                          'UGT1A6'=list('2-234602191-A-G'= 'increased risk for severe neutropenia when treated with irinotecan ', 
+                                        '2-234602202-A-C'= 'higher metabolic activity', 
+                                        '2-234601669-T-G'= 'increase the likelihood of cardiotoxicity when treated with anticancer anthracyclines'),
+                          'UGT1A7'=list('2-234591205-T-C'= 'increases risk of vomiting in colorectal cancer patients treated with anticancer drugs'),
+                          'UGT1A8'=list('2-234526871-C-G'= 'increases chances of having diarrhea in kidney transplant patients treated with the immune suppressants'),
+                          'UGT2B4'=list('4-70346565-A-T'= ''),
+                          'UGT2B7'=list('4-69964338-T-C'= 'reduced response to oxycodone and improved response to oxcarbazepine', 
+                                        '4-69962449-G-T'= 'LoF mutation; increases levels of valproic acid in the plasma of epilepsy patients'),
+                          'UGT2B15'=list('4-69536084-A-C'= ''))
+
+variant_data <- strsplit('2-234669144-G-A', '-')[[1]]
+myanno_UGT1A1[which(myanno_UGT1A1$Chr==variant_data[1] & myanno_UGT1A1$Start==variant_data[2] & myanno_UGT1A1$End==variant_data[2] 
+      & myanno_UGT1A1$Ref==variant_data[3] & myanno_UGT1A1$Alt==variant_data[4]), c('SIFT_pred', 'Polyphen2_HDIV_pred', 'Polyphen2_HVAR_pred', 'LRT_pred',
+                                                                                    'MutationAssessor_pred', 'FATHMM_pred', 'fathmm.MKL_coding_pred', 'PROVEAN_pred',
+                                                                                    'VEST3_score', 'CADD_raw', 'DANN_score', 'MetaSVM_pred', 'MetaLR_pred')]
+      
+sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', gene, '$Gene.refGene')))))})
+
+
+
+
+
+
+
+
+
 
 
