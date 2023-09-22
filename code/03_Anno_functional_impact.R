@@ -612,9 +612,31 @@ ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf
 
 
 ## Correlation between predictions from each pair of methods
+colnames(categorical_predictions) <- c('Variant_ID', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', colnames(categorical_predictions[,-1])))))
 corr <- cor(categorical_predictions[,-1], categorical_predictions[,-1], method = 'pearson')
-my_colors <- colorRampPalette(c("palegoldenrod", "navyblue"))
-heatmap(corr, col = my_colors(50))
+
+corr_data <- data.frame(matrix(ncol=3, nrow=dim(corr)[1]**2))
+colnames(corr_data) <- c('Algorithm1', 'Algorithm2', 'Correlation')
+
+i=1
+for (algorithm1 in colnames(corr)){
+  for (algorithm2 in colnames(corr)){
+      corr_data$Algorithm1[i] <- algorithm1
+      corr_data$Algorithm2[i] <- algorithm2
+      corr_data$Correlation[i] <- corr[algorithm1, algorithm2]
+      i=i+1
+  }
+}
+
+ggplot(corr_data, aes(x = Algorithm1, y = Algorithm2, fill = Correlation)) +
+  geom_tile() +
+  scale_fill_gradient(high = "navyblue", low = "lightyellow1") +
+  labs(title = "Correlation between categorical predicted effects of missense variants", x='', y='') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), 
+        title = element_text(size = 8, hjust=0.5)) 
+
+ggsave(filename='plots/03_Anno_functional_impact/Corr_categorical_predicted_effects.pdf', width = 6, height = 5)
+
 
 ## Pair-wise comparisons of algorithms 
 
