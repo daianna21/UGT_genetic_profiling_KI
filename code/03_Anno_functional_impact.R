@@ -417,9 +417,9 @@ cat_pred_algorithms <- c('SIFT_pred', 'Polyphen2_HDIV_pred', 'Polyphen2_HVAR_pre
 
 ####################  3.1.3.1 Compare predictions of different algorithms  ####################
 
-########################################################################
-##  a)  Compare binary effect predictions of variants in all UGT genes
-########################################################################
+#############################################################################
+##   Compare binary categorical predictions of variants in all UGT genes
+#############################################################################
 
 ## Create single dataset for all missense UGT variants and their predicted effects and scores
 
@@ -482,7 +482,7 @@ filtered_variants_predictions$FATHMM_pred <- replace(filtered_variants_predictio
 colnames(filtered_variants_predictions)[c(8, 11,18, 25)] <- c('fathmm.MKL_score', 'CADD_score', 'Eigen.PC_score', 'fathmm.MKL_pred')
 
 
-## Density plot of scores for variants in the different functional predicted categories
+## Function to create density plot of raw scores for variants in the different functional predicted categories
 
 score_density_plot <- function(algorithm, predicted_cat_type){
   
@@ -522,7 +522,7 @@ score_density_plot <- function(algorithm, predicted_cat_type){
 }
   
 
-##################  Raw scores of variants predicted as D and N/B/T  ##################
+##################  a) Raw scores of variants predicted as D and N/B/T  ##################
 
 ## Algorithms already returning categorical predictions
 algorithms <- c('SIFT', 'Polyphen2_HDIV', 'Polyphen2_HVAR', 'MutationAssessor', 'FATHMM', 
@@ -545,9 +545,9 @@ ggsave(filename='plots/03_Anno_functional_impact/Returned_RawScores_density_plot
 
 
 
-##################  Raw scores of variants categorized by defined score thresholds  ##################
+##################  b) Raw scores of variants categorized by defined score thresholds  ##################
 
-## Reported/conventional threshold to categorize variants as deleterious (D) in each algorithm 
+## Reported/conventional threshold to categorize variants as deleterious (D) (or neutral (N) otherwise) in each algorithm 
 algorithms_thresholds <- list('SIFT'='<=0.05',               
                               'Polyphen2_HDIV'='>0.452',     
                               'Polyphen2_HVAR'='>0.446',     
@@ -610,37 +610,11 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
 
 ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 35, height = 17)
 
+
 ## Correlation between predictions from each pair of methods
 corr <- cor(categorical_predictions[,-1], categorical_predictions[,-1], method = 'pearson')
 my_colors <- colorRampPalette(c("palegoldenrod", "navyblue"))
 heatmap(corr, col = my_colors(50))
-
-
-## TODOs
-- Poner 'raw' en todos los plots de densidad
-- Organizar código
-- Heatmap con escala y bonito
-
-- Análisis de pair-wise agreement?
-- Comparar raw o rank scores??
-
-
-
-
-
-
-########################################################################
-##  b)  Compare prediction scores of variants in all UGT genes ????????
-########################################################################
-
-
-
-## Normalization of scores using rank percentile
-
-## Scores' distribution 
-
-
-
 
 ## Pair-wise comparisons of algorithms 
 
@@ -649,13 +623,33 @@ heatmap(corr, col = my_colors(50))
 
 
 
-#################################################################################################
+## TODOs
+- Heatmap con escala y bonito
+
+- Análisis de pair-wise agreement and ranks?
+- Comparar raw o rank scores??
 
 
 
 
 
-#################### Evaluate algorithm prediction for well characterized exonic variants  ####################
+
+########################################################################
+##   Compare raw scores of variants in all UGT genes ????????
+########################################################################
+
+## Normalization of scores using rank percentile
+
+
+
+
+
+
+
+
+
+
+####################  3.1.3.2 Evaluate predictions of different algorithms  ####################
 
 known_exonic_vars <- list('UGT1A1'=list('2-234669144-G-A'= 'reduced UGT1A1 expression'),
                           'UGT1A6'=list('2-234602191-A-G'= 'increased risk for severe neutropenia when treated with irinotecan ', 
