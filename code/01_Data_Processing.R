@@ -4,6 +4,7 @@ library(readr)
 library(rlang)
 library(ggplot2)
 library(cowplot)
+library(sessioninfo)
 
 
 ####################################################################################################
@@ -1492,38 +1493,92 @@ UGT2B15_exonic_data[UGT2B15_exonic_data$Variant_ID=='4-69536084-A-C', c('Chromos
 
 
 
+## Reproducibility information
+print('Reproducibility information:')
+Sys.time()
+proc.time()
+options(width = 120)
+session_info()
 
-## FUTURE
-
-## Define functional categories of predicted effects of exonic variants
-
-LoF <- c('splice_donor', 'splice_acceptor', 'stop_lost', 'stop_gained', 'frameshift')
-neutral <- c('synonymous')
-## missense functions with ANOVA
-# deletereous?
-  
+# ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+# setting  value
+# version  R version 4.3.0 (2023-04-21)
+# os       macOS Monterey 12.5.1
+# system   aarch64, darwin20
+# ui       RStudio
+# language (EN)
+# collate  en_US.UTF-8
+# ctype    en_US.UTF-8
+# tz       Europe/Stockholm
+# date     2023-09-22
+# rstudio  2023.06.1+524 Mountain Hydrangea (desktop)
+# pandoc   NA
 # 
-# for (gene in UGT_genes){
-#   
-#   ## Read data
-#   UGT_gene_info <- read.csv(paste0("Processed-data/", gene, "_processed.csv"))
-#   
-#   ## Add alternate Allele Frequency within each population
-#   populations <- c('Other', 'Latino_or_Admixed_American', 'European_Finnish', 'Amish', 'East_Asian',
-#                    'Middle_Eastern', 'African_or_African_American', 'South_Asian', 'Ashkenazi_Jewish',
-#                    'European_non_Finnish')
-#   
-#   for(population in populations){
-#     ## Frequency given by the variant counts in the population over the number of alleles in the same population 
-#     UGT_gene_info[, paste0('Allele_Frequency_', population)] <- eval(parse_expr(paste0('UGT_gene_info$Allele_Count_', population)))/eval(parse_expr(paste0('UGT_gene_info$Allele_Number_', population)))
-#     
-#   }
-#   
-#   ## Add overall Allele Frequency for each population
-#   for(population in populations){
-#     ## Frequency given by the variant counts over the total number of alleles (considering all populations)
-#     UGT_gene_info[, paste0('Overall_Allele_Frequency_', population)] <- eval(parse_expr(paste0('UGT_gene_info$Allele_Count_', population)))/UGT_gene_info$Allele_Number
-#     
-#   }
-#   
-# }
+# ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+# package              * version   date (UTC) lib source
+# beachmat               2.16.0    2023-05-08 [1] Bioconductor
+# Biobase              * 2.61.0    2023-06-02 [1] Bioconductor
+# BiocGenerics         * 0.47.0    2023-06-02 [1] Bioconductor
+# BiocParallel           1.35.3    2023-07-07 [1] Bioconductor
+# bitops                 1.0-7     2021-04-24 [1] CRAN (R 4.3.0)
+# cli                    3.6.1     2023-03-23 [1] CRAN (R 4.3.0)
+# codetools              0.2-19    2023-02-01 [1] CRAN (R 4.3.0)
+# colorspace             2.1-0     2023-01-23 [1] CRAN (R 4.3.0)
+# cowplot              * 1.1.1     2020-12-30 [1] CRAN (R 4.3.0)
+# crayon                 1.5.2     2022-09-29 [1] CRAN (R 4.3.0)
+# DelayedArray           0.26.6    2023-07-02 [1] Bioconductor
+# DelayedMatrixStats     1.23.0    2023-04-25 [1] Bioconductor
+# dplyr                  1.1.2     2023-04-20 [1] CRAN (R 4.3.0)
+# fansi                  1.0.4     2023-01-22 [1] CRAN (R 4.3.0)
+# farver                 2.1.1     2022-07-06 [1] CRAN (R 4.3.0)
+# generics               0.1.3     2022-07-05 [1] CRAN (R 4.3.0)
+# GenomeInfoDb         * 1.37.2    2023-06-21 [1] Bioconductor
+# GenomeInfoDbData       1.2.10    2023-05-28 [1] Bioconductor
+# GenomicRanges        * 1.53.1    2023-06-02 [1] Bioconductor
+# ggplot2              * 3.4.2     2023-04-03 [1] CRAN (R 4.3.0)
+# glue                   1.6.2     2022-02-24 [1] CRAN (R 4.3.0)
+# gtable                 0.3.3     2023-03-21 [1] CRAN (R 4.3.0)
+# here                 * 1.0.1     2020-12-13 [1] CRAN (R 4.3.0)
+# hms                    1.1.3     2023-03-21 [1] CRAN (R 4.3.0)
+# IRanges              * 2.35.2    2023-06-23 [1] Bioconductor
+# labeling               0.4.2     2020-10-20 [1] CRAN (R 4.3.0)
+# lattice                0.21-8    2023-04-05 [1] CRAN (R 4.3.0)
+# lifecycle              1.0.3     2022-10-07 [1] CRAN (R 4.3.0)
+# magrittr               2.0.3     2022-03-30 [1] CRAN (R 4.3.0)
+# Matrix                 1.6-0     2023-07-08 [1] CRAN (R 4.3.0)
+# MatrixGenerics       * 1.13.0    2023-05-20 [1] Bioconductor
+# matrixStats          * 1.0.0     2023-06-02 [1] CRAN (R 4.3.0)
+# munsell                0.5.0     2018-06-12 [1] CRAN (R 4.3.0)
+# pillar                 1.9.0     2023-03-22 [1] CRAN (R 4.3.0)
+# pkgconfig              2.0.3     2019-09-22 [1] CRAN (R 4.3.0)
+# R6                     2.5.1     2021-08-19 [1] CRAN (R 4.3.0)
+# ragg                   1.2.5     2023-01-12 [1] CRAN (R 4.3.0)
+# Rcpp                   1.0.11    2023-07-06 [1] CRAN (R 4.3.0)
+# RCurl                  1.98-1.12 2023-03-27 [1] CRAN (R 4.3.0)
+# readr                * 2.1.4     2023-02-10 [1] CRAN (R 4.3.0)
+# rlang                * 1.1.1     2023-04-28 [1] CRAN (R 4.3.0)
+# rprojroot              2.0.3     2022-04-02 [1] CRAN (R 4.3.0)
+# rstudioapi             0.15.0    2023-07-07 [1] CRAN (R 4.3.0)
+# S4Arrays               1.1.4     2023-06-02 [1] Bioconductor
+# S4Vectors            * 0.39.1    2023-06-02 [1] Bioconductor
+# scales                 1.2.1     2022-08-20 [1] CRAN (R 4.3.0)
+# scuttle              * 1.9.4     2023-01-23 [1] Bioconductor
+# sessioninfo          * 1.2.2     2021-12-06 [1] CRAN (R 4.3.0)
+# SingleCellExperiment * 1.23.0    2023-04-25 [1] Bioconductor
+# sparseMatrixStats      1.13.0    2023-05-20 [1] Bioconductor
+# SummarizedExperiment * 1.30.2    2023-06-06 [1] Bioconductor
+# systemfonts            1.0.4     2022-02-11 [1] CRAN (R 4.3.0)
+# textshaping            0.3.6     2021-10-13 [1] CRAN (R 4.3.0)
+# tibble                 3.2.1     2023-03-20 [1] CRAN (R 4.3.0)
+# tidyselect             1.2.0     2022-10-10 [1] CRAN (R 4.3.0)
+# tzdb                   0.4.0     2023-05-12 [1] CRAN (R 4.3.0)
+# utf8                   1.2.3     2023-01-31 [1] CRAN (R 4.3.0)
+# vctrs                  0.6.3     2023-06-14 [1] CRAN (R 4.3.0)
+# withr                  2.5.0     2022-03-03 [1] CRAN (R 4.3.0)
+# XVector                0.41.1    2023-06-02 [1] Bioconductor
+# zlibbioc               1.47.0    2023-05-20 [1] Bioconductor
+# 
+# [1] /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library
+# 
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
