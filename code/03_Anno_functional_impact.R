@@ -479,13 +479,16 @@ filtered_variants_predictions <- filtered_variants_predictions[-which(apply(filt
 filtered_variants_predictions$FATHMM_pred <- replace(filtered_variants_predictions$FATHMM_pred, 
                                                      which(filtered_variants_predictions$FATHMM_pred==TRUE), 'T')
 ## Standardize variable names
-colnames(filtered_variants_predictions)[c(11,18)] <- c('CADD_raw_score', 'Eigen.PC_raw_score')
+colnames(filtered_variants_predictions)[c(8, 11,18, 25)] <- c('fathmm.MKL_score', 'CADD_score', 'Eigen.PC_score', 'fathmm.MKL_pred')
 
 
 ## Density plot of scores for variants in the different functional predicted categories
 
-score_density_plot <- function(algorithm_score, algorithm_pred, predicted_cat_type){
+score_density_plot <- function(algorithm, predicted_cat_type){
   
+  algorithm_score <- paste0(algorithm, '_score')
+  algorithm_pred <- paste0(algorithm, '_pred')
+
   if (predicted_cat_type=='new'){
     data <- new_variants_predictions
   }
@@ -499,7 +502,7 @@ score_density_plot <- function(algorithm_score, algorithm_pred, predicted_cat_ty
   p1 <- ggplot(data = data, aes(x = as.numeric(eval(parse_expr(algorithm_score))))) +
     geom_density(alpha=0.6, fill='grey')+
     theme_bw() +
-    labs(x = gsub('_', ' ', gsub('\\.', '-', algorithm_score)), y= 'Density') 
+    labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), ' raw score'), y= 'Density') 
   
   if(!is.null(algorithm_pred)){
     p2 <- ggplot(data = data, aes(x = as.numeric(eval(parse_expr(algorithm_score))), 
@@ -507,7 +510,7 @@ score_density_plot <- function(algorithm_score, algorithm_pred, predicted_cat_ty
       geom_density(alpha=0.6)+
       scale_fill_manual(values=colors[names(table(eval(parse_expr(paste0('data$', algorithm_pred)))))]) +
       theme_bw() +
-      labs(x = gsub('_', ' ', gsub('\\.', '-', algorithm_score)), y= 'Density', fill='Predicted effect') 
+      labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), ' raw score'), y= 'Density', fill='Predicted effect') 
     
     return(list(p1,p2))
   }
@@ -523,13 +526,13 @@ score_density_plot <- function(algorithm_score, algorithm_pred, predicted_cat_ty
 
 ## Algorithms already returning categorical predictions
 algorithms <- c('SIFT', 'Polyphen2_HDIV', 'Polyphen2_HVAR', 'MutationAssessor', 'FATHMM', 
-                'fathmm.MKL_coding', 'PROVEAN', 'MetaSVM', 'MetaLR', 'M.CAP', 'ClinPred')
+                'fathmm.MKL', 'PROVEAN', 'MetaSVM', 'MetaLR', 'M.CAP', 'ClinPred')
 
 plots <- list()
 j=1
 for (i in 1:length(algorithms)){
-  plots[[j]] <- score_density_plot(paste0(algorithms[i], '_score'), paste0(algorithms[i], '_pred'), 'returned')[[1]]
-  plots[[j+1]] <- score_density_plot(paste0(algorithms[i], '_score'), paste0(algorithms[i], '_pred'), 'returned')[[2]]
+  plots[[j]] <- score_density_plot(algorithms[i], 'returned')[[1]]
+  plots[[j+1]] <- score_density_plot(algorithms[i], 'returned')[[2]]
   j=j+2
 }
 
@@ -550,17 +553,17 @@ algorithms_thresholds <- list('SIFT'='<=0.05',
                               'Polyphen2_HVAR'='>0.446',     
                               'MutationAssessor'='>1.9',     
                               'FATHMM'= '<= -1.5',           
-                              'fathmm.MKL_coding'='>0.5',   
+                              'fathmm.MKL'='>0.5',   
                               'PROVEAN'= '<= -2.5',         
                               'MetaSVM'='>=0',               
                               'MetaLR'='>=0.5',             
                               'M.CAP'='>=0.025',            
                               'ClinPred'='>=0.5',            
                               'VEST3'='>0.9',               
-                              'CADD_raw'='>0.73',              
+                              'CADD'='>0.73',              
                               'DANN'='>0.99', 
                               'REVEL'='>0.5',               
-                              'Eigen.PC_raw'='>=0', 
+                              'Eigen.PC'='>=0', 
                               'MVP'= '>0.75'
 )
 
@@ -581,8 +584,8 @@ for(algorithm in names(algorithms_thresholds)){
 
 ## All algorithms
 all_algorithms <- c('SIFT', 'Polyphen2_HDIV', 'Polyphen2_HVAR', 'MutationAssessor', 'FATHMM', 
-                    'fathmm.MKL_coding', 'PROVEAN', 'MetaSVM', 'MetaLR', 'M.CAP', 'ClinPred', 
-                    'VEST3', 'CADD_raw', 'DANN', 'REVEL', 'Eigen.PC_raw', 'MVP')
+                    'fathmm.MKL', 'PROVEAN', 'MetaSVM', 'MetaLR', 'M.CAP', 'ClinPred', 
+                    'VEST3', 'CADD', 'DANN', 'REVEL', 'Eigen.PC', 'MVP')
 
 ## Data frame with scores and new binary predictions per algorithm 
 new_variants_predictions <- cbind(apply(categorical_predictions, 2, function(x){replace(replace(x, which(x==1), 'D'), which(x==0), 'N')}), 
@@ -593,8 +596,8 @@ new_variants_predictions$FATHMM_score <- as.numeric(new_variants_predictions$FAT
 plots <- list()
 j=1
 for (i in 1:length(all_algorithms)){
-  plots[[j]] <- score_density_plot(paste0(all_algorithms[i], '_score'), paste0(all_algorithms[i], '_pred'), 'new')[[1]]
-  plots[[j+1]] <- score_density_plot(paste0(all_algorithms[i], '_score'), paste0(all_algorithms[i], '_pred'), 'new')[[2]]
+  plots[[j]] <- score_density_plot(all_algorithms[i], 'new')[[1]]
+  plots[[j+1]] <- score_density_plot(all_algorithms[i], 'new')[[2]]
   j=j+2
 }
 
