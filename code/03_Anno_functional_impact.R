@@ -4,6 +4,8 @@ library(rlang)
 library(readr)
 library(ggplot2)
 library(cowplot)
+library(reshape2)
+library(corrplot)
 library(sessioninfo)
 
 
@@ -401,7 +403,7 @@ sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', g
 
 
 # ___________________________________________________________________________________________
-#  3.1.3  Comparison and evaluation of prediction performance of the algorithms 
+#  3.1.3  Comparison and evaluation of predictive algorithms 
 # ___________________________________________________________________________________________
 
 ## Scores from algorithms of interest
@@ -611,34 +613,108 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
 ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 35, height = 17)
 
 
+# ------------------------------------------------------------------------------
 ## Correlation between predictions from each pair of methods
 colnames(categorical_predictions) <- c('Variant_ID', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', colnames(categorical_predictions[,-1])))))
 corr <- cor(categorical_predictions[,-1], categorical_predictions[,-1], method = 'pearson')
+## Half matrix
+corr[lower.tri(corr)] <- NA 
+half_corr_data <- melt(corr, na.rm = TRUE)
+half_corr_data$value <- signif(as.numeric(half_corr_data$value), digits = 3)
 
-corr_data <- data.frame(matrix(ncol=3, nrow=dim(corr)[1]**2))
-colnames(corr_data) <- c('Algorithm1', 'Algorithm2', 'Correlation')
+pdf(file = "plots/03_Anno_functional_impact/Corr_categorical_predicted_effects.pdf", width = 4, height = 4)
+corrplot(corr, method="color", 
+         diag=FALSE, 
+         type="upper",
+         addCoef.col = "black",
+         tl.cex = 0.4,
+         tl.col = 'black',
+         number.cex = 0.3,
+         cl.cex = 0.4,
+         col.lim = c(0,1)
 
-i=1
-for (algorithm1 in colnames(corr)){
-  for (algorithm2 in colnames(corr)){
-      corr_data$Algorithm1[i] <- algorithm1
-      corr_data$Algorithm2[i] <- algorithm2
-      corr_data$Correlation[i] <- corr[algorithm1, algorithm2]
-      i=i+1
+)
+dev.off()
+
+## Mean corr coeff
+unique_half_corr_data <- half_corr_data[which(half_corr_data$value!=1), ]
+mean(unique_half_corr_data$value)
+# [1] 0.3918721
+
+## Highest corr coeffs
+unique_half_corr_data[order(unique_half_corr_data$value, decreasing = TRUE), ][1:4,]
+#               Var1             Var2    value
+#     Polyphen2 HDIV   Polyphen2 HVAR    0.890
+#            MetaSVM           MetaLR    0.744
+#          fathmm-MKL         Eigen-PC   0.691
+#            MetaSVM            REVEL    0.689
+
+## Percentage of high coeffs (>0.5)
+length(which(unique_half_corr_data$value>0.5))/dim(unique_half_corr_data)[1]*100
+# [1] 27.20588
+
+## Percentage of medium coeffs (0.3<r<0.5)
+length(which(unique_half_corr_data$value>0.3 & unique_half_corr_data$value<0.5))/dim(unique_half_corr_data)[1]*100
+# [1] 43.38235
+
+## Percentage of low coeffs (<0.3)
+length(which(unique_half_corr_data$value<0.3))/dim(unique_half_corr_data)[1]*100
+# [1] 29.41176
+
+
+# ------------------------------------------------------------------------------
+## Agreement proportion between predictions from each pair of methods
+agreement_prop <- matrix(ncol=length(colnames(categorical_predictions[,-1])), 
+                                      nrow=length(colnames(categorical_predictions[,-1])))
+colnames(agreement_prop) <- colnames(categorical_predictions[,-1])
+rownames(agreement_prop) <- colnames(categorical_predictions[,-1])
+
+for (algorithm1 in colnames(categorical_predictions[,-1])){
+  for(algorithm2 in colnames(categorical_predictions[,-1])){
+    ## Evaluate if prediction from algorithm 1 and 2 is different or the same for each variant
+    comparisons <- apply(categorical_predictions[,c(algorithm1, algorithm2)], 1, function(x){if(x[1]==x[2]){'equal'}else{'diff'}})
+    agreement_prop[algorithm1, algorithm2]<- table(comparisons)['equal']/dim(categorical_predictions)[1]
   }
 }
 
-ggplot(corr_data, aes(x = Algorithm1, y = Algorithm2, fill = Correlation)) +
-  geom_tile() +
-  scale_fill_gradient(high = "navyblue", low = "lightyellow1") +
-  labs(title = "Correlation between categorical predicted effects of missense variants", x='', y='') +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), 
-        title = element_text(size = 8, hjust=0.5)) 
+## Half matrix
+agreement_prop[lower.tri(agreement_prop)] <- NA 
+half_agreement_prop <- melt(agreement_prop, na.rm = TRUE)
+half_agreement_prop$value <- signif(as.numeric(half_agreement_prop$value), digits = 3)
 
-ggsave(filename='plots/03_Anno_functional_impact/Corr_categorical_predicted_effects.pdf', width = 6, height = 5)
+pdf(file = "plots/03_Anno_functional_impact/Agreement_categorical_predicted_effects.pdf", width = 4, height = 4)
+corrplot(agreement_prop, method="color", 
+         diag=FALSE, 
+         type="upper",
+         addCoef.col = "black",
+         tl.cex = 0.4,
+         tl.col = 'black',
+         number.cex = 0.3,
+         cl.cex = 0.4,
+         col.lim = c(0,1),
+         col = COL2('BrBG', 100)
+         
+)
+dev.off()
+
+## Mean prop
+unique_half_agreement_prop <- half_agreement_prop[which(half_agreement_prop$value!=1), ]
+mean(unique_half_agreement_prop$value)
+# [1] 0.6993382
+
+## Highest corr coeffs
+unique_half_agreement_prop[order(unique_half_agreement_prop$value, decreasing = TRUE), ][1:4,]
+#               Var1             Var2    value
+# 80           VEST3         FATHMM      0.963
+# 20  Polyphen2 HVAR Polyphen2 HDIV      0.944
+# 128         MetaLR        MetaSVM      0.929
+# 134          REVEL        MetaSVM      0.924
+
+## Percentage of high prop (>0.5)
+length(which(unique_half_agreement_prop$value>0.5))/dim(unique_half_agreement_prop)[1]*100
+# [1] 92.64706
 
 
-## Pair-wise comparisons of algorithms 
 
 
 
@@ -646,14 +722,7 @@ ggsave(filename='plots/03_Anno_functional_impact/Corr_categorical_predicted_effe
 
 
 ## TODOs
-- Heatmap con escala y bonito
-
-- Análisis de pair-wise agreement and ranks?
 - Comparar raw o rank scores??
-
-
-
-
 
 
 ########################################################################
@@ -661,9 +730,6 @@ ggsave(filename='plots/03_Anno_functional_impact/Corr_categorical_predicted_effe
 ########################################################################
 
 ## Normalization of scores using rank percentile
-
-
-
 
 
 
@@ -719,7 +785,7 @@ session_info()
 # collate  en_US.UTF-8
 # ctype    en_US.UTF-8
 # tz       Europe/Stockholm
-# date     2023-09-22
+# date     2023-09-23
 # rstudio  2023.06.1+524 Mountain Hydrangea (desktop)
 # pandoc   NA
 # 
@@ -734,6 +800,7 @@ session_info()
 # cli                    3.6.1     2023-03-23 [1] CRAN (R 4.3.0)
 # codetools              0.2-19    2023-02-01 [1] CRAN (R 4.3.0)
 # colorspace             2.1-0     2023-01-23 [1] CRAN (R 4.3.0)
+# corrplot             * 0.92      2021-11-18 [1] CRAN (R 4.3.0)
 # cowplot              * 1.1.1     2020-12-30 [1] CRAN (R 4.3.0)
 # crayon                 1.5.2     2022-09-29 [1] CRAN (R 4.3.0)
 # DelayedArray           0.26.6    2023-07-02 [1] Bioconductor
@@ -761,14 +828,18 @@ session_info()
 # matrixStats          * 1.0.0     2023-06-02 [1] CRAN (R 4.3.0)
 # munsell                0.5.0     2018-06-12 [1] CRAN (R 4.3.0)
 # nlme                   3.1-162   2023-01-31 [1] CRAN (R 4.3.0)
+# pheatmap             * 1.0.12    2019-01-04 [1] CRAN (R 4.3.0)
 # phylotools           * 0.2.4     2023-08-31 [1] Github (helixcn/phylotools@758d338)
 # pillar                 1.9.0     2023-03-22 [1] CRAN (R 4.3.0)
 # pkgconfig              2.0.3     2019-09-22 [1] CRAN (R 4.3.0)
+# plyr                   1.8.8     2022-11-11 [1] CRAN (R 4.3.0)
 # R6                     2.5.1     2021-08-19 [1] CRAN (R 4.3.0)
 # ragg                   1.2.5     2023-01-12 [1] CRAN (R 4.3.0)
+# RColorBrewer           1.1-3     2022-04-03 [1] CRAN (R 4.3.0)
 # Rcpp                   1.0.11    2023-07-06 [1] CRAN (R 4.3.0)
 # RCurl                  1.98-1.12 2023-03-27 [1] CRAN (R 4.3.0)
 # readr                * 2.1.4     2023-02-10 [1] CRAN (R 4.3.0)
+# reshape2             * 1.4.4     2020-04-09 [1] CRAN (R 4.3.0)
 # rlang                * 1.1.1     2023-04-28 [1] CRAN (R 4.3.0)
 # rprojroot              2.0.3     2022-04-02 [1] CRAN (R 4.3.0)
 # rstudioapi             0.15.0    2023-07-07 [1] CRAN (R 4.3.0)
@@ -779,6 +850,8 @@ session_info()
 # sessioninfo          * 1.2.2     2021-12-06 [1] CRAN (R 4.3.0)
 # SingleCellExperiment * 1.23.0    2023-04-25 [1] Bioconductor
 # sparseMatrixStats      1.13.0    2023-05-20 [1] Bioconductor
+# stringi                1.7.12    2023-01-11 [1] CRAN (R 4.3.0)
+# stringr                1.5.0     2022-12-02 [1] CRAN (R 4.3.0)
 # SummarizedExperiment * 1.30.2    2023-06-06 [1] Bioconductor
 # systemfonts            1.0.4     2022-02-11 [1] CRAN (R 4.3.0)
 # textshaping            0.3.6     2021-10-13 [1] CRAN (R 4.3.0)
@@ -794,7 +867,6 @@ session_info()
 # [1] /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library
 # 
 # ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-
 
 
 
