@@ -120,7 +120,7 @@ for (gene in UGT_genes){
   write.table(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/', 
                                                           gene, '_missense_vars_ANNOVAR_format.csv'), row.names = FALSE, col.names = FALSE, sep = '\t')
 }
-
+ 
 
 
 # _______________________________________________________________________________
@@ -218,6 +218,7 @@ myanno_UGT2B10[which(myanno_UGT2B10$Func.refGene=='exonic;splicing'), 1:10]
 # UGT2B10:NM_001075:exon1:c.G154A:p.V52M,UGT2B10:NM_001144767:exon1:c.G154A:p.V52M
 
 ## Corroborate location of variant in NM_001075, the UGT2B10 canonical tx (ENST00000265403.7) and check Exon 1 boundaries 
+## (Use function location_determination() in ../01_Data_Processing.R)
 location_determination(69681891, canonical_UGT2_txs[['UGT2B10']], 'Exon 1')
 # "Exon 1"
 #
@@ -408,10 +409,10 @@ sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', g
 
 ## Scores from algorithms of interest
 scores_algorithms <- c('SIFT_score', 'Polyphen2_HDIV_score', 'Polyphen2_HVAR_score', 'LRT_score','MutationAssessor_score', 'FATHMM_score', 
-                'fathmm.MKL_coding_score', 'PROVEAN_score', 'VEST3_score', 'CADD_raw', 'DANN_score', 'MetaSVM_score', 'MetaLR_score', 
+                'fathmm.MKL_coding_score', 'PROVEAN_score', 'VEST3_score', 'VEST4_score', 'CADD_raw', 'DANN_score', 'MetaSVM_score', 'MetaLR_score', 
                 'REVEL_score', 'PrimateAI_score', 'M.CAP_score', 'ClinPred_score', 'Eigen.PC.raw_coding', 'MutPred_score', 'MVP_score')
 
-## Categorical predictions per algorithm 
+## Returned categorical predictions per algorithm 
 cat_pred_algorithms <- c('SIFT_pred', 'Polyphen2_HDIV_pred', 'Polyphen2_HVAR_pred', 'LRT_pred', 'MutationAssessor_pred', 'FATHMM_pred', 
                          'fathmm.MKL_coding_pred', 'PROVEAN_pred', 'MetaSVM_pred', 'MetaLR_pred', 'PrimateAI_pred', 'M.CAP_pred', 'ClinPred_pred')
 
@@ -450,38 +451,13 @@ for (UGT_variant in unique_UGT_vars){
   }
 }
 
-
-## Percentage of variants with missing scores/predictions in each algorithm 
-
-apply(variants_predictions, 2, function(x){100*length(which(x=='.'))/dim(variants_predictions)[1]})
-# Variant_ID            Gene.refGene              SIFT_score    Polyphen2_HDIV_score    Polyphen2_HVAR_score               LRT_score  MutationAssessor_score 
-# 0.00000000              0.00000000              0.37783375              4.34508816              4.34508816             28.22732997              0.42506297 
-# FATHMM_score   fathmm.MKL_coding_score           PROVEAN_score             VEST3_score                CADD_raw              DANN_score           MetaSVM_score 
-#   0.37783375                0.01574307              0.37783375              0.03148615              0.01574307              0.01574307              0.03148615 
-# MetaLR_score             REVEL_score         PrimateAI_score             M.CAP_score          ClinPred_score     Eigen.PC.raw_coding           MutPred_score 
-#   0.03148615              0.03148615             25.23614610              2.31423174              0.01574307              0.01574307             20.62342569 
-#  MVP_score               SIFT_pred     Polyphen2_HDIV_pred     Polyphen2_HVAR_pred                LRT_pred   MutationAssessor_pred             FATHMM_pred 
-# 0.96032746              0.37783375              4.34508816              4.34508816             28.22732997              0.42506297              0.37783375 
-# fathmm.MKL_coding_pred            PROVEAN_pred            MetaSVM_pred             MetaLR_pred          PrimateAI_pred              M.CAP_pred           ClinPred_pred 
-#             0.01574307              0.37783375              0.03148615              0.03148615             25.23614610              2.31423174              0.01574307 
-
-
-## Remove LRT_score, LRT_pred, PrimateAI_score, PrimateAI_pred and MutPred_score (missing data in >20% of variants)
-filtered_variants_predictions<- variants_predictions[, -c(6,17,21,26,33)]
-
-## Number of missing scores/predictions per variant
-table(apply(filtered_variants_predictions, 1, function(x){length(which(x=='.'))}))
-#    0    2    3    4    5    6    7    8   12   14   28 
-# 5920   79   58  261    1    7    1   18    5    1    1 
-
-## Remove variants with at least 1 missing score/prediction
-filtered_variants_predictions <- filtered_variants_predictions[-which(apply(filtered_variants_predictions, 1, function(x){length(which(x=='.'))})!=0), ]
-
-## Correct category names for FATHMM_pred (TRUE -> 'T')
-filtered_variants_predictions$FATHMM_pred <- replace(filtered_variants_predictions$FATHMM_pred, 
-                                                     which(filtered_variants_predictions$FATHMM_pred==TRUE), 'T')
+## Correct category names for FATHMM_pred and PrimateAI_pred (TRUE -> 'T')
+variants_predictions$FATHMM_pred <- replace(variants_predictions$FATHMM_pred, 
+                                                     which(variants_predictions$FATHMM_pred==TRUE), 'T')
+variants_predictions$PrimateAI_pred <- replace(variants_predictions$PrimateAI_pred, 
+                                            which(variants_predictions$PrimateAI_pred==TRUE), 'T')
 ## Standardize variable names
-colnames(filtered_variants_predictions)[c(8, 11,18, 25)] <- c('fathmm.MKL_score', 'CADD_score', 'Eigen.PC_score', 'fathmm.MKL_pred')
+colnames(variants_predictions)[c(9, 13,21, 30)] <- c('fathmm.MKL_score', 'CADD_score', 'Eigen.PC_score', 'fathmm.MKL_pred')
 
 
 ## Function to create density plot of raw scores for variants in the different functional predicted categories
@@ -490,37 +466,74 @@ score_density_plot <- function(algorithm, predicted_cat_type){
   
   algorithm_score <- paste0(algorithm, '_score')
   algorithm_pred <- paste0(algorithm, '_pred')
-
-  if (predicted_cat_type=='new'){
-    data <- new_variants_predictions
-  }
-  else{
-    data <- filtered_variants_predictions
-  }
+  threshold <- algorithms_thresholds[[algorithm]]
+  numeric_threshold <- as.numeric(gsub('[<, =, >]', '', threshold))
   
+  ## Subset to variants with algorithm scores/predictions
+  data <- variants_predictions[which(eval(parse_expr(paste0('variants_predictions$',algorithm_score)))!='.'),]
+  ## Define colors for predicted effect categories 
   colors <- list('D'='tomato2', 'T'='skyblue1', 'N'='skyblue1', 'B'='skyblue1', 'P'='lightsalmon', 
-                 'H'= 'red4', 'M'='red3', 'L'='dodgerblue3')
+                 'H'= 'red4', 'M'='red3', 'L'='dodgerblue3', 'U'='grey90')
   
-  p1 <- ggplot(data = data, aes(x = as.numeric(eval(parse_expr(algorithm_score))))) +
-    geom_density(alpha=0.6, fill='grey')+
-    theme_bw() +
-    labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), ' raw score'), y= 'Density') 
+  if (predicted_cat_type=='new'){
+
+    ## Percentage of variants with missing scores/predictions from each algorithm (percentage of missingness)
+    missingness <- apply(variants_predictions, 2, function(x){100*length(which(x=='.'))/dim(variants_predictions)[1]})[[algorithm_score]]
+    ## Number of variants with valid output from each algorithm
+    num_vars <- apply(variants_predictions, 2, function(x){length(which(x!='.'))})[[algorithm_score]]
+    
+    ## Density function with score limits 
+    density <- density(as.numeric(data[,algorithm_score]), 
+                       from = min(as.numeric(data[,algorithm_score])), 
+                       to = max(as.numeric(data[,algorithm_score]))) 
+    ## Categorize variant scores by defined threshold 
+    df <- data.frame(x = density$x, y = density$y, pred = replace(replace(density$x, which(eval(parse_expr(paste0('density$x', threshold)))), 'D'), 
+                                                                  which(!eval(parse_expr(paste0('density$x', threshold)))), 'N')) 
+    if (algorithm=='FATHMM'){
+      hjust = 0.3
+    }
+    else if(algorithm=='VEST4' | algorithm=='DANN'){
+      hjust = 1.5
+    }
+    else {
+      hjust = -0.3
+    }
+    
+    p1 <- ggplot(data = df, aes(x = x, ymin = 0, ymax = y, fill = pred)) +
+      geom_ribbon(alpha=0.7) +
+      theme_bw() +
+      scale_fill_manual(values=colors[names(table(df$pred))]) +
+      labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), ' raw scores'), y= 'Density', fill='Predicted effect',
+           subtitle=paste0('Missingness: ', signif(as.numeric(missingness), digits=3), '%', '\n', 
+                           num_vars, ' variants')) +
+      geom_line(aes(y = y)) +
+      geom_vline(xintercept = numeric_threshold, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+      geom_label(aes(x = numeric_threshold, y = max(df$y), color = 'indianred3', label = numeric_threshold), 
+               hjust = hjust, vjust = 3, fontface = 2, fill = "white", show.legend = FALSE) +
+      theme(legend.key = element_rect(fill = "white", colour = "black"),
+            plot.subtitle = element_text(size = 10, color = "gray30"))
+    
+    return(p1)
+  }
   
-  if(!is.null(algorithm_pred)){
-    p2 <- ggplot(data = data, aes(x = as.numeric(eval(parse_expr(algorithm_score))), 
-                                                           fill=eval(parse_expr(algorithm_pred))))+
+  else{
+    
+    p2 <- ggplot(data = data, aes(x = as.numeric(eval(parse_expr(algorithm_score))))) +
+      geom_density(alpha=0.6, fill='grey')+
+      theme_bw() +
+      labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), ' raw scores'), y= 'Density') 
+    
+    p3 <- ggplot(data = data, aes(x = as.numeric(eval(parse_expr(algorithm_score))), 
+                                  fill=eval(parse_expr(algorithm_pred))))+
       geom_density(alpha=0.6)+
       scale_fill_manual(values=colors[names(table(eval(parse_expr(paste0('data$', algorithm_pred)))))]) +
       theme_bw() +
-      labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), ' raw score'), y= 'Density', fill='Predicted effect') 
+      labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), ' raw scores'), y= 'Density', fill='Predicted effect') 
     
-    return(list(p1,p2))
-  }
-  
-  else {
-    return(list(p1))
+    return(list(p2, p3))
   }
 
+    
 }
   
 
@@ -528,7 +541,7 @@ score_density_plot <- function(algorithm, predicted_cat_type){
 
 ## Algorithms already returning categorical predictions
 algorithms <- c('SIFT', 'Polyphen2_HDIV', 'Polyphen2_HVAR', 'MutationAssessor', 'FATHMM', 
-                'fathmm.MKL', 'PROVEAN', 'MetaSVM', 'MetaLR', 'M.CAP', 'ClinPred')
+                'fathmm.MKL', 'PROVEAN', 'MetaSVM', 'MetaLR', 'M.CAP', 'ClinPred', 'LRT', 'PrimateAI')
 
 plots <- list()
 j=1
@@ -541,6 +554,7 @@ for (i in 1:length(algorithms)){
 plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],
           plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
           plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], plots[[22]], 
+          plots[[23]], plots[[24]], plots[[25]], plots[[26]],
           ncol=6, rel_widths = c(rep(c(0.74,1), 11)))
 
 ggsave(filename='plots/03_Anno_functional_impact/Returned_RawScores_density_plots.pdf', width = 30, height = 15)
@@ -560,14 +574,16 @@ algorithms_thresholds <- list('SIFT'='<=0.05',
                               'MetaSVM'='>=0',               
                               'MetaLR'='>=0.5',             
                               'M.CAP'='>=0.025',            
-                              'ClinPred'='>=0.5',            
-                              'VEST3'='>0.9',               
+                              'ClinPred'='>=0.5',               
                               'CADD'='>0.73',              
                               'DANN'='>0.99', 
                               'REVEL'='>0.5',               
                               'Eigen.PC'='>=0', 
-                              'MVP'= '>0.75'
-)
+                              'MVP'= '>0.75',
+                              'LRT'='',
+                              'MutPred'='',
+                              'PrimateAI'='>0.803',
+                              'VEST4'='>0.9')
 
 ## Categorize variants with these thresholds
 categorical_predictions <- data.frame(matrix(nrow=dim(filtered_variants_predictions)[1], ncol=18))
@@ -580,6 +596,11 @@ for(algorithm in names(algorithms_thresholds)){
                                                                function(x){if ( eval(parse_expr(paste0('as.numeric(x[paste0(algorithm, \'_score\')])', algorithms_thresholds[[algorithm]]))) ){1}
                                                                           else{0} })
 }
+## Data frame with scores and new binary predictions per algorithm 
+new_variants_predictions <- cbind(apply(categorical_predictions, 2, function(x){replace(replace(x, which(x==1), 'D'), which(x==0), 'N')}), 
+                                  filtered_variants_predictions[,paste0(all_algorithms, '_score')])
+new_variants_predictions$PROVEAN_score <- as.numeric(new_variants_predictions$PROVEAN_score)
+new_variants_predictions$FATHMM_score <- as.numeric(new_variants_predictions$FATHMM_score)
 
 
 ## Distribution of raw scores in D and N variants defined by cutoffs
@@ -587,80 +608,68 @@ for(algorithm in names(algorithms_thresholds)){
 ## All algorithms
 all_algorithms <- c('SIFT', 'Polyphen2_HDIV', 'Polyphen2_HVAR', 'MutationAssessor', 'FATHMM', 
                     'fathmm.MKL', 'PROVEAN', 'MetaSVM', 'MetaLR', 'M.CAP', 'ClinPred', 
-                    'VEST3', 'CADD', 'DANN', 'REVEL', 'Eigen.PC', 'MVP')
-
-## Data frame with scores and new binary predictions per algorithm 
-new_variants_predictions <- cbind(apply(categorical_predictions, 2, function(x){replace(replace(x, which(x==1), 'D'), which(x==0), 'N')}), 
-                                  filtered_variants_predictions[,paste0(all_algorithms, '_score')])
-new_variants_predictions$PROVEAN_score <- as.numeric(new_variants_predictions$PROVEAN_score)
-new_variants_predictions$FATHMM_score <- as.numeric(new_variants_predictions$FATHMM_score)
-
+                    'VEST4', 'CADD', 'DANN', 'REVEL', 'Eigen.PC', 'MVP')
 plots <- list()
-j=1
 for (i in 1:length(all_algorithms)){
-  plots[[j]] <- score_density_plot(all_algorithms[i], 'new')[[1]]
-  plots[[j+1]] <- score_density_plot(all_algorithms[i], 'new')[[2]]
-  j=j+2
+  plots[[i]] <- score_density_plot(all_algorithms[i], 'new')
 }
 
 plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],
           plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
-          plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], 
-          plots[[22]], plots[[23]], plots[[24]], plots[[25]], plots[[26]], plots[[27]], plots[[28]],
-          plots[[29]], plots[[30]], plots[[31]], plots[[32]], plots[[33]], plots[[34]],
-          ncol=8, rel_widths = c(rep(c(0.74,1), 17)))
+          plots[[15]], plots[[16]], plots[[17]],
+          ncol=5)
 
-ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 35, height = 17)
+ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 20, height = 10)
 
 
-# ------------------------------------------------------------------------------
-## Correlation between predictions from each pair of methods
-colnames(categorical_predictions) <- c('Variant_ID', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', colnames(categorical_predictions[,-1])))))
-corr <- cor(categorical_predictions[,-1], categorical_predictions[,-1], method = 'pearson')
-## Half matrix
-corr[lower.tri(corr)] <- NA 
-half_corr_data <- melt(corr, na.rm = TRUE)
-half_corr_data$value <- signif(as.numeric(half_corr_data$value), digits = 3)
-
-pdf(file = "plots/03_Anno_functional_impact/Corr_categorical_predicted_effects.pdf", width = 4, height = 4)
-corrplot(corr, method="color", 
-         diag=FALSE, 
-         type="upper",
-         addCoef.col = "black",
-         tl.cex = 0.4,
-         tl.col = 'black',
-         number.cex = 0.3,
-         cl.cex = 0.4,
-         col.lim = c(0,1)
-
-)
-dev.off()
-
-## Mean corr coeff
-unique_half_corr_data <- half_corr_data[which(half_corr_data$value!=1), ]
-mean(unique_half_corr_data$value)
-# [1] 0.3918721
-
-## Highest corr coeffs
-unique_half_corr_data[order(unique_half_corr_data$value, decreasing = TRUE), ][1:4,]
-#               Var1             Var2    value
-#     Polyphen2 HDIV   Polyphen2 HVAR    0.890
-#            MetaSVM           MetaLR    0.744
-#          fathmm-MKL         Eigen-PC   0.691
-#            MetaSVM            REVEL    0.689
-
-## Percentage of high coeffs (>0.5)
-length(which(unique_half_corr_data$value>0.5))/dim(unique_half_corr_data)[1]*100
-# [1] 27.20588
-
-## Percentage of medium coeffs (0.3<r<0.5)
-length(which(unique_half_corr_data$value>0.3 & unique_half_corr_data$value<0.5))/dim(unique_half_corr_data)[1]*100
-# [1] 43.38235
-
-## Percentage of low coeffs (<0.3)
-length(which(unique_half_corr_data$value<0.3))/dim(unique_half_corr_data)[1]*100
-# [1] 29.41176
-
+# # ------------------------------------------------------------------------------
+# ## Correlation between predictions from each pair of methods
+# colnames(categorical_predictions) <- c('Variant_ID', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', colnames(categorical_predictions[,-1])))))
+# corr <- cor(categorical_predictions[,-1], categorical_predictions[,-1], method = 'pearson')
+# ## Half matrix
+# corr[lower.tri(corr)] <- NA 
+# half_corr_data <- melt(corr, na.rm = TRUE)
+# half_corr_data$value <- signif(as.numeric(half_corr_data$value), digits = 3)
+# 
+# pdf(file = "plots/03_Anno_functional_impact/Corr_categorical_predicted_effects.pdf", width = 4, height = 4)
+# corrplot(corr, method="color", 
+#          diag=FALSE, 
+#          type="upper",
+#          addCoef.col = "black",
+#          tl.cex = 0.4,
+#          tl.col = 'black',
+#          number.cex = 0.3,
+#          cl.cex = 0.4,
+#          col.lim = c(0,1)
+# 
+# )
+# dev.off()
+# 
+# ## Mean corr coeff
+# unique_half_corr_data <- half_corr_data[which(half_corr_data$value!=1), ]
+# mean(unique_half_corr_data$value)
+# # [1] 0.3918721
+# 
+# ## Highest corr coeffs
+# unique_half_corr_data[order(unique_half_corr_data$value, decreasing = TRUE), ][1:4,]
+# #               Var1             Var2    value
+# #     Polyphen2 HDIV   Polyphen2 HVAR    0.890
+# #            MetaSVM           MetaLR    0.744
+# #          fathmm-MKL         Eigen-PC   0.691
+# #            MetaSVM            REVEL    0.689
+# 
+# ## Percentage of high coeffs (>0.5)
+# length(which(unique_half_corr_data$value>0.5))/dim(unique_half_corr_data)[1]*100
+# # [1] 27.20588
+# 
+# ## Percentage of medium coeffs (0.3<r<0.5)
+# length(which(unique_half_corr_data$value>0.3 & unique_half_corr_data$value<0.5))/dim(unique_half_corr_data)[1]*100
+# # [1] 43.38235
+# 
+# ## Percentage of low coeffs (<0.3)
+# length(which(unique_half_corr_data$value<0.3))/dim(unique_half_corr_data)[1]*100
+# # [1] 29.41176
+# 
 
 # ------------------------------------------------------------------------------
 ## Agreement proportion between predictions from each pair of methods
