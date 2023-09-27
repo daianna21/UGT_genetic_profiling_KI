@@ -570,35 +570,36 @@ algorithms_thresholds <- list('SIFT'='<=0.05',
                               'MutationAssessor'='>1.9',     
                               'FATHMM'= '<= -1.5',           
                               'fathmm.MKL'='>0.5',   
-                              'PROVEAN'= '<= -2.5',         
+                              'PROVEAN'= '< -2.282',         
                               'MetaSVM'='>=0',               
                               'MetaLR'='>=0.5',             
                               'M.CAP'='>=0.025',            
                               'ClinPred'='>=0.5',               
                               'CADD'='>0.73',              
-                              'DANN'='>0.99', 
+                              'DANN'='>0.96', 
                               'REVEL'='>0.5',               
                               'Eigen.PC'='>=0', 
                               'MVP'= '>0.75',
-                              'LRT'='',
-                              'MutPred'='',
-                              'PrimateAI'='>0.803',
-                              'VEST4'='>0.9')
+                              'LRT'='<0.001',
+                              'MutPred'='>0.5',
+                              'PrimateAI'='>=0.803',
+                              'VEST4'='>0.5',
+                              'ADME'='')
 
 ## Categorize variants with these thresholds
-categorical_predictions <- data.frame(matrix(nrow=dim(filtered_variants_predictions)[1], ncol=18))
+categorical_predictions <- data.frame(matrix(nrow=dim(variants_predictions)[1], ncol=22))
 colnames(categorical_predictions) <- c('Variant_ID', paste0(names(algorithms_thresholds), '_pred'))
-categorical_predictions$Variant_ID <- filtered_variants_predictions$Variant_ID
+categorical_predictions$Variant_ID <- variants_predictions$Variant_ID
 
 for(algorithm in names(algorithms_thresholds)){
   ## Evaluate if the algorithm score of each variant passes cutoff (1) or not (0)
-  categorical_predictions[paste0(algorithm, '_pred')] <- apply(filtered_variants_predictions, 1, 
-                                                               function(x){if ( eval(parse_expr(paste0('as.numeric(x[paste0(algorithm, \'_score\')])', algorithms_thresholds[[algorithm]]))) ){1}
-                                                                          else{0} })
+  categorical_predictions[paste0(algorithm, '_pred')] <- apply(variants_predictions, 1, 
+                                                               function(x){if (x[paste0(algorithm, '_score')]=='.'){'.'}
+                                                                          else if (eval(parse_expr(paste0('as.numeric(x[paste0(algorithm, \'_score\')])', algorithms_thresholds[[algorithm]]))) ){'D'}
+                                                                          else{'N'} })
 }
 ## Data frame with scores and new binary predictions per algorithm 
-new_variants_predictions <- cbind(apply(categorical_predictions, 2, function(x){replace(replace(x, which(x==1), 'D'), which(x==0), 'N')}), 
-                                  filtered_variants_predictions[,paste0(all_algorithms, '_score')])
+new_variants_predictions <- cbind(categorical_predictions, variants_predictions[,paste0(all_algorithms, '_score')])
 new_variants_predictions$PROVEAN_score <- as.numeric(new_variants_predictions$PROVEAN_score)
 new_variants_predictions$FATHMM_score <- as.numeric(new_variants_predictions$FATHMM_score)
 
@@ -620,6 +621,42 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
           ncol=5)
 
 ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 20, height = 10)
+
+
+# # ------------------------------------------------------------------------------
+# ## Correlation between raw scores from each pair of methods
+
+
+
+## Scatterplot of raw scores and categorical predictions of 2 methods
+
+## Define variable comparing binary predictions
+
+scaterrplot_compare_2methods <- function(algorithm1, algorithm2){
+  ggplot(new_variants_predictions, aes(x=diff_Prop_ob_exp, y=oe_syn, color = binary_predictions)) +
+    geom_point(size=2) +
+    stat_smooth(geom = "line", alpha = 0.6, size = 0.7, span = 0.25, method = lm, color = "orangered3") +
+    scale_color_manual(values = colors_gene_fam) +
+    theme_bw() +
+    labs(
+      subtitle = paste0("Corr: ", signif(cor(constraint_metrics$diff_Prop_ob_exp, constraint_metrics$oe_syn, method = "pearson"), digits = 3)),
+      x = 'Observed - Expected proportion of missense/synonymous variants',
+      y = 'oe ratio for number of synonymous variants (gnomAD)',
+      color='Gene family'
+    ) +
+    theme(
+      plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+      axis.title = element_text(size = (11)),
+      axis.text = element_text(size = (10)),
+      plot.subtitle = element_text(size = 9, color = "gray30"),
+      legend.text = element_text(size = 9),
+      legend.title = element_text(size =10))
+  
+}
+
+## Compare methods of interest
+
+
 
 
 # # ------------------------------------------------------------------------------
