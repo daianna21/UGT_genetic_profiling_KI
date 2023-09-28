@@ -638,8 +638,6 @@ for(algorithm in names(algorithms_thresholds)){
 }
 ## Data frame with scores and new binary predictions per algorithm 
 new_variants_predictions <- cbind(categorical_predictions, variants_predictions[,paste0(names(algorithms_thresholds), '_score')])
-new_variants_predictions$PROVEAN_score <- as.numeric(new_variants_predictions$PROVEAN_score)
-new_variants_predictions$FATHMM_score <- as.numeric(new_variants_predictions$FATHMM_score)
 new_variants_predictions$MutPred_score <- replace(new_variants_predictions$MutPred_score, which(new_variants_predictions$MutPred_score=='-'), '.')
 
 
@@ -837,16 +835,19 @@ scatterplot_compare_2methods <- function(algorithm1, algorithm2){
 
 ## Compare methods of interest
 scatterplot_compare_2methods('SIFT', 'Polyphen2_HDIV')
-scatterplot_compare_2methods('Eigen.PC', 'CADD')
+scatterplot_compare_2methods('Eigen.PC', 'CADD') **
 scatterplot_compare_2methods('Polyphen2_HDIV', 'Polyphen2_HVAR')
 scatterplot_compare_2methods('FATHMM', 'fathmm.MKL')
 scatterplot_compare_2methods('MetaSVM', 'MetaLR')
 scatterplot_compare_2methods('FATHMM', 'MutPred')
+scatterplot_compare_2methods('FATHMM', 'CADD')
+scatterplot_compare_2methods('FATHMM', 'DANN')
+scatterplot_compare_2methods('FATHMM', 'VEST4') ***
 scatterplot_compare_2methods('ADME', 'REVEL')
 scatterplot_compare_2methods('ADME', 'fathmm.MKL')
 scatterplot_compare_2methods('ADME', 'ClinPred')
 scatterplot_compare_2methods('M.CAP', 'LRT')
-scatterplot_compare_2methods('Eigen.PC', 'M.CAP')
+scatterplot_compare_2methods('Eigen.PC', 'M.CAP') ** 
 
 
 
