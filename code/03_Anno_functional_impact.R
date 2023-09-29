@@ -665,7 +665,7 @@ colnames(corr) <- rownames(corr) <- gsub('\\.','-', gsub('_', ' ', gsub('_score'
 corr[lower.tri(corr)] <- NA
 ## Take absolute corr
 corr <- abs(corr)
-half_corr_data <- melt(as.data.frame(corr), na.rm = TRUE)
+half_corr_data <- melt(corr, na.rm = TRUE)
 half_corr_data$value <- signif(as.numeric(half_corr_data$value), digits = 3)
 
 ## Mean corr coeff
@@ -676,22 +676,23 @@ mean(unique_half_corr_data$value)
 ## Highest corr coeffs
 unique_half_corr_data[order(unique_half_corr_data$value, decreasing = TRUE), ][1:4,]
 #               Var1             Var2    value
-#     Polyphen2 HDIV   Polyphen2 HVAR    0.890
-#            MetaSVM           MetaLR    0.744
-#          fathmm-MKL         Eigen-PC   0.691
-#            MetaSVM            REVEL    0.689
+#     Polyphen2 HDIV   Polyphen2 HVAR     0.97
+#               CADD         Eigen-PC     0.96
+#            MetaSVM           MetaLR     0.93
+#            MetaSVM            REVEL     0.88
+
 
 ## Percentage of high coeffs (>0.5)
 length(which(unique_half_corr_data$value>0.5))/dim(unique_half_corr_data)[1]*100
-# [1] 27.20588
+# [1] 64.28571
 
-## Percentage of medium coeffs (0.3<r<0.5)
-length(which(unique_half_corr_data$value>0.3 & unique_half_corr_data$value<0.5))/dim(unique_half_corr_data)[1]*100
-# [1] 43.38235
+## Percentage of medium coeffs (0.3=<r=<0.5)
+length(which(unique_half_corr_data$value>=0.3 & unique_half_corr_data$value<=0.5))/dim(unique_half_corr_data)[1]*100
+# [1] 26.19048
 
 ## Percentage of low coeffs (<0.3)
 length(which(unique_half_corr_data$value<0.3))/dim(unique_half_corr_data)[1]*100
-# [1] 29.41176
+# [1] 9.52381
 
 
 # ------------------------------------------------------------------------------
@@ -749,19 +750,19 @@ dev.off()
 ## Mean prop
 unique_half_agreement_prop <- half_agreement_prop[which(half_agreement_prop$value!=1), ]
 mean(unique_half_agreement_prop$value)
-# [1] 0.6993382
+# [1] 0.6288524
 
 ## Highest corr coeffs
 unique_half_agreement_prop[order(unique_half_agreement_prop$value, decreasing = TRUE), ][1:4,]
-#               Var1             Var2    value
-# 80           VEST3         FATHMM      0.963
-# 20  Polyphen2 HVAR Polyphen2 HDIV      0.944
-# 128         MetaLR        MetaSVM      0.929
-# 134          REVEL        MetaSVM      0.924
+#             Var1             Var2   value
+#   Polyphen2 HDIV   Polyphen2 HVAR   0.949
+#           MetaSVM          MetaLR   0.930
+#           MetaSVM           REVEL   0.926
+#            MetaLR           REVEL   0.905
 
 ## Percentage of high prop (>0.5)
 length(which(unique_half_agreement_prop$value>0.5))/dim(unique_half_agreement_prop)[1]*100
-# [1] 92.64706
+# [1] 78.57143
 
 
 # ------------------------------------------------------------------------------
