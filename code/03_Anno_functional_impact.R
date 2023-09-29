@@ -411,11 +411,11 @@ sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', g
 scores_algorithms <- c('SIFT_score', 'Polyphen2_HDIV_score', 'Polyphen2_HVAR_score', 'LRT_score','MutationAssessor_score', 'FATHMM_score', 
                        'fathmm.MKL_coding_score', 'PROVEAN_score', 'VEST3_score', 'VEST4_score', 'CADD_raw', 'CADD_phred', 'DANN_score', 'MetaSVM_score', 'MetaLR_score', 
                        'REVEL_score', 'PrimateAI_score', 'M.CAP_score', 'ClinPred_score', 'Eigen.PC.raw_coding', 'MutPred_score', 'MVP_score')
+## Categorical predictions 
 cat_pred_algorithms <- c('SIFT_pred', 'Polyphen2_HDIV_pred', 'Polyphen2_HVAR_pred', 'MutationAssessor_pred', 'FATHMM_pred', 
                         'fathmm.MKL_coding_pred', 'PROVEAN_pred', 'MetaSVM_pred', 'MetaLR_pred', 'M.CAP_pred', 'ClinPred_pred', 'LRT_pred', 'PrimateAI_pred')
 
 ## Create single dataset for all missense UGT variants and their predicted effects and scores
-
 ## Unique variant IDs
 for (gene in UGT_genes){
   myanno <- eval(parse_expr(paste0('myanno_', gene)))
@@ -434,7 +434,7 @@ for (UGT_variant in unique_UGT_vars){
   for(gene in UGT_genes){
     myanno <- eval(parse_expr(paste0('myanno_', gene)))
     if (UGT_variant %in% myanno$Variant_ID){
-      ## For shared variants, assume the predictions are the same in all genes and take the ones reported in the first one
+      ## For shared variants, assume the predictions are the same across all genes and take the ones reported in the first one
       variants_predictions  <- rbind(variants_predictions, myanno[which(myanno$Variant_ID==UGT_variant), c('Variant_ID', 'Gene.refGene', scores_algorithms, cat_pred_algorithms)])
       break
     }
@@ -453,21 +453,14 @@ colnames(variants_predictions)[c(9, 13, 14, 22, 30)] <- c('fathmm.MKL_score', 'C
 ## Add ADME-optimized model scores
 
 ## ADME-optimized algorithm thresholds to categorize variants 
-ADME_thresholds <- list('SIFT'='<0.0376', 
-                        'Polyphen2_HDIV'='>0.3841',
-                        'LRT'='<0.0025',
+ADME_thresholds <- list('LRT'='<0.0025',
                         'MutationAssessor'='>2.0566',
-                        'FATHMM'='<0.486',
-                        'fathmm.MKL'='>0.3982',
                         'PROVEAN'='< -3.286',
                         'VEST3'='>0.4534',
-                        'CADD_phred'='>19.19',
-                        'DANN'='>0.9688',
-                        'MetaSVM'='> -0.3371',
-                        'MetaLR'='>0.4039')
+                        'CADD_phred'='>19.19')
 
 ## Categorize variants in D/N by each algorithm using these thresholds
-ADME_categorical_predictions <- data.frame(matrix(nrow=dim(variants_predictions)[1], ncol=13))
+ADME_categorical_predictions <- data.frame(matrix(nrow=dim(variants_predictions)[1], ncol=length(ADME_thresholds)+1))
 colnames(ADME_categorical_predictions) <- c('Variant_ID', paste0(names(ADME_thresholds), '_pred'))
 ADME_categorical_predictions$Variant_ID <- variants_predictions$Variant_ID
 
@@ -484,24 +477,22 @@ variants_predictions$ADME_score <- signif(apply(ADME_categorical_predictions[,-1
 ## Put '.' of no algorithm used in ADME model returned scores for a variant
 variants_predictions$ADME_score[which(is.nan(variants_predictions$ADME_score))] <- '.'
 
-# ___________________________________________________________________________________________
+
+
+# ____________________________________________________________________________________________
 #  3.1.4  Comparison and evaluation of predictive algorithms 
-# ___________________________________________________________________________________________
+# ____________________________________________________________________________________________
 
 ####################  3.1.4.1 Compare predictions of different algorithms  ####################
 
-#############################################################################
-##   Compare binary categorical predictions of variants in all UGT genes
-#############################################################################
-
-## Function to create density plot of raw scores for variants in the different functional predicted categories
+## Function to create density plot of raw scores for variants in the different functional categories
 
 score_density_plot <- function(algorithm, predicted_cat_type){
   
   algorithm_score <- paste0(algorithm, '_score')
   algorithm_pred <- paste0(algorithm, '_pred')
   
-  ## Define colors for predicted effect categories 
+  ## Define colors for categories of predicted effect
   colors <- list('D'='tomato2', 'T'='skyblue1', 'N'='skyblue1', 'B'='skyblue1', 'P'='lightsalmon', 
                  'H'= 'red4', 'M'='red3', 'L'='dodgerblue3', 'U'='grey90')
   
@@ -510,7 +501,7 @@ score_density_plot <- function(algorithm, predicted_cat_type){
     threshold <- algorithms_thresholds[[algorithm]]
     numeric_threshold <- as.numeric(gsub('[<, =, >]', '', threshold))
     
-    ## Subset to variants with algorithm scores/predictions
+    ## Subset to variants with algorithm scores (and predictions)
     data <- new_variants_predictions[which(eval(parse_expr(paste0('new_variants_predictions$',algorithm_score)))!='.'),]
 
     ## Percentage of variants with missing scores/predictions from each algorithm (percentage of missingness)
@@ -598,7 +589,6 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
 ggsave(filename='plots/03_Anno_functional_impact/Returned_RawScores_density_plots.pdf', width = 30, height = 15)
 
 
-
 ##################  b) Raw scores of variants categorized by defined score thresholds  ##################
 
 ## Reported/conventional threshold to categorize variants as deleterious (D) (or neutral (N) otherwise) in each algorithm 
@@ -636,7 +626,7 @@ for(algorithm in names(algorithms_thresholds)){
                                                                           else if (eval(parse_expr(paste0('as.numeric(x[paste0(algorithm, \'_score\')])', algorithms_thresholds[[algorithm]]))) ){'D'}
                                                                           else{'N'} })
 }
-## Data frame with scores and new binary predictions per algorithm 
+## Bind scores and new binary predictions per algorithm 
 new_variants_predictions <- cbind(categorical_predictions, variants_predictions[,paste0(names(algorithms_thresholds), '_score')])
 new_variants_predictions$MutPred_score <- replace(new_variants_predictions$MutPred_score, which(new_variants_predictions$MutPred_score=='-'), '.')
 
@@ -669,10 +659,12 @@ for (i in 1:length(colnames(raw_scores))){
   }
 }
 
-
 whole_corr <- corr
 colnames(corr) <- rownames(corr) <- gsub('\\.','-', gsub('_', ' ', gsub('_score', '', colnames(corr))))
+## Half matrix
 corr[lower.tri(corr)] <- NA
+## Take absolute corr
+corr <- abs(corr)
 half_corr_data <- melt(as.data.frame(corr), na.rm = TRUE)
 half_corr_data$value <- signif(as.numeric(half_corr_data$value), digits = 3)
 
@@ -700,8 +692,6 @@ length(which(unique_half_corr_data$value>0.3 & unique_half_corr_data$value<0.5))
 ## Percentage of low coeffs (<0.3)
 length(which(unique_half_corr_data$value<0.3))/dim(unique_half_corr_data)[1]*100
 # [1] 29.41176
-
-
 
 
 # ------------------------------------------------------------------------------
@@ -738,8 +728,8 @@ corrplot(corr, method="color",
          tl.col = 'black',
          number.cex = 0.3,
          cl.cex = 0.4,
-         col.lim = c(-1,1),
-         col=colorRampPalette(c('dodgerblue4', 'deepskyblue3', 'lightskyblue1', "white",'mistyrose2',"tomato2", 'firebrick4'))(100)
+         col.lim = c(0,1),
+         col=colorRampPalette(c("white","white","white", 'mistyrose2',"tomato2", 'firebrick4'))(100)
 )         
 corrplot(agreement_prop, method="color", 
          diag=FALSE, 
@@ -851,9 +841,7 @@ scatterplot_compare_2methods('Eigen.PC', 'M.CAP') **
 
 
 
-
-
-
+  
 ####################  3.1.4.2 Evaluate predictions of different algorithms  ####################
 
 known_exonic_vars <- list('UGT1A1'=list('2-234669144-G-A'= 'reduced UGT1A1 expression'),
