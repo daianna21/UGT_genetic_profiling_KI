@@ -513,23 +513,34 @@ AM_score_pred <- function(variant_id){
   ## Search variant within each gene 
   for(gene in UGT_genes){
     AM_data <- eval(parse_expr(paste0(gene, '_AlphaMissense_data')))
-    if (UGT_variant %in% AM_data$Variant_ID){
+    if (variant_id %in% AM_data$Variant_ID){
       var_data  <- rbind(var_data, AM_data[which(AM_data$Variant_ID==variant_id), c('Variant_ID', 'am_pathogenicity', 'am_class')])
     }
     
-    ## For shared variants with differing scores across genes, take the most pathogenic one (the biggest) and its corresponding class
-    score <- var_data[order(var_data$am_pathogenicity, decreasing = TRUE),][1,'am_pathogenicity']
-    class <- var_data[order(var_data$am_pathogenicity, decreasing = TRUE),][1,'am_class']
+    if (!is.null(dim(var_data))){
+      ## For shared variants with differing scores across genes, take the most pathogenic one (the biggest) and its corresponding class
+      score <- var_data[order(var_data$am_pathogenicity, decreasing = TRUE),][1,'am_pathogenicity']
+      class <- var_data[order(var_data$am_pathogenicity, decreasing = TRUE),][1,'am_class']
+    }
+    ## If variant was not found in any gene dataset (no AM score/pred)
+    else{
+      score <- class <- '.'
+    }
   }
   return(c(score, class))
 }
 
-for (variant in variants_predictions$Variant_ID){
-  variants_predictions$AlphaMissense_score <- AM_score_pred(variant)[[1]]
-  variants_predictions$AlphaMissense_pred <- AM_score_pred(variant)[[2]]
+## Search AM score/pred for all UGT variants
+for (i in 1:dim(variants_predictions)[1]){
+  AM_output <- AM_score_pred(variants_predictions$Variant_ID[i])
+  variants_predictions$AlphaMissense_score[i] <- AM_output[[1]]
+  variants_predictions$AlphaMissense_pred[i] <- AM_output[[2]]
 }
 
-
+variants_predictions$AlphaMissense_pred <- replace(replace(replace(variants_predictions$AlphaMissense_pred, 
+                                                   which(variants_predictions$AlphaMissense_pred=='benign'), 'N'), 
+                                                   which(variants_predictions$AlphaMissense_pred=='pathogenic'), 'D'),
+                                                   which(variants_predictions$AlphaMissense_pred=='ambiguous'), 'U')
 
 
 
@@ -624,7 +635,7 @@ score_density_plot <- function(algorithm, predicted_cat_type){
 
 ## Algorithms already returning categorical predictions
 algorithms <- c('SIFT', 'Polyphen2_HDIV', 'Polyphen2_HVAR', 'MutationAssessor', 'FATHMM', 
-                'fathmm.MKL', 'PROVEAN', 'MetaSVM', 'MetaLR', 'M.CAP', 'ClinPred', 'LRT', 'PrimateAI')
+                'fathmm.MKL', 'PROVEAN', 'MetaSVM', 'MetaLR', 'M.CAP', 'ClinPred', 'LRT', 'PrimateAI', 'AlphaMissense')
 
 plots <- list()
 j=1
@@ -637,10 +648,10 @@ for (i in 1:length(algorithms)){
 plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],
           plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
           plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], plots[[22]], 
-          plots[[23]], plots[[24]], plots[[25]], plots[[26]],
-          ncol=6, rel_widths = c(rep(c(0.74,1), 13)))
+          plots[[23]], plots[[24]], plots[[25]], plots[[26]], plots[[27]], plots[[28]],
+          ncol=6, rel_widths = c(rep(c(0.74,1), 14)))
 
-ggsave(filename='plots/03_Anno_functional_impact/Returned_RawScores_density_plots.pdf', width = 30, height = 15)
+ggsave(filename='plots/03_Anno_functional_impact/Returned_RawScores_density_plots.pdf', width = 30, height = 18)
 
 
 ##################  b) Raw scores of variants categorized by defined score thresholds  ##################
@@ -666,7 +677,8 @@ algorithms_thresholds <- list('SIFT'='<=0.05',
                               'MutPred'='>0.5',
                               'PrimateAI'='>=0.803',
                               'VEST4'='>0.5',
-                              'ADME'='>0.5')
+                              'ADME'='>0.5',
+                              'AlphaMissense'='>=0.564')
 
 ## Categorize variants with these thresholds
 categorical_predictions <- data.frame(matrix(nrow=dim(variants_predictions)[1], ncol=length(names(algorithms_thresholds))+1))
@@ -693,16 +705,16 @@ for (i in 1:length(names(algorithms_thresholds))){
 
 plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],
           plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
-          plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]],
-          ncol=7)
+          plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], plots[[22]],
+          ncol=5)
 
-ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 30, height = 9)
+ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 20, height = 12)
 
 
 # ------------------------------------------------------------------------------
 ## Correlation between raw scores from each pair of methods
 raw_scores <- as.data.frame(apply(new_variants_predictions[,paste0(names(algorithms_thresholds), '_score')], 2, as.numeric))
-corr <- matrix(nrow=21, ncol = 21)
+corr <- matrix(nrow=22, ncol = 22)
 colnames(corr) <- rownames(corr) <- colnames(raw_scores)
 
 for (i in 1:length(colnames(raw_scores))){
@@ -752,7 +764,7 @@ length(which(unique_half_corr_data$value<0.3))/dim(unique_half_corr_data)[1]*100
 # ------------------------------------------------------------------------------
 ## Agreement proportion between predictions from each pair of methods
 predictions <- as.data.frame(new_variants_predictions[,paste0(names(algorithms_thresholds), '_pred')])
-agreement_prop <- matrix(ncol=21, nrow=21)
+agreement_prop <- matrix(ncol=22, nrow=22)
 colnames(agreement_prop) <- rownames(agreement_prop) <- colnames(predictions)
 
 for (i in 1:length(colnames(predictions))){
@@ -893,7 +905,7 @@ scatterplot_compare_2methods('ADME', 'fathmm.MKL')
 scatterplot_compare_2methods('ADME', 'ClinPred')
 scatterplot_compare_2methods('M.CAP', 'LRT')
 scatterplot_compare_2methods('Eigen.PC', 'M.CAP') ** 
-
+scatterplot_compare_2methods('ADME', 'AlphaMissense')
 
 ####################  3.1.5.2 Evaluate predictions of different algorithms  ####################
 
