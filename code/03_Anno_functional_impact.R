@@ -23,6 +23,17 @@ UGT2_genes <- c('UGT2A1', 'UGT2A2', 'UGT2A3', 'UGT2B4', 'UGT2B7', 'UGT2B10', 'UG
 UGT3_genes <- c('UGT3A1', 'UGT3A2')
 UGT8_genes <- c('UGT8')
 
+## Canonical txs of genes 
+canonical_txs <- list('UGT1A1'= 'ENST00000305208.5', 'UGT1A3'='ENST00000482026.1', 'UGT1A4'='ENST00000373409.3', 
+                           'UGT1A5'='ENST00000373414.3', 'UGT1A6'='ENST00000305139.6', 'UGT1A7'='ENST00000373426.3', 
+                           'UGT1A8'= 'ENST00000373450.4','UGT1A9'= 'ENST00000354728.4', 'UGT1A10'='ENST00000344644.5',
+                           'UGT2A1'= 'ENST00000503640.1', 'UGT2A2'='ENST00000457664.2', 'UGT2A3'='ENST00000251566.4', 
+                           'UGT2B4'='ENST00000305107.6', 'UGT2B7'='ENST00000305231.7', 'UGT2B10'='ENST00000265403.7', 
+                           'UGT2B11'= 'ENST00000446444.1', 'UGT2B15'= 'ENST00000338206.5', 'UGT2B17'='ENST00000317746.2', 
+                           'UGT2B28'='ENST00000335568.5', 'UGT3A1'= 'ENST00000274278.3', 'UGT3A2'='ENST00000282507.3',
+                           'UGT8'= 'ENST00000310836.6')
+
+
 ## Load exonic data for each gene 
 for (gene in UGT_genes){
   load(here(paste0('~/Desktop/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata')),
@@ -479,11 +490,54 @@ variants_predictions$ADME_score[which(is.nan(variants_predictions$ADME_score))] 
 
 
 
+# _______________________________________________________________________________
+#  3.1.4  Extract AlphaMissense (AM) predictions all UGT variants
+# _______________________________________________________________________________
+
+## Retrieve AM scores and predictions for all variants of a gene
+for (gene in UGT_genes){
+  tx <- canonical_txs[[gene]]
+  data <- read_tsv(paste0('~/Desktop/UGT_genetic_profiling_KI/raw-data/AlphaMissense_data/', tx, '_AlphaMissense_data'), show_col_types = FALSE)
+  ## Add variant IDs
+  colnames(data) <- c('chr', 'pos', 'ref', 'alt', 'genome', 'uniprot_id', 'transcript_id', 'protein_variant', 'am_pathogenicity', 'am_class')
+  data$chr <- sapply(data$chr, function(x){strsplit(x, 'chr')[[1]][2]})
+  data$Variant_ID <- paste(data$chr, data$pos, data$ref, data$alt, sep='-')
+  assign(paste0(gene, '_AlphaMissense_data'), data)
+}
+
+
+## Search UGT missense variants in AM datasets
+AM_score_pred <- function(variant_id){
+  ## Data for each variant
+  var_data <- vector()
+  ## Search variant within each gene 
+  for(gene in UGT_genes){
+    AM_data <- eval(parse_expr(paste0(gene, '_AlphaMissense_data')))
+    if (UGT_variant %in% AM_data$Variant_ID){
+      var_data  <- rbind(var_data, AM_data[which(AM_data$Variant_ID==variant_id), c('Variant_ID', 'am_pathogenicity', 'am_class')])
+    }
+    
+    ## For shared variants with differing scores across genes, take the most pathogenic one (the biggest) and its corresponding class
+    score <- var_data[order(var_data$am_pathogenicity, decreasing = TRUE),][1,'am_pathogenicity']
+    class <- var_data[order(var_data$am_pathogenicity, decreasing = TRUE),][1,'am_class']
+  }
+  return(c(score, class))
+}
+
+for (variant in variants_predictions$Variant_ID){
+  variants_predictions$AlphaMissense_score <- AM_score_pred(variant)[[1]]
+  variants_predictions$AlphaMissense_pred <- AM_score_pred(variant)[[2]]
+}
+
+
+
+
+
 # ____________________________________________________________________________________________
-#  3.1.4  Comparison and evaluation of predictive algorithms 
+#  3.1.5  Comparison and evaluation of predictive algorithms 
 # ____________________________________________________________________________________________
 
-####################  3.1.4.1 Compare predictions of different algorithms  ####################
+####################  3.1.5.1 Compare predictions of different algorithms  ####################
 
 ## Function to create density plot of raw scores for variants in the different functional categories
 
@@ -841,9 +895,7 @@ scatterplot_compare_2methods('M.CAP', 'LRT')
 scatterplot_compare_2methods('Eigen.PC', 'M.CAP') ** 
 
 
-
-  
-####################  3.1.4.2 Evaluate predictions of different algorithms  ####################
+####################  3.1.5.2 Evaluate predictions of different algorithms  ####################
 
 known_exonic_vars <- list('UGT1A1'=list('2-234669144-G-A'= 'reduced UGT1A1 expression'),
                           'UGT1A6'=list('2-234602191-A-G'= 'increased risk for severe neutropenia when treated with irinotecan ', 
