@@ -491,7 +491,7 @@ variants_predictions$ADME_score[which(is.nan(variants_predictions$ADME_score))] 
 
 
 # _______________________________________________________________________________
-#  3.1.4  Extract AlphaMissense (AM) predictions all UGT variants
+#  3.1.4  Extract AlphaMissense (AM) predictions for all UGT variants
 # _______________________________________________________________________________
 
 ## Retrieve AM scores and predictions for all variants of a gene
@@ -737,7 +737,7 @@ half_corr_data$value <- signif(as.numeric(half_corr_data$value), digits = 3)
 ## Mean corr coeff
 unique_half_corr_data <- half_corr_data[which(half_corr_data$value!=1), ]
 mean(unique_half_corr_data$value)
-# [1] 0.3918721
+# [1] 0.5689177
 
 ## Highest corr coeffs
 unique_half_corr_data[order(unique_half_corr_data$value, decreasing = TRUE), ][1:4,]
@@ -750,15 +750,15 @@ unique_half_corr_data[order(unique_half_corr_data$value, decreasing = TRUE), ][1
 
 ## Percentage of high coeffs (>0.5)
 length(which(unique_half_corr_data$value>0.5))/dim(unique_half_corr_data)[1]*100
-# [1] 64.28571
+# [1] 65.36797
 
 ## Percentage of medium coeffs (0.3=<r=<0.5)
 length(which(unique_half_corr_data$value>=0.3 & unique_half_corr_data$value<=0.5))/dim(unique_half_corr_data)[1]*100
-# [1] 26.19048
+# [1] 25.97403
 
 ## Percentage of low coeffs (<0.3)
 length(which(unique_half_corr_data$value<0.3))/dim(unique_half_corr_data)[1]*100
-# [1] 9.52381
+# [1] 8.658009
 
 
 # ------------------------------------------------------------------------------
@@ -816,7 +816,7 @@ dev.off()
 ## Mean prop
 unique_half_agreement_prop <- half_agreement_prop[which(half_agreement_prop$value!=1), ]
 mean(unique_half_agreement_prop$value)
-# [1] 0.6288524
+# [1] 0.6312814
 
 ## Highest corr coeffs
 unique_half_agreement_prop[order(unique_half_agreement_prop$value, decreasing = TRUE), ][1:4,]
@@ -828,7 +828,7 @@ unique_half_agreement_prop[order(unique_half_agreement_prop$value, decreasing = 
 
 ## Percentage of high prop (>0.5)
 length(which(unique_half_agreement_prop$value>0.5))/dim(unique_half_agreement_prop)[1]*100
-# [1] 78.57143
+# [1] 79.65368
 
 
 # ------------------------------------------------------------------------------
@@ -891,23 +891,83 @@ scatterplot_compare_2methods <- function(algorithm1, algorithm2){
 }
 
 ## Compare methods of interest
-scatterplot_compare_2methods('SIFT', 'Polyphen2_HDIV')
-scatterplot_compare_2methods('Eigen.PC', 'CADD') **
+## Top; similar algorithms
 scatterplot_compare_2methods('Polyphen2_HDIV', 'Polyphen2_HVAR')
-scatterplot_compare_2methods('FATHMM', 'fathmm.MKL')
 scatterplot_compare_2methods('MetaSVM', 'MetaLR')
+scatterplot_compare_2methods('FATHMM', 'fathmm.MKL')
+## Top on agreement
+scatterplot_compare_2methods('MetaSVM', 'REVEL')
+## Low corr, high agreement
+scatterplot_compare_2methods('FATHMM', 'VEST4') 
+scatterplot_compare_2methods('FATHMM', 'PrimateAI')
+scatterplot_compare_2methods('Eigen.PC', 'M.CAP') 
+## High corr, low agreement
+scatterplot_compare_2methods('Eigen.PC', 'CADD')
+## ADME
+scatterplot_compare_2methods('ADME', 'CADD')
+scatterplot_compare_2methods('ADME', 'VEST4')
+scatterplot_compare_2methods('ADME', 'LRT')
+scatterplot_compare_2methods('ADME', 'MutationAssessor')
+scatterplot_compare_2methods('ADME', 'PROVEAN')
+scatterplot_compare_2methods('ADME', 'ClinPred')
+scatterplot_compare_2methods('ADME', 'REVEL')
+scatterplot_compare_2methods('ADME', 'MetaLR')
+## AlphaMissense
+scatterplot_compare_2methods('AlphaMissense', 'MetaSVM')
+scatterplot_compare_2methods('AlphaMissense', 'MetaLR')
+scatterplot_compare_2methods('AlphaMissense', 'REVEL')
+scatterplot_compare_2methods('AlphaMissense', 'VEST4')
+## FATHMM
 scatterplot_compare_2methods('FATHMM', 'MutPred')
 scatterplot_compare_2methods('FATHMM', 'CADD')
 scatterplot_compare_2methods('FATHMM', 'DANN')
-scatterplot_compare_2methods('FATHMM', 'VEST4') ***
-scatterplot_compare_2methods('ADME', 'REVEL')
-scatterplot_compare_2methods('ADME', 'fathmm.MKL')
-scatterplot_compare_2methods('ADME', 'ClinPred')
-scatterplot_compare_2methods('M.CAP', 'LRT')
-scatterplot_compare_2methods('Eigen.PC', 'M.CAP') ** 
-scatterplot_compare_2methods('ADME', 'AlphaMissense')
+
+
+
+
 
 ####################  3.1.5.2 Evaluate predictions of different algorithms  ####################
+
+
+## ClinVar variants for each gene (no variants in UGT2A3)
+for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
+  data <- read_delim(paste0('~/Desktop/UGT_genetic_profiling_KI/raw-data/ClinVar_data/clinvar_variants_', gene, '.txt'), delim='\t', show_col_types = FALSE)
+  ## Add variant ID
+  data$Variant_ID <- paste(data$GRCh37Chromosome, data$GRCh37Location, 
+                           sapply(data$Name, function(x){substr(strsplit(x, '>')[[1]][1], nchar(strsplit(x, '>')[[1]][1]), nchar(strsplit(x, '>')[[1]][1]))}),
+                           sapply(data$Name, function(x){substr(strsplit(x, '>')[[1]][2], 1,1)}), sep='-')
+  ## Add D/N effect
+  data$effect <- sapply(data$`Clinical significance (Last reviewed)`, function(x){
+    if (length(grep('Pathogenic|pathogenic', x))!=0) {'D'}
+    else if(length(grep('Benign|benign', x))!=0) {'N'}
+  })
+  assign(paste0('clinvar_variants_', gene), data)
+}
+
+## Unique variants
+unique_clinvar_variants<- unique(unlist(sapply(paste0('clinvar_variants_', UGT_genes[which(UGT_genes!='UGT2A3')], '$Variant_ID'), function(x){eval(parse_expr(x))})))
+
+## Predictions for those variants
+clinvar_variants_predictions <- new_variants_predictions[which(new_variants_predictions$Variant_ID %in% unique_clinvar_variants),colnames(new_variants_predictions)[1:23]]
+## Add clinical consequence
+for (variant in clinvar_variants_predictions$Variant_ID){
+  variant_effects <- vector()
+  for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
+    gene_variants <- eval(parse_expr(paste0('clinvar_variants_', gene)))
+    if (variant %in% gene_variants$Variant_ID){
+      variant_effects <- append(variant_effects, unlist(gene_variants[which(gene_variants$Variant_ID==variant), 'effect']))
+    }
+  }
+  
+  if(length(unique(variant_effects))==1){variant_effects <- unique(variant_effects)}
+  clinvar_variants_predictions[which(clinvar_variants_predictions$Variant_ID==variant), 'clinical_effect'] <- variant_effects 
+}
+
+
+
+
+
+
 
 known_exonic_vars <- list('UGT1A1'=list('2-234669144-G-A'= 'reduced UGT1A1 expression'),
                           'UGT1A6'=list('2-234602191-A-G'= 'increased risk for severe neutropenia when treated with irinotecan ', 
