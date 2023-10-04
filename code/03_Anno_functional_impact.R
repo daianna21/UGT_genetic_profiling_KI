@@ -6,6 +6,7 @@ library(ggplot2)
 library(cowplot)
 library(reshape2)
 library(corrplot)
+library(pROC)
 library(sessioninfo)
 
 
@@ -924,10 +925,7 @@ scatterplot_compare_2methods('FATHMM', 'DANN')
 
 
 
-
-
 ####################  3.1.5.2 Evaluate predictions of different algorithms  ####################
-
 
 ## ClinVar variants for each gene (no variants in UGT2A3)
 for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
@@ -946,51 +944,98 @@ for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
 
 ## Unique variants
 unique_clinvar_variants<- unique(unlist(sapply(paste0('clinvar_variants_', UGT_genes[which(UGT_genes!='UGT2A3')], '$Variant_ID'), function(x){eval(parse_expr(x))})))
+## Add known variants not present in ClinVar
+known_exonic_vars <- c('2-234669144-G-A', '2-234526871-C-G','4-70346565-A-T','4-69964338-T-C', '4-69962449-G-T','4-69536084-A-C')
+unique_clinvar_variants <- append(unique_clinvar_variants, known_exonic_vars)
 
 ## Predictions for those variants
-clinvar_variants_predictions <- new_variants_predictions[which(new_variants_predictions$Variant_ID %in% unique_clinvar_variants),colnames(new_variants_predictions)[1:23]]
+clinvar_variants_predictions <- new_variants_predictions[which(new_variants_predictions$Variant_ID %in% unique_clinvar_variants),]
 ## Add clinical consequence
 for (variant in clinvar_variants_predictions$Variant_ID){
   variant_effects <- vector()
   for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
     gene_variants <- eval(parse_expr(paste0('clinvar_variants_', gene)))
-    if (variant %in% gene_variants$Variant_ID){
+    if (variant %in% known_exonic_vars){
+      variant_effects <- 'D'
+    }
+    else if (variant %in% gene_variants$Variant_ID){
       variant_effects <- append(variant_effects, unlist(gene_variants[which(gene_variants$Variant_ID==variant), 'effect']))
     }
   }
   
+  ## Verify effect of shared variants is conserved across genes
   if(length(unique(variant_effects))==1){variant_effects <- unique(variant_effects)}
   clinvar_variants_predictions[which(clinvar_variants_predictions$Variant_ID==variant), 'clinical_effect'] <- variant_effects 
 }
 
+## Determine if predictions are TP, TN, FP and FN
+positive_negative_predictions <- data.frame(matrix(ncol=22, nrow=dim(clinvar_variants_predictions)[1]))
+colnames(positive_negative_predictions) <- colnames(clinvar_variants_predictions)[2:23]
+for (algorithm in colnames(clinvar_variants_predictions)[2:23]){
+  positive_negative_predictions[,algorithm] <- unlist(apply(clinvar_variants_predictions, 1, function(x){if(x[algorithm]=='D' & x['clinical_effect']=='D'){'TP'}
+    else if(x[algorithm]=='N' & x['clinical_effect']=='D'){'FN'}
+    else if(x[algorithm]=='D' & x['clinical_effect']=='N'){'FP'}
+    else if(x[algorithm]=='N' & x['clinical_effect']=='N'){'TN'}
+    else if(x[algorithm]=='.'){'NA'}}))
+}
+
+## Specificity and sensitivity (at the given thresholds) of each method
+sensitivities <- apply(positive_negative_predictions, 2, function(x){
+                                      length(which(x=='TP'))/(length(which(x=='TP')) + length(which(x=='FN')))})
+specificities <- apply(positive_negative_predictions, 2, function(x){
+  length(which(x=='TN'))/(length(which(x=='TN')) + length(which(x=='FP')))})
+
+## ROC curves
+r <- list()
+for (algorithm in colnames(clinvar_variants_predictions)[24:45]){
+  r[[algorithm]] <- roc(response=as.factor(clinvar_variants_predictions$clinical_effect), predictor=as.numeric(clinvar_variants_predictions[,algorithm]), levels=c('N', 'D'))
+}
+data <- as.data.frame(cbind('AUC'=paste0('AUC = ', signif(as.numeric(lapply(r, function(x){x$auc})), digits=3))))
+data$num_vars <- paste0('n = ', apply(clinvar_variants_predictions[,names(r)], 2, function(x){length(which(x!='.'))}))
+## Locate coordinate corresponding to the used threshold for each method
+data$sensitivity <- sensitivities
+data$specificity <- specificities
+
+names(r) <- gsub('_', ' ', gsub('\\.', '-', gsub('_score', '', names(r))))
+data$name <- names(r)
+
+colors = c('ADME'='mediumpurple2', 
+              'AlphaMissense'='orangered3',
+              'CADD'='peachpuff4', 
+              'ClinPred'='turquoise3',
+              'DANN'='orange3', 
+              'Eigen-PC'='lightsteelblue4',
+              'FATHMM'='lightsalmon2', 
+              'fathmm-MKL'='lightcoral', 
+              'LRT'='thistle4',
+              'M-CAP'='yellow4', 
+              'MetaLR'='steelblue2', 
+              'MetaSVM'='dodgerblue3', 
+              'MutationAssessor'='goldenrod', 
+              'MutPred'='magenta2',
+              'MVP'='pink3', 
+              'Polyphen2 HDIV'='darkseagreen4', 
+              'Polyphen2 HVAR'='mediumseagreen', 
+              'PrimateAI'='darkred',
+              'PROVEAN'='darkorchid3', 
+              'REVEL'='cadetblue3', 
+              'SIFT'='lightgoldenrod4', 
+              'VEST4'='hotpink1')
+
+ggroc(r) + 
+  facet_wrap(~name) +
+  theme_bw() + theme(legend.position = "none") + 
+  geom_text(data = data, aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
+  theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
+        strip.text = element_text(face="bold"),
+        axis.text = element_text( size = 6)) +
+  geom_text(data = data, aes(0, 0.05, label= num_vars, hjust = 1), size=2.8, color='black') +
+  scale_color_manual(values=colors) +
+  ## Point corresponding to used threshold
+  geom_point(data=data, aes(x=specificity, y=sensitivity))
 
 
-
-
-
-
-known_exonic_vars <- list('UGT1A1'=list('2-234669144-G-A'= 'reduced UGT1A1 expression'),
-                          'UGT1A6'=list('2-234602191-A-G'= 'increased risk for severe neutropenia when treated with irinotecan ', 
-                                        '2-234602202-A-C'= 'higher metabolic activity', 
-                                        '2-234601669-T-G'= 'increase the likelihood of cardiotoxicity when treated with anticancer anthracyclines'),
-                          'UGT1A7'=list('2-234591205-T-C'= 'increases risk of vomiting in colorectal cancer patients treated with anticancer drugs'),
-                          'UGT1A8'=list('2-234526871-C-G'= 'increases chances of having diarrhea in kidney transplant patients treated with the immune suppressants'),
-                          'UGT2B4'=list('4-70346565-A-T'= ''),
-                          'UGT2B7'=list('4-69964338-T-C'= 'reduced response to oxycodone and improved response to oxcarbazepine', 
-                                        '4-69962449-G-T'= 'LoF mutation; increases levels of valproic acid in the plasma of epilepsy patients'),
-                          'UGT2B15'=list('4-69536084-A-C'= ''))
-
-variant_data <- strsplit('2-234669144-G-A', '-')[[1]]
-myanno_UGT1A1[which(myanno_UGT1A1$Chr==variant_data[1] & myanno_UGT1A1$Start==variant_data[2] & myanno_UGT1A1$End==variant_data[2] 
-      & myanno_UGT1A1$Ref==variant_data[3] & myanno_UGT1A1$Alt==variant_data[4]), c('SIFT_pred', 'Polyphen2_HDIV_pred', 'Polyphen2_HVAR_pred', 'LRT_pred',
-                                                                                    'MutationAssessor_pred', 'FATHMM_pred', 'fathmm.MKL_coding_pred', 'PROVEAN_pred',
-                                                                                    'VEST3_score', 'CADD_raw', 'DANN_score', 'MetaSVM_pred', 'MetaLR_pred')]
-      
-sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', gene, '$Gene.refGene')))))})
-
-
-
-
+ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_methods.pdf', width = 8, height = 8)
 
 
 
@@ -1015,93 +1060,70 @@ session_info()
 # collate  en_US.UTF-8
 # ctype    en_US.UTF-8
 # tz       Europe/Stockholm
-# date     2023-09-23
+# date     2023-10-04
 # rstudio  2023.06.1+524 Mountain Hydrangea (desktop)
 # pandoc   NA
 # 
 # ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
-# package              * version   date (UTC) lib source
-# ape                  * 5.7-1     2023-03-13 [1] CRAN (R 4.3.0)
-# beachmat               2.16.0    2023-05-08 [1] Bioconductor
-# Biobase              * 2.61.0    2023-06-02 [1] Bioconductor
-# BiocGenerics         * 0.47.0    2023-06-02 [1] Bioconductor
-# BiocParallel           1.35.3    2023-07-07 [1] Bioconductor
-# bitops                 1.0-7     2021-04-24 [1] CRAN (R 4.3.0)
-# cli                    3.6.1     2023-03-23 [1] CRAN (R 4.3.0)
-# codetools              0.2-19    2023-02-01 [1] CRAN (R 4.3.0)
-# colorspace             2.1-0     2023-01-23 [1] CRAN (R 4.3.0)
-# corrplot             * 0.92      2021-11-18 [1] CRAN (R 4.3.0)
-# cowplot              * 1.1.1     2020-12-30 [1] CRAN (R 4.3.0)
-# crayon                 1.5.2     2022-09-29 [1] CRAN (R 4.3.0)
-# DelayedArray           0.26.6    2023-07-02 [1] Bioconductor
-# DelayedMatrixStats     1.23.0    2023-04-25 [1] Bioconductor
-# digest                 0.6.33    2023-07-07 [1] CRAN (R 4.3.0)
-# dplyr                  1.1.2     2023-04-20 [1] CRAN (R 4.3.0)
-# fansi                  1.0.4     2023-01-22 [1] CRAN (R 4.3.0)
-# farver                 2.1.1     2022-07-06 [1] CRAN (R 4.3.0)
-# generics               0.1.3     2022-07-05 [1] CRAN (R 4.3.0)
-# GenomeInfoDb         * 1.37.2    2023-06-21 [1] Bioconductor
-# GenomeInfoDbData       1.2.10    2023-05-28 [1] Bioconductor
-# GenomicRanges        * 1.53.1    2023-06-02 [1] Bioconductor
-# ggplot2              * 3.4.2     2023-04-03 [1] CRAN (R 4.3.0)
-# glue                   1.6.2     2022-02-24 [1] CRAN (R 4.3.0)
-# gtable                 0.3.3     2023-03-21 [1] CRAN (R 4.3.0)
-# here                 * 1.0.1     2020-12-13 [1] CRAN (R 4.3.0)
-# hms                    1.1.3     2023-03-21 [1] CRAN (R 4.3.0)
-# IRanges              * 2.35.2    2023-06-23 [1] Bioconductor
-# labeling               0.4.2     2020-10-20 [1] CRAN (R 4.3.0)
-# lattice                0.21-8    2023-04-05 [1] CRAN (R 4.3.0)
-# lifecycle              1.0.3     2022-10-07 [1] CRAN (R 4.3.0)
-# magrittr               2.0.3     2022-03-30 [1] CRAN (R 4.3.0)
-# Matrix                 1.6-0     2023-07-08 [1] CRAN (R 4.3.0)
-# MatrixGenerics       * 1.13.0    2023-05-20 [1] Bioconductor
-# matrixStats          * 1.0.0     2023-06-02 [1] CRAN (R 4.3.0)
-# munsell                0.5.0     2018-06-12 [1] CRAN (R 4.3.0)
-# nlme                   3.1-162   2023-01-31 [1] CRAN (R 4.3.0)
-# pheatmap             * 1.0.12    2019-01-04 [1] CRAN (R 4.3.0)
-# phylotools           * 0.2.4     2023-08-31 [1] Github (helixcn/phylotools@758d338)
-# pillar                 1.9.0     2023-03-22 [1] CRAN (R 4.3.0)
-# pkgconfig              2.0.3     2019-09-22 [1] CRAN (R 4.3.0)
-# plyr                   1.8.8     2022-11-11 [1] CRAN (R 4.3.0)
-# R6                     2.5.1     2021-08-19 [1] CRAN (R 4.3.0)
-# ragg                   1.2.5     2023-01-12 [1] CRAN (R 4.3.0)
-# RColorBrewer           1.1-3     2022-04-03 [1] CRAN (R 4.3.0)
-# Rcpp                   1.0.11    2023-07-06 [1] CRAN (R 4.3.0)
-# RCurl                  1.98-1.12 2023-03-27 [1] CRAN (R 4.3.0)
-# readr                * 2.1.4     2023-02-10 [1] CRAN (R 4.3.0)
-# reshape2             * 1.4.4     2020-04-09 [1] CRAN (R 4.3.0)
-# rlang                * 1.1.1     2023-04-28 [1] CRAN (R 4.3.0)
-# rprojroot              2.0.3     2022-04-02 [1] CRAN (R 4.3.0)
-# rstudioapi             0.15.0    2023-07-07 [1] CRAN (R 4.3.0)
-# S4Arrays               1.1.4     2023-06-02 [1] Bioconductor
-# S4Vectors            * 0.39.1    2023-06-02 [1] Bioconductor
-# scales                 1.2.1     2022-08-20 [1] CRAN (R 4.3.0)
-# scuttle              * 1.9.4     2023-01-23 [1] Bioconductor
-# sessioninfo          * 1.2.2     2021-12-06 [1] CRAN (R 4.3.0)
-# SingleCellExperiment * 1.23.0    2023-04-25 [1] Bioconductor
-# sparseMatrixStats      1.13.0    2023-05-20 [1] Bioconductor
-# stringi                1.7.12    2023-01-11 [1] CRAN (R 4.3.0)
-# stringr                1.5.0     2022-12-02 [1] CRAN (R 4.3.0)
-# SummarizedExperiment * 1.30.2    2023-06-06 [1] Bioconductor
-# systemfonts            1.0.4     2022-02-11 [1] CRAN (R 4.3.0)
-# textshaping            0.3.6     2021-10-13 [1] CRAN (R 4.3.0)
-# tibble                 3.2.1     2023-03-20 [1] CRAN (R 4.3.0)
-# tidyselect             1.2.0     2022-10-10 [1] CRAN (R 4.3.0)
-# tzdb                   0.4.0     2023-05-12 [1] CRAN (R 4.3.0)
-# utf8                   1.2.3     2023-01-31 [1] CRAN (R 4.3.0)
-# vctrs                  0.6.3     2023-06-14 [1] CRAN (R 4.3.0)
-# withr                  2.5.0     2022-03-03 [1] CRAN (R 4.3.0)
-# XVector                0.41.1    2023-06-02 [1] Bioconductor
-# zlibbioc               1.47.0    2023-05-20 [1] Bioconductor
+# package     * version date (UTC) lib source
+# bit           4.0.5   2022-11-15 [1] CRAN (R 4.3.0)
+# bit64         4.0.5   2020-08-30 [1] CRAN (R 4.3.0)
+# cellranger    1.1.0   2016-07-27 [1] CRAN (R 4.3.0)
+# cli           3.6.1   2023-03-23 [1] CRAN (R 4.3.0)
+# colorspace    2.1-0   2023-01-23 [1] CRAN (R 4.3.0)
+# corrplot    * 0.92    2021-11-18 [1] CRAN (R 4.3.0)
+# cowplot     * 1.1.1   2020-12-30 [1] CRAN (R 4.3.0)
+# crayon        1.5.2   2022-09-29 [1] CRAN (R 4.3.0)
+# dplyr       * 1.1.2   2023-04-20 [1] CRAN (R 4.3.0)
+# fansi         1.0.4   2023-01-22 [1] CRAN (R 4.3.0)
+# farver        2.1.1   2022-07-06 [1] CRAN (R 4.3.0)
+# forcats     * 1.0.0   2023-01-29 [1] CRAN (R 4.3.0)
+# generics      0.1.3   2022-07-05 [1] CRAN (R 4.3.0)
+# ggplot2     * 3.4.2   2023-04-03 [1] CRAN (R 4.3.0)
+# glue          1.6.2   2022-02-24 [1] CRAN (R 4.3.0)
+# gtable        0.3.3   2023-03-21 [1] CRAN (R 4.3.0)
+# here        * 1.0.1   2020-12-13 [1] CRAN (R 4.3.0)
+# hms           1.1.3   2023-03-21 [1] CRAN (R 4.3.0)
+# labeling      0.4.2   2020-10-20 [1] CRAN (R 4.3.0)
+# lattice       0.21-8  2023-04-05 [1] CRAN (R 4.3.0)
+# lifecycle     1.0.3   2022-10-07 [1] CRAN (R 4.3.0)
+# lubridate   * 1.9.2   2023-02-10 [1] CRAN (R 4.3.0)
+# magrittr      2.0.3   2022-03-30 [1] CRAN (R 4.3.0)
+# Matrix        1.6-0   2023-07-08 [1] CRAN (R 4.3.0)
+# mgcv          1.9-0   2023-07-11 [1] CRAN (R 4.3.0)
+# munsell       0.5.0   2018-06-12 [1] CRAN (R 4.3.0)
+# nlme          3.1-162 2023-01-31 [1] CRAN (R 4.3.0)
+# pillar        1.9.0   2023-03-22 [1] CRAN (R 4.3.0)
+# pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.3.0)
+# plyr          1.8.8   2022-11-11 [1] CRAN (R 4.3.0)
+# pROC        * 1.18.4  2023-07-06 [1] CRAN (R 4.3.0)
+# purrr       * 1.0.1   2023-01-10 [1] CRAN (R 4.3.0)
+# R6            2.5.1   2021-08-19 [1] CRAN (R 4.3.0)
+# ragg          1.2.5   2023-01-12 [1] CRAN (R 4.3.0)
+# Rcpp          1.0.11  2023-07-06 [1] CRAN (R 4.3.0)
+# readr       * 2.1.4   2023-02-10 [1] CRAN (R 4.3.0)
+# readxl        1.4.3   2023-07-06 [1] CRAN (R 4.3.0)
+# reshape2    * 1.4.4   2020-04-09 [1] CRAN (R 4.3.0)
+# rlang       * 1.1.1   2023-04-28 [1] CRAN (R 4.3.0)
+# rprojroot     2.0.3   2022-04-02 [1] CRAN (R 4.3.0)
+# rstudioapi    0.15.0  2023-07-07 [1] CRAN (R 4.3.0)
+# scales        1.2.1   2022-08-20 [1] CRAN (R 4.3.0)
+# sessioninfo * 1.2.2   2021-12-06 [1] CRAN (R 4.3.0)
+# stringi       1.7.12  2023-01-11 [1] CRAN (R 4.3.0)
+# stringr     * 1.5.0   2022-12-02 [1] CRAN (R 4.3.0)
+# systemfonts   1.0.4   2022-02-11 [1] CRAN (R 4.3.0)
+# textshaping   0.3.6   2021-10-13 [1] CRAN (R 4.3.0)
+# tibble      * 3.2.1   2023-03-20 [1] CRAN (R 4.3.0)
+# tidyr       * 1.3.0   2023-01-24 [1] CRAN (R 4.3.0)
+# tidyselect    1.2.0   2022-10-10 [1] CRAN (R 4.3.0)
+# tidyverse   * 2.0.0   2023-02-22 [1] CRAN (R 4.3.0)
+# timechange    0.2.0   2023-01-11 [1] CRAN (R 4.3.0)
+# tzdb          0.4.0   2023-05-12 [1] CRAN (R 4.3.0)
+# utf8          1.2.3   2023-01-31 [1] CRAN (R 4.3.0)
+# vctrs         0.6.3   2023-06-14 [1] CRAN (R 4.3.0)
+# vroom         1.6.3   2023-04-28 [1] CRAN (R 4.3.0)
+# withr         2.5.0   2022-03-03 [1] CRAN (R 4.3.0)
 # 
 # [1] /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library
 # 
 # ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-
-
-
-
-
-
-
-
