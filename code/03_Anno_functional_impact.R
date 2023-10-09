@@ -1164,7 +1164,7 @@ ggplot(data = data, mapping = aes(x = method, y = allele_freq_method, color = me
         axis.text = element_text(size = (8)),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
-ggsave(filename='plots/03_Anno_functional_impact/AlleleFreq_Dvars_perMethod.pdf', width = 8, height = 6)
+ggsave(filename='plots/03_Anno_functional_impact/AlleleFreq_Dvars_perMethod.pdf', width = 6.2, height = 5)
 
 
 
