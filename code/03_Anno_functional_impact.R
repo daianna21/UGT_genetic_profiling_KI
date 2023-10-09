@@ -1011,10 +1011,13 @@ names(ADME_sensitivities)[4] <- names(ADME_specificities)[4] <- 'VEST4'
 ## ROC curves
 r <- list()
 for (algorithm in colnames(clinvar_variants_predictions)[24:45]){
-  r[[algorithm]] <- roc(response=as.factor(clinvar_variants_predictions$clinical_effect), predictor=as.numeric(clinvar_variants_predictions[,algorithm]), levels=c('N', 'D'))
+  r[[algorithm]] <- roc(response=as.factor(clinvar_variants_predictions$clinical_effect), 
+                        predictor=as.numeric(clinvar_variants_predictions[,algorithm]), 
+                        levels=c('N', 'D'), na.rm=TRUE)
 }
+## Add AUC per method
 data <- as.data.frame(cbind('AUC'=paste0('AUC = ', signif(as.numeric(lapply(r, function(x){x$auc})), digits=3))))
- 
+## Add number of D and N variants used to evaluate each method
 data$num_vars <- apply(clinvar_variants_predictions[,colnames(clinvar_variants_predictions)[2:23]], 2, 
                                       function(x){paste0('n = ', length(which(x=='D')), ' D; ', length(which(x=='N')), ' N')})
 ## Locate coordinate corresponding to the used threshold for each method
@@ -1066,12 +1069,44 @@ ggroc(r) +
   ## Point for ADME optimized thresholds
   geom_point(data=data, aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='mediumblue', size=1.3, stroke = 1)
 
-
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_methods.pdf', width = 8, height = 8)
 
 
+## Plot the number of predicted D, N and missing variants per algorithm
+vars_per_method <- melt(sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])}))
+colnames(vars_per_method) <- c('Prediction', 'Method', 'Numbers')
+vars_per_method$Method <- gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', vars_per_method$Method)))
+# Order methods by number of D variants
+numD<- sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])['D']})
+numD <- numD[order(numD, decreasing = TRUE)]
+names(numD) <- gsub('\\.', '-', gsub('_', ' ', gsub('_pred.D', '', names(numD))))
+vars_per_method$Method <- factor(vars_per_method$Method, levels=names(numD))
+## Order to have D variants first in each bar
+cat_order <- c('.', 'N', 'D')
+vars_per_method$Prediction <- factor(vars_per_method$Prediction, levels=cat_order)
 
-## Plot the number of D, N and missing variants per algorithm
+ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) + 
+  geom_bar(position="stack", stat="identity", colour = 'black', width=.7) + 
+  theme_classic() +
+  labs(
+    y = 'Number of predicted missense variants',
+    x= ''
+  ) +
+  scale_fill_manual(values = c("grey80", "skyblue2", "tomato"), labels = c("Missing", "Neutral", "Deleterious")) + 
+  scale_y_discrete(limits= c(0, 1500, 3000, 4500, dim(new_variants_predictions)[1])) +
+  theme(
+    legend.position="top", 
+    legend.direction = "horizontal",
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    axis.title = element_text(size = (11), face='bold'),
+    axis.text = element_text(size = (10)),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+    legend.text = element_text(size = 9),
+    legend.title = element_text(size =10, face='bold'))
+
+ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', width = 8, height = 6)
+
+
 
 
 
