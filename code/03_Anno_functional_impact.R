@@ -1090,8 +1090,6 @@ ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_21methods.pdf', width =
 
 
 
-
-
 ## Plot the number of predicted D, N and missing variants per algorithm
 vars_per_method <- melt(sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])}))
 colnames(vars_per_method) <- c('Prediction', 'Method', 'Numbers')
@@ -1128,7 +1126,47 @@ ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', wid
 
 
 
-## Plot number of D variants per individual predicted by each method
+## Plot allele frequencies of predicted D variants per method
+for (variant in new_variants_predictions$Variant_ID){
+  allele_freq <- vector()
+  ## Allele freq of variant in each gene dataset
+  for (gene in UGT_genes){
+    UGT_missense_vars <- eval(parse_expr(paste0(gene, '_missense_vars')))
+    if(variant %in% UGT_missense_vars$Variant_ID){
+      allele_freq <- append(allele_freq, UGT_missense_vars[which(UGT_missense_vars$Variant_ID==variant), 'Allele_Frequency'])
+    }
+  }
+  if (length(unique(allele_freq))==1) {allele_freq <- unique(allele_freq)}
+  new_variants_predictions[which(new_variants_predictions$Variant_ID==variant), 'Allele_Frequency'] <- allele_freq
+}
+
+## Allele frequencies of D variants per method
+data <- vector()
+for(method in colnames(new_variants_predictions)[2:23]){
+        allele_freq_method <-  new_variants_predictions[which(new_variants_predictions[,method]=='D'), 'Allele_Frequency']
+        method <- rep(method, length(allele_freq_method))
+        method_data <- cbind(allele_freq_method, method)
+        data <- rbind(data, method_data)
+  }
+data <- as.data.frame(data)
+data$allele_freq_method <- as.numeric(data$allele_freq_method)
+data$method <- gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', data$method)))
+data$method <- factor(data$method, levels=names(numD))
+
+ggplot(data = data, mapping = aes(x = method, y = allele_freq_method, color = method)) +
+  geom_jitter(width = 0.1, alpha = 0.7, size = 1) +
+#  geom_boxplot(alpha = 0, size = 0.4, width=0.4, color='black') +
+  theme_bw() +
+  scale_color_manual(values = colors) +
+  labs(x='', y='Allele frequency of missense variants predicted as deleterious') +
+  theme(legend.position = 'none',
+        axis.title = element_text(size = (9), face='bold'),
+        axis.text = element_text(size = (8)),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave(filename='plots/03_Anno_functional_impact/AlleleFreq_Dvars_perMethod.pdf', width = 8, height = 6)
+
+
 
 
 
