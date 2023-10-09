@@ -954,12 +954,14 @@ clinvar_variants_predictions <- new_variants_predictions[which(new_variants_pred
 for (variant in clinvar_variants_predictions$Variant_ID){
   variant_effects <- vector()
   for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
-    gene_variants <- eval(parse_expr(paste0('clinvar_variants_', gene)))
     if (variant %in% known_exonic_vars){
       variant_effects <- 'D'
     }
-    else if (variant %in% gene_variants$Variant_ID){
-      variant_effects <- append(variant_effects, unlist(gene_variants[which(gene_variants$Variant_ID==variant), 'effect']))
+    else{
+      gene_variants <- eval(parse_expr(paste0('clinvar_variants_', gene)))
+      if (variant %in% gene_variants$Variant_ID){
+        variant_effects <- append(variant_effects, unlist(gene_variants[which(gene_variants$Variant_ID==variant), 'effect']))
+      }
     }
   }
   
@@ -985,13 +987,36 @@ sensitivities <- apply(positive_negative_predictions, 2, function(x){
 specificities <- apply(positive_negative_predictions, 2, function(x){
   length(which(x=='TN'))/(length(which(x=='TN')) + length(which(x=='FP')))})
 
+## TP, TN, FP, FN with ADME optimized thresholds
+ADME_clinvar_variants_predictions <- ADME_categorical_predictions[which(ADME_categorical_predictions$Variant_ID %in% unique_clinvar_variants),]
+ADME_clinvar_variants_predictions$clinical_effect <- clinvar_variants_predictions$clinical_effect
+ADME_predictions <- data.frame(matrix(ncol=5, nrow=dim(ADME_clinvar_variants_predictions)[1]))
+colnames(ADME_predictions) <- colnames(ADME_clinvar_variants_predictions)[2:6]
+for (algorithm in colnames(ADME_clinvar_variants_predictions)[2:6]){
+  ADME_predictions[,algorithm] <- unlist(apply(ADME_clinvar_variants_predictions, 1, function(x){if(x[algorithm]==1 & x['clinical_effect']=='D'){'TP'}
+    else if(x[algorithm]==0 & x['clinical_effect']=='D'){'FN'}
+    else if(x[algorithm]==1 & x['clinical_effect']=='N'){'FP'}
+    else if(x[algorithm]==0 & x['clinical_effect']=='N'){'TN'}
+    else if(x[algorithm]=='.'){'NA'}}))
+}
+
+ADME_sensitivities <- apply(ADME_predictions, 2, function(x){
+  length(which(x=='TP'))/(length(which(x=='TP')) + length(which(x=='FN')))})
+ADME_specificities <- apply(ADME_predictions, 2, function(x){
+  length(which(x=='TN'))/(length(which(x=='TN')) + length(which(x=='FP')))})
+names(ADME_sensitivities) <- names(ADME_specificities) <- sapply(names(ADME_sensitivities), function(x){strsplit(x, '_')[[1]][1]})
+names(ADME_sensitivities)[4] <- names(ADME_specificities)[4] <- 'VEST4'
+
+
 ## ROC curves
 r <- list()
 for (algorithm in colnames(clinvar_variants_predictions)[24:45]){
   r[[algorithm]] <- roc(response=as.factor(clinvar_variants_predictions$clinical_effect), predictor=as.numeric(clinvar_variants_predictions[,algorithm]), levels=c('N', 'D'))
 }
 data <- as.data.frame(cbind('AUC'=paste0('AUC = ', signif(as.numeric(lapply(r, function(x){x$auc})), digits=3))))
-data$num_vars <- paste0('n = ', apply(clinvar_variants_predictions[,names(r)], 2, function(x){length(which(x!='.'))}))
+ 
+data$num_vars <- apply(clinvar_variants_predictions[,colnames(clinvar_variants_predictions)[2:23]], 2, 
+                                      function(x){paste0('n = ', length(which(x=='D')), ' D; ', length(which(x=='N')), ' N')})
 ## Locate coordinate corresponding to the used threshold for each method
 data$sensitivity <- sensitivities
 data$specificity <- specificities
@@ -999,8 +1024,13 @@ data$specificity <- specificities
 names(r) <- gsub('_', ' ', gsub('\\.', '-', gsub('_score', '', names(r))))
 data$name <- names(r)
 
+## Add coordinates for ADME thresholds
+data$ADME_sensitivity <- as.numeric(sapply(data$name, function(x){if(x %in% names(ADME_sensitivities)){ADME_sensitivities[x]} else {'NA'}}))
+data$ADME_specificity <- as.numeric(sapply(data$name, function(x){if(x %in% names(ADME_specificities)){ADME_specificities[x]} else {'NA'}}))
+
+
 colors = c('ADME'='mediumpurple2', 
-              'AlphaMissense'='orangered3',
+              'AlphaMissense'='orangered2',
               'CADD'='peachpuff4', 
               'ClinPred'='turquoise3',
               'DANN'='orange3', 
@@ -1029,16 +1059,19 @@ ggroc(r) +
   theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
         strip.text = element_text(face="bold"),
         axis.text = element_text( size = 6)) +
-  geom_text(data = data, aes(0, 0.05, label= num_vars, hjust = 1), size=2.8, color='black') +
+  geom_text(data = data, aes(0, 0.05, label= num_vars, hjust = 1), size=2.5, color='black') +
   scale_color_manual(values=colors) +
   ## Point corresponding to used threshold
-  geom_point(data=data, aes(x=specificity, y=sensitivity))
+  geom_point(data=data, aes(x=specificity, y=sensitivity)) +
+  ## Point for ADME optimized thresholds
+  geom_point(data=data, aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='mediumblue', size=1.3, stroke = 1)
 
 
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_methods.pdf', width = 8, height = 8)
 
 
 
+## Plot the number of D, N and missing variants per algorithm
 
 
 
