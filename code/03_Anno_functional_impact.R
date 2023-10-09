@@ -1018,8 +1018,10 @@ for (algorithm in colnames(clinvar_variants_predictions)[24:45]){
 ## Add AUC per method
 data <- as.data.frame(cbind('AUC'=paste0('AUC = ', signif(as.numeric(lapply(r, function(x){x$auc})), digits=3))))
 ## Add number of D and N variants used to evaluate each method
-data$num_vars <- apply(clinvar_variants_predictions[,colnames(clinvar_variants_predictions)[2:23]], 2, 
-                                      function(x){paste0('n = ', length(which(x=='D')), ' D; ', length(which(x=='N')), ' N')})
+data$num_vars <- sapply(colnames(clinvar_variants_predictions)[2:23], function(x){
+                       DN_num <- table(clinvar_variants_predictions[which(clinvar_variants_predictions[,x]!='.'), 'clinical_effect'])
+                       paste0('n = ', DN_num['D'], ' D; ', DN_num['N'], ' N')
+                       })
 ## Locate coordinate corresponding to the used threshold for each method
 data$sensitivity <- sensitivities
 data$specificity <- specificities
@@ -1068,8 +1070,26 @@ ggroc(r) +
   geom_point(data=data, aes(x=specificity, y=sensitivity)) +
   ## Point for ADME optimized thresholds
   geom_point(data=data, aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='mediumblue', size=1.3, stroke = 1)
-
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_methods.pdf', width = 8, height = 8)
+
+## ROC curves without MutPred
+ggroc(r[-18]) + 
+  facet_wrap(~name, ncol=7) +
+  theme_bw() + theme(legend.position = "none") + 
+  geom_text(data = data[-18,], aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
+  theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
+        strip.text = element_text(face="bold"),
+        axis.text = element_text( size = 6)) +
+  geom_text(data = data[-18,], aes(0, 0.05, label= num_vars, hjust = 1), size=2.5, color='black') +
+  scale_color_manual(values=colors) +
+  ## Point corresponding to used threshold
+  geom_point(data=data[-18,], aes(x=specificity, y=sensitivity)) +
+  ## Point for ADME optimized thresholds
+  geom_point(data=data[-18,], aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='mediumblue', size=1.3, stroke = 1)
+ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_21methods.pdf', width = 11, height = 5)
+
+
+
 
 
 ## Plot the number of predicted D, N and missing variants per algorithm
@@ -1107,6 +1127,8 @@ ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) +
 ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', width = 8, height = 6)
 
 
+
+## Plot number of D variants per individual predicted by each method
 
 
 
