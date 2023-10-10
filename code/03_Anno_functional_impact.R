@@ -975,19 +975,19 @@ ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', wid
 
 ## Plot allele frequencies of predicted D variants per method
 colors = c('ADME'='mediumpurple2', 
-           'AlphaMissense'='red2',
-           'CADD'='blue1', 
+           'AlphaMissense'='red3',
+           'CADD'='blue2', 
            'ClinPred'='turquoise3',
-           'DANN'='yellow2', 
+           'DANN'='yellow3', 
            'Eigen-PC'='saddlebrown',
            'FATHMM'='lightsalmon2', 
            'fathmm-MKL'='lightcoral', 
-           'LRT'='lightpink1',
+           'LRT'='orchid1',
            'M-CAP'='yellow4', 
            'MetaLR'='steelblue2', 
            'MetaSVM'='dodgerblue3', 
            'MutationAssessor'='goldenrod', 
-           'MutPred'='magenta2',
+           'MutPred'='magenta3',
            'MVP'='pink3', 
            'Polyphen2 HDIV'='darkseagreen3', 
            'Polyphen2 HVAR'='mediumseagreen', 
@@ -995,7 +995,7 @@ colors = c('ADME'='mediumpurple2',
            'PROVEAN'='darkorchid3', 
            'REVEL'='cadetblue3', 
            'SIFT'='aquamarine2', 
-           'VEST4'='hotpink1')
+           'VEST4'='peachpuff3')
 
 for (variant in new_variants_predictions$Variant_ID){
   allele_freq <- vector()
@@ -1046,7 +1046,7 @@ ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Meth
         axis.text = element_text(size = (8)),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
-ggsave(filename='plots/03_Anno_functional_impact/AlleleFreq_Dvars_perMethod.pdf', width = 6.2, height = 5)
+ggsave(filename='plots/03_Anno_functional_impact/MAF_Dvars_perMethod.pdf', width = 6.2, height = 5)
 
 
 
@@ -1061,6 +1061,7 @@ ggplot() +
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 ggsave(filename='plots/03_Anno_functional_impact/cumMAF_Dvars_perMethod.pdf', width = 11, height = 7)  
+
 
 
 ## Plot carrier frequencies of predicted D variants per method
@@ -1180,7 +1181,7 @@ data$num_vars <- sapply(colnames(clinvar_variants_predictions)[2:23], function(x
 data$sensitivity <- sensitivities
 data$specificity <- specificities
 
-names(r) <- gsub('_', ' ', gsub('\\.', '-', gsub('_score', '', names(r))))
+names(r) <- gsub(' phred', '', gsub('_', ' ', gsub('\\.', '-', gsub('_score', '', names(r)))))
 data$name <- names(r)
 
 ## Add coordinates for ADME thresholds
@@ -1199,7 +1200,7 @@ ggroc(r) +
   ## Point corresponding to used threshold
   geom_point(data=data, aes(x=specificity, y=sensitivity)) +
   ## Point for ADME optimized thresholds
-  geom_point(data=data, aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='mediumblue', size=1.3, stroke = 1)
+  geom_point(data=data, aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_methods.pdf', width = 8, height = 8)
 
 ## ROC curves without MutPred
@@ -1215,9 +1216,8 @@ ggroc(r[-18]) +
   ## Point corresponding to used threshold
   geom_point(data=data[-18,], aes(x=specificity, y=sensitivity)) +
   ## Point for ADME optimized thresholds
-  geom_point(data=data[-18,], aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='mediumblue', size=1.3, stroke = 1)
+  geom_point(data=data[-18,], aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_21methods.pdf', width = 11, height = 5)
-
 
 
 
