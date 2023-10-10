@@ -421,7 +421,7 @@ sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', g
 
 ## Scores of interest
 scores_algorithms <- c('SIFT_score', 'Polyphen2_HDIV_score', 'Polyphen2_HVAR_score', 'LRT_score','MutationAssessor_score', 'FATHMM_score', 
-                       'fathmm.MKL_coding_score', 'PROVEAN_score', 'VEST3_score', 'VEST4_score', 'CADD_raw', 'CADD_phred', 'DANN_score', 'MetaSVM_score', 'MetaLR_score', 
+                       'fathmm.MKL_coding_score', 'PROVEAN_score', 'VEST3_score', 'VEST4_score', 'CADD_phred', 'DANN_score', 'MetaSVM_score', 'MetaLR_score', 
                        'REVEL_score', 'PrimateAI_score', 'M.CAP_score', 'ClinPred_score', 'Eigen.PC.raw_coding', 'MutPred_score', 'MVP_score')
 ## Categorical predictions 
 cat_pred_algorithms <- c('SIFT_pred', 'Polyphen2_HDIV_pred', 'Polyphen2_HVAR_pred', 'MutationAssessor_pred', 'FATHMM_pred', 
@@ -459,7 +459,7 @@ variants_predictions$FATHMM_pred <- replace(variants_predictions$FATHMM_pred,
 variants_predictions$PrimateAI_pred <- replace(variants_predictions$PrimateAI_pred, 
                                                which(variants_predictions$PrimateAI_pred==TRUE), 'T')
 ## Standardize variable names for raw scores
-colnames(variants_predictions)[c(9, 13, 14, 22, 30)] <- c('fathmm.MKL_score', 'CADD_score', 'CADD_phred_score', 'Eigen.PC_score', 'fathmm.MKL_pred')
+colnames(variants_predictions)[c(9, 13, 21, 29)] <- c('fathmm.MKL_score', 'CADD_phred_score', 'Eigen.PC_score', 'fathmm.MKL_pred')
 
 
 ## Add ADME-optimized model scores
@@ -543,6 +543,7 @@ variants_predictions$AlphaMissense_pred <- replace(replace(replace(variants_pred
                                                    which(variants_predictions$AlphaMissense_pred=='pathogenic'), 'D'),
                                                    which(variants_predictions$AlphaMissense_pred=='ambiguous'), 'U')
 
+save(variants_predictions, file='processed-data/03_Anno_functional_impact/variants_scores_and_predictions.Rdata')
 
 
 # ____________________________________________________________________________________________
@@ -592,11 +593,14 @@ score_density_plot <- function(algorithm, predicted_cat_type){
       hjust = -0.3
     }
     
+    if (algorithm=='CADD_phred'){score_type <- ' scores'}
+    else {score_type <- ' raw scores'}
+    
     p1 <- ggplot(data = df, aes(x = x, ymin = 0, ymax = y, fill = pred)) +
       geom_ribbon(alpha=0.7) +
       theme_bw() +
       scale_fill_manual(values=colors[names(table(df$pred))]) +
-      labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), ' raw scores'), y= 'Density', fill='Predicted effect',
+      labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), score_type), y= 'Density', fill='Predicted effect',
            subtitle=paste0('Missingness: ', signif(as.numeric(missingness), digits=3), '%', '\n', 
                            num_vars, ' variants')) +
       geom_line(aes(y = y)) +
@@ -669,7 +673,7 @@ algorithms_thresholds <- list('SIFT'='<=0.05',
                               'MetaLR'='>=0.5',             
                               'M.CAP'='>=0.025',            
                               'ClinPred'='>=0.5',               
-                              'CADD'='>0.73',              
+                              'CADD_phred'='>15',              
                               'DANN'='>0.96', 
                               'REVEL'='>0.5',               
                               'Eigen.PC'='>=0', 
@@ -710,6 +714,7 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
           ncol=5)
 
 ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 20, height = 12)
+save(new_variants_predictions, file='processed-data/03_Anno_functional_impact/new_variants_predictions.Rdata')
 
 
 # ------------------------------------------------------------------------------
@@ -727,7 +732,7 @@ for (i in 1:length(colnames(raw_scores))){
 }
 
 whole_corr <- corr
-colnames(corr) <- rownames(corr) <- gsub('\\.','-', gsub('_', ' ', gsub('_score', '', colnames(corr))))
+colnames(corr) <- rownames(corr) <- gsub('phred', '', gsub('\\.','-', gsub('_', ' ', gsub('_score', '', colnames(corr)))))
 ## Half matrix
 corr[lower.tri(corr)] <- NA
 ## Take absolute corr
@@ -738,14 +743,14 @@ half_corr_data$value <- signif(as.numeric(half_corr_data$value), digits = 3)
 ## Mean corr coeff
 unique_half_corr_data <- half_corr_data[which(half_corr_data$value!=1), ]
 mean(unique_half_corr_data$value)
-# [1] 0.5689177
+# [1] 0.5680519
 
 ## Highest corr coeffs
 unique_half_corr_data[order(unique_half_corr_data$value, decreasing = TRUE), ][1:4,]
 #               Var1             Var2    value
 #     Polyphen2 HDIV   Polyphen2 HVAR     0.97
-#               CADD         Eigen-PC     0.96
 #            MetaSVM           MetaLR     0.93
+#         CADD phred         Eigen-PC     0.93
 #            MetaSVM            REVEL     0.88
 
 
@@ -780,7 +785,7 @@ for (i in 1:length(colnames(predictions))){
 
 whole_agreement_prop <- agreement_prop
 ## Half matrix
-colnames(agreement_prop) <- rownames(agreement_prop) <- gsub('\\.','-', gsub('_', ' ', gsub('_pred', '', colnames(agreement_prop))))
+colnames(agreement_prop) <- rownames(agreement_prop) <- gsub('phred', '', gsub('\\.','-', gsub('_', ' ', gsub('_pred', '', colnames(agreement_prop)))))
 agreement_prop[lower.tri(agreement_prop)] <- NA 
 half_agreement_prop <- melt(agreement_prop, na.rm = TRUE)
 half_agreement_prop$value <- signif(as.numeric(half_agreement_prop$value), digits = 3)
@@ -817,7 +822,7 @@ dev.off()
 ## Mean prop
 unique_half_agreement_prop <- half_agreement_prop[which(half_agreement_prop$value!=1), ]
 mean(unique_half_agreement_prop$value)
-# [1] 0.6312814
+# [1] 0.6372771
 
 ## Highest corr coeffs
 unique_half_agreement_prop[order(unique_half_agreement_prop$value, decreasing = TRUE), ][1:4,]
@@ -829,7 +834,7 @@ unique_half_agreement_prop[order(unique_half_agreement_prop$value, decreasing = 
 
 ## Percentage of high prop (>0.5)
 length(which(unique_half_agreement_prop$value>0.5))/dim(unique_half_agreement_prop)[1]*100
-# [1] 79.65368
+# [1] 82.25108
 
 
 # ------------------------------------------------------------------------------
@@ -841,6 +846,9 @@ scatterplot_compare_2methods <- function(algorithm1, algorithm2){
   algorithm2_score <- paste0(algorithm2, '_score')
   algorithm1_pred <- paste0(algorithm1, '_pred')
   algorithm2_pred <- paste0(algorithm2, '_pred')
+  
+  if (algorithm1=='CADD_phred' | algorithm2=='CADD_phred'){score_type <- ' score'}
+  else {score_type <- ' raw score'}
   
   ## Corr
   correlation <- whole_corr[algorithm1_score, algorithm2_score]
@@ -858,16 +866,18 @@ scatterplot_compare_2methods <- function(algorithm1, algorithm2){
                            c(algorithm1_pred, algorithm2_pred)]
   colnames(data_pred) <- colnames(data)
   data$categories <- apply(data_pred, 1, function(x){if(x[1]=='D' & x[2]=='D'){'D in both'}
-                            else if(x[1]=='D' & x[2]=='N'){paste0('D in ', gsub('_',' ',gsub('\\.', '-', colnames(data)[1])), '; ', 'N in ', 
-                                                                  gsub('_',' ',gsub('\\.', '-', colnames(data)[2])))}
-                            else if(x[1]=='N' & x[2]=='D'){paste0('D in ', gsub('_',' ',gsub('\\.', '-', colnames(data)[2])), '; ', 'N in ', 
-                                                                  gsub('_',' ',gsub('\\.', '-', colnames(data)[1])))}
+                            else if(x[1]=='D' & x[2]=='N'){paste0('D in ', gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[1]))), '; ', 'N in ', 
+                                                                  gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[2]))))}
+                            else if(x[1]=='N' & x[2]=='D'){paste0('D in ', gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[2]))), '; ', 'N in ', 
+                                                                  gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[1]))))}
                             else {'N in both'}
                       })
   colors <- list()
   colors[['D in both']]='indianred'
-  colors[[paste0('D in ', gsub('_',' ',gsub('\\.', '-', colnames(data)[1])), '; ', 'N in ', gsub('_',' ',gsub('\\.', '-', colnames(data)[2])))]]='thistle2'
-  colors[[paste0('D in ', gsub('_',' ',gsub('\\.', '-', colnames(data)[2])), '; ', 'N in ', gsub('_',' ',gsub('\\.', '-', colnames(data)[1])))]]='lightpink1'
+  colors[[paste0('D in ', gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[1]))), '; ', 'N in ', 
+                 gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[2]))))]]='thistle2'
+  colors[[paste0('D in ', gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[2]))), '; ', 'N in ', 
+                 gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[1]))))]]='lightpink1'
   colors[['N in both']]='lightblue3'
   
   ggplot(data, aes(x=eval(parse_expr(algorithm1)), y=eval(parse_expr(algorithm2)), color = categories)) +
@@ -877,8 +887,8 @@ scatterplot_compare_2methods <- function(algorithm1, algorithm2){
     theme_bw() +
     labs(
       subtitle = paste0("Corr: ", correlation, '; Agreement: ', 100*agreement, '%'),
-      x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm1)), ' raw score'),
-      y = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm2)), ' raw score'),
+      x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm1)), score_type),
+      y = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm2)), score_type),
       color='Predicted effect'
     ) +
     theme(
@@ -902,10 +912,10 @@ scatterplot_compare_2methods('MetaSVM', 'REVEL')
 scatterplot_compare_2methods('FATHMM', 'VEST4') 
 scatterplot_compare_2methods('FATHMM', 'PrimateAI')
 scatterplot_compare_2methods('Eigen.PC', 'M.CAP') 
-## High corr, low agreement
-scatterplot_compare_2methods('Eigen.PC', 'CADD')
+## High corr, high agreement
+scatterplot_compare_2methods('Eigen.PC', 'CADD_phred')
 ## ADME
-scatterplot_compare_2methods('ADME', 'CADD')
+scatterplot_compare_2methods('ADME', 'CADD_phred')
 scatterplot_compare_2methods('ADME', 'VEST4')
 scatterplot_compare_2methods('ADME', 'LRT')
 scatterplot_compare_2methods('ADME', 'MutationAssessor')
@@ -920,13 +930,157 @@ scatterplot_compare_2methods('AlphaMissense', 'REVEL')
 scatterplot_compare_2methods('AlphaMissense', 'VEST4')
 ## FATHMM
 scatterplot_compare_2methods('FATHMM', 'MutPred')
-scatterplot_compare_2methods('FATHMM', 'CADD')
+scatterplot_compare_2methods('FATHMM', 'CADD_phred')
 scatterplot_compare_2methods('FATHMM', 'DANN')
 
 
 
 ####################  3.1.5.2 Evaluate predictions of different algorithms  ####################
 
+## Plot the number of predicted D, N and missing variants per algorithm
+vars_per_method <- melt(sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])}))
+colnames(vars_per_method) <- c('Prediction', 'Method', 'Numbers')
+vars_per_method$Method <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', vars_per_method$Method))))
+# Order methods by number of D variants
+numD<- sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])['D']})
+numD <- numD[order(numD, decreasing = TRUE)]
+names(numD) <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred.D', '', names(numD)))))
+vars_per_method$Method <- factor(vars_per_method$Method, levels=names(numD))
+## Order to have D variants first in each bar
+cat_order <- c('.', 'N', 'D')
+vars_per_method$Prediction <- factor(vars_per_method$Prediction, levels=cat_order)
+
+ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) + 
+  geom_bar(position="stack", stat="identity", colour = 'black', width=.7) + 
+  theme_classic() +
+  labs(
+    y = 'Number of predicted missense variants',
+    x= ''
+  ) +
+  scale_fill_manual(values = c("grey80", "skyblue2", "tomato"), labels = c("Missing", "Neutral", "Deleterious")) + 
+  scale_y_discrete(limits= c(0, 1500, 3000, 4500, dim(new_variants_predictions)[1])) +
+  theme(
+    legend.position="top", 
+    legend.direction = "horizontal",
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    axis.title = element_text(size = (11), face='bold'),
+    axis.text = element_text(size = (10)),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+    legend.text = element_text(size = 9),
+    legend.title = element_text(size =10, face='bold'))
+
+ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', width = 8, height = 6)
+
+
+
+## Plot allele frequencies of predicted D variants per method
+colors = c('ADME'='mediumpurple2', 
+           'AlphaMissense'='red2',
+           'CADD'='blue1', 
+           'ClinPred'='turquoise3',
+           'DANN'='yellow2', 
+           'Eigen-PC'='saddlebrown',
+           'FATHMM'='lightsalmon2', 
+           'fathmm-MKL'='lightcoral', 
+           'LRT'='lightpink1',
+           'M-CAP'='yellow4', 
+           'MetaLR'='steelblue2', 
+           'MetaSVM'='dodgerblue3', 
+           'MutationAssessor'='goldenrod', 
+           'MutPred'='magenta2',
+           'MVP'='pink3', 
+           'Polyphen2 HDIV'='darkseagreen3', 
+           'Polyphen2 HVAR'='mediumseagreen', 
+           'PrimateAI'='darkred',
+           'PROVEAN'='darkorchid3', 
+           'REVEL'='cadetblue3', 
+           'SIFT'='aquamarine2', 
+           'VEST4'='hotpink1')
+
+for (variant in new_variants_predictions$Variant_ID){
+  allele_freq <- vector()
+  ## Allele freq of variant in each gene dataset
+  for (gene in UGT_genes){
+    UGT_missense_vars <- eval(parse_expr(paste0(gene, '_missense_vars')))
+    if(variant %in% UGT_missense_vars$Variant_ID){
+      allele_freq <- append(allele_freq, UGT_missense_vars[which(UGT_missense_vars$Variant_ID==variant), 'Allele_Frequency'])
+    }
+  }
+  if (length(unique(allele_freq))==1) {allele_freq <- unique(allele_freq)}
+  new_variants_predictions[which(new_variants_predictions$Variant_ID==variant), 'Allele_Frequency'] <- allele_freq
+}
+
+## Allele frequencies of D variants per method
+data <- vector()
+for(method in colnames(new_variants_predictions)[2:23]){
+  allele_freq_method <-  new_variants_predictions[which(new_variants_predictions[,method]=='D'), c('Variant_ID', 'Allele_Frequency')]
+  method <- rep(method, length(allele_freq_method$Allele_Frequency))
+  method_data <- cbind(allele_freq_method$Variant_ID, allele_freq_method$Allele_Frequency, method)
+  data <- rbind(data, method_data)
+}
+data <- as.data.frame(data)
+colnames(data) <- c('Variant_ID', 'Allele_Frequency', 'Method')
+data$Allele_Frequency<- as.numeric(data$Allele_Frequency)
+data$Method <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', data$Method))))
+data$Method <- factor(data$Method, levels=names(numD))
+
+## Identify variants with allele freq >0.5
+data[which(data$Allele_Frequency>=0.5),]
+#       Variant_ID  Allele_Frequency         Method
+#   4-69795626-C-T         0.7568806 Polyphen2 HDIV
+#   4-69795626-C-T         0.7568806 Polyphen2 HVAR
+#   4-69795626-C-T         0.7568806           CADD
+#   4-69795626-C-T         0.7568806           DANN
+#  4-115589302-A-G         0.9953603            LRT
+
+## Invert frequencies to have MAF only
+data[which(data$Allele_Frequency>=0.5), 'Allele_Frequency'] <- 1-data[which(data$Allele_Frequency>=0.5), 'Allele_Frequency']
+
+ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Method)) +
+  geom_jitter(width = 0.1, alpha = 0.7, size = 1) +
+  theme_bw() +
+  scale_color_manual(values = colors) +
+  labs(x='', y='MAF of missense variants predicted as deleterious') +
+  theme(legend.position = 'none',
+        axis.title = element_text(size = (9), face='bold'),
+        axis.text = element_text(size = (8)),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave(filename='plots/03_Anno_functional_impact/AlleleFreq_Dvars_perMethod.pdf', width = 6.2, height = 5)
+
+
+
+## Plot cumulative MAF per method
+ggplot() +
+  sapply(names(numD), function(method){eval(parse_expr(paste0('geom_line(data=data[which(data$Method==\'', method, '\'),], aes(x=1:dim(data[which(data$Method==\'', method, '\'),])[1], y = cumsum(Allele_Frequency), color=Method), size=1, alpha=0.75)')))}) +
+  theme_bw() +
+  scale_color_manual(values = colors[names(numD)], breaks = names(numD)) +
+  labs(x='Number of missense variants predicted as deleterious', y='Accumulated MAF of variants') +
+  theme(axis.title = element_text(size = (9), face='bold'),
+        axis.text = element_text(size = (8)),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave(filename='plots/03_Anno_functional_impact/cumMAF_Dvars_perMethod.pdf', width = 11, height = 7)  
+
+
+## Plot carrier frequencies of predicted D variants per method
+data$Carrier_Frequency <- 2*data$Allele_Frequency*(1-data$Allele_Frequency)
+
+ggplot(data = data, mapping = aes(x = Method, y = Carrier_Frequency, color = Method)) +
+  geom_jitter(width = 0.1, alpha = 0.7, size = 1) +
+  theme_bw() +
+  scale_color_manual(values = colors) +
+  labs(x='', y='Carrier frequency of missense variants predicted as deleterious') +
+  theme(legend.position = 'none',
+        axis.title = element_text(size = (9), face='bold'),
+        axis.text = element_text(size = (8)),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave(filename='plots/03_Anno_functional_impact/CarrierFreq_Dvars_perMethod.pdf', width = 6.2, height = 5)
+
+
+
+## Evaluate prediction accuracy of methods
 ## ClinVar variants for each gene (no variants in UGT2A3)
 for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
   data <- read_delim(paste0('~/Desktop/UGT_genetic_profiling_KI/raw-data/ClinVar_data/clinvar_variants_', gene, '.txt'), delim='\t', show_col_types = FALSE)
@@ -1033,30 +1187,6 @@ data$name <- names(r)
 data$ADME_sensitivity <- as.numeric(sapply(data$name, function(x){if(x %in% names(ADME_sensitivities)){ADME_sensitivities[x]} else {'NA'}}))
 data$ADME_specificity <- as.numeric(sapply(data$name, function(x){if(x %in% names(ADME_specificities)){ADME_specificities[x]} else {'NA'}}))
 
-
-colors = c('ADME'='mediumpurple2', 
-              'AlphaMissense'='orangered2',
-              'CADD'='peachpuff4', 
-              'ClinPred'='turquoise3',
-              'DANN'='orange3', 
-              'Eigen-PC'='lightsteelblue4',
-              'FATHMM'='lightsalmon2', 
-              'fathmm-MKL'='lightcoral', 
-              'LRT'='thistle4',
-              'M-CAP'='yellow4', 
-              'MetaLR'='steelblue2', 
-              'MetaSVM'='dodgerblue3', 
-              'MutationAssessor'='goldenrod', 
-              'MutPred'='magenta2',
-              'MVP'='pink3', 
-              'Polyphen2 HDIV'='darkseagreen4', 
-              'Polyphen2 HVAR'='mediumseagreen', 
-              'PrimateAI'='darkred',
-              'PROVEAN'='darkorchid3', 
-              'REVEL'='cadetblue3', 
-              'SIFT'='lightgoldenrod4', 
-              'VEST4'='hotpink1')
-
 ggroc(r) + 
   facet_wrap(~name) +
   theme_bw() + theme(legend.position = "none") + 
@@ -1089,81 +1219,6 @@ ggroc(r[-18]) +
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_21methods.pdf', width = 11, height = 5)
 
 
-
-## Plot the number of predicted D, N and missing variants per algorithm
-vars_per_method <- melt(sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])}))
-colnames(vars_per_method) <- c('Prediction', 'Method', 'Numbers')
-vars_per_method$Method <- gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', vars_per_method$Method)))
-# Order methods by number of D variants
-numD<- sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])['D']})
-numD <- numD[order(numD, decreasing = TRUE)]
-names(numD) <- gsub('\\.', '-', gsub('_', ' ', gsub('_pred.D', '', names(numD))))
-vars_per_method$Method <- factor(vars_per_method$Method, levels=names(numD))
-## Order to have D variants first in each bar
-cat_order <- c('.', 'N', 'D')
-vars_per_method$Prediction <- factor(vars_per_method$Prediction, levels=cat_order)
-
-ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) + 
-  geom_bar(position="stack", stat="identity", colour = 'black', width=.7) + 
-  theme_classic() +
-  labs(
-    y = 'Number of predicted missense variants',
-    x= ''
-  ) +
-  scale_fill_manual(values = c("grey80", "skyblue2", "tomato"), labels = c("Missing", "Neutral", "Deleterious")) + 
-  scale_y_discrete(limits= c(0, 1500, 3000, 4500, dim(new_variants_predictions)[1])) +
-  theme(
-    legend.position="top", 
-    legend.direction = "horizontal",
-    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-    axis.title = element_text(size = (11), face='bold'),
-    axis.text = element_text(size = (10)),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-    legend.text = element_text(size = 9),
-    legend.title = element_text(size =10, face='bold'))
-
-ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', width = 8, height = 6)
-
-
-
-## Plot allele frequencies of predicted D variants per method
-for (variant in new_variants_predictions$Variant_ID){
-  allele_freq <- vector()
-  ## Allele freq of variant in each gene dataset
-  for (gene in UGT_genes){
-    UGT_missense_vars <- eval(parse_expr(paste0(gene, '_missense_vars')))
-    if(variant %in% UGT_missense_vars$Variant_ID){
-      allele_freq <- append(allele_freq, UGT_missense_vars[which(UGT_missense_vars$Variant_ID==variant), 'Allele_Frequency'])
-    }
-  }
-  if (length(unique(allele_freq))==1) {allele_freq <- unique(allele_freq)}
-  new_variants_predictions[which(new_variants_predictions$Variant_ID==variant), 'Allele_Frequency'] <- allele_freq
-}
-
-## Allele frequencies of D variants per method
-data <- vector()
-for(method in colnames(new_variants_predictions)[2:23]){
-        allele_freq_method <-  new_variants_predictions[which(new_variants_predictions[,method]=='D'), 'Allele_Frequency']
-        method <- rep(method, length(allele_freq_method))
-        method_data <- cbind(allele_freq_method, method)
-        data <- rbind(data, method_data)
-  }
-data <- as.data.frame(data)
-data$allele_freq_method <- as.numeric(data$allele_freq_method)
-data$method <- gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', data$method)))
-data$method <- factor(data$method, levels=names(numD))
-
-ggplot(data = data, mapping = aes(x = method, y = allele_freq_method, color = method)) +
-  geom_jitter(width = 0.1, alpha = 0.7, size = 1) +
-  theme_bw() +
-  scale_color_manual(values = colors) +
-  labs(x='', y='Allele frequency of missense variants predicted as deleterious') +
-  theme(legend.position = 'none',
-        axis.title = element_text(size = (9), face='bold'),
-        axis.text = element_text(size = (8)),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-ggsave(filename='plots/03_Anno_functional_impact/AlleleFreq_Dvars_perMethod.pdf', width = 6.2, height = 5)
 
 
 
