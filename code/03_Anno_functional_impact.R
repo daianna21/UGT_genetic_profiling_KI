@@ -7,6 +7,7 @@ library(cowplot)
 library(reshape2)
 library(corrplot)
 library(pROC)
+library(ggrepel)
 library(sessioninfo)
 
 
@@ -42,11 +43,6 @@ for (gene in UGT_genes){
   assign( paste0(gene, '_exonic_data'), exonic_vars)
 }
 
-## Define categories of predicted effect of exonic variant types
-deleterious <- c('splice_donor', 'splice_acceptor', 'stop_lost', 'stop_gained', 'frameshift')
-neutral <- c('synonymous')
-## missense functions with ANOVA
-# deletereous?
 
 
 ################################################################################
@@ -1101,6 +1097,8 @@ for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
 unique_clinvar_variants<- unique(unlist(sapply(paste0('clinvar_variants_', UGT_genes[which(UGT_genes!='UGT2A3')], '$Variant_ID'), function(x){eval(parse_expr(x))})))
 ## Add known variants not present in ClinVar
 known_exonic_vars <- c('2-234669144-G-A', '2-234526871-C-G','4-70346565-A-T','4-69964338-T-C', '4-69962449-G-T','4-69536084-A-C')
+## Effect of such variants 
+c('D', 'N', ......)
 unique_clinvar_variants <- append(unique_clinvar_variants, known_exonic_vars)
 
 ## Predictions for those variants
@@ -1222,6 +1220,131 @@ ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_21methods.pdf', width =
 
 
 
+
+
+################################################################################
+##          3.2  Annotate functional consequence of UGT variants 
+################################################################################
+
+## Define categories of predicted effect of exonic variant types
+deleterious <- c('splice_donor_variant', 'splice_acceptor',
+                 'stop_gained', 'frameshift_variant', 'start_lost')
+
+neutral <- c('synonymous_variant', 'inframe_deletion', 'inframe_insertion', 
+             'stop_retained_variant', 'splice_region_variant', 'stop_lost')
+
+## Take missense predictions by MVP (61 missing variants)
+valid_MVP_preds <- new_variants_predictions[which(new_variants_predictions$MVP_pred!='.'),c('Variant_ID', 'MVP_pred')]
+rownames(valid_MVP_preds) <- valid_MVP_preds$Variant_ID
+
+## Annotate functional impact of all exonic (+ 3 promoter variants in UGT1A1) variants in each gene
+for (gene in UGT_genes){
+  exonic_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
+  exonic_data$Functional_impact <- sapply(exonic_data$Variant_ID, function(x){if (exonic_data[x, 'VEP_Annotation'] %in% deleterious){'D'}
+    else if (exonic_data[x, 'VEP_Annotation'] %in% neutral){'N'}
+    ## Annotate MVP prediction for missense variants
+    else if (x %in% valid_MVP_preds$Variant_ID){valid_MVP_preds[x, 'MVP_pred']}
+    else{'.'} })
+  assign(paste0(gene, '_exonic_data'), exonic_data)
+}
+
+## Annotate effect of 5' upstream UGT1A1 variants according to ClinVar
+UGT1A1_exonic_data[which(UGT1A1_exonic_data$VEP_Annotation=='5\' upstream'), 'Functional_impact'] <- c('D', 'N', 'D')
+
+
+## Plot MAF of all D and N variants per gene in each population
+
+## Define MAF in each population
+populations <- c('African_or_African_American',
+                 'Latino_or_Admixed_American',
+                 'Ashkenazi_Jewish',
+                 'East_Asian',
+                 'European_Finnish',
+                 'European_non_Finnish',
+                 'South_Asian',
+                 'Other')
+
+plots <- list()
+i=1
+for (gene in UGT_genes){
+
+  ## Exonic variants per gene
+  exonic_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
+  ## Number of missense variants missed by MVP prediction
+  num_missed <- length(which(exonic_data$Functional_impact=='.'))
+  ## Subset to variants with valid functional consequence 
+  exonic_data <- exonic_data[which(exonic_data$Functional_impact!='.'),]
+  
+  for (p in populations){
+    exonic_data[,paste0('MAF_', p)] <- exonic_data[,paste0('Allele_Count_', p)]/exonic_data[,paste0('Allele_Number_', p)]
+    ## Define MAF 
+    exonic_data[which(exonic_data[,paste0('MAF_', p)]>=0.5), paste0('MAF_', p)] <- 1-exonic_data[which(exonic_data[,paste0('MAF_', p)]>=0.5), paste0('MAF_', p)]
+    ## If no MAF available in the population
+    nan <- which(is.nan(exonic_data[,paste0('MAF_', p)]))
+    #print(c(gene, p, length(nan)))
+    exonic_data[nan, paste0('MAF_', p)] <- NA
+  }
+  ## Global MAF
+  exonic_data[which(exonic_data$Allele_Frequency>=0.5), 'Allele_Frequency'] <- 1-exonic_data[which(exonic_data$Allele_Frequency>=0.5), 'Allele_Frequency']
+  
+  groups <- c(populations, 'global')
+  data <- exonic_data[,c('Variant_ID', 'Functional_impact', 'Allele_Frequency', paste0('MAF_', populations))]
+  data <- melt(data, id.vars = c('Variant_ID', 'Functional_impact'))
+  colnames(data) <- c('Variant_ID', 'Functional_impact', 'Group', 'MAF')
+  
+  ## Different shapes for D variants with MAF>=0.01
+  shapes <- c(8,11,14,9,7,25,3,15,2,12,6)
+  ## Label those variants
+  data$Label <- apply(data, 1, function(x){if (is.na(x['MAF'])){NA}
+                                           else if(x['Functional_impact']=='D' & as.numeric(x['MAF'])>=0.01){x['Variant_ID']} else{NA}})
+  data$Functional_impact <- factor(data$Functional_impact, levels=c('N', 'D'))
+  data$Group <- factor(data$Group, levels=c(paste0('MAF_',populations), 'Allele_Frequency'))
+  
+  plots[[i]] <- ggplot(data = data, mapping = aes(x = Group, y = MAF, color = Functional_impact)) +
+        geom_point(data=subset(data, is.na(Label)), alpha = 0.9, size = 1.3, position = position_jitterdodge(seed=2)) +
+        geom_point(data=subset(data, !is.na(Label)), aes(shape=Label), size=1.5, color='darkred', stroke = 0.7, position = position_jitterdodge(seed=2, jitter.width=0.1, dodge.width = 0.5)) +
+        theme_bw() +
+        scale_color_manual(values = c("skyblue2", "tomato"), labels = c("Neutral", "Deleterious")) +
+        scale_shape_manual(values=shapes[1:length(unique(which(!is.na(data$Label))))]) + 
+        scale_x_discrete(breaks=c(paste0('MAF_',populations), 'Allele_Frequency'),
+                         labels=c("African/African American",
+                                  "Latino/Admixed American",
+                                  "Ashkenazi Jewish",
+                                  "East Asian",
+                                  "European Finnish",
+                                  "European non Finnish",
+                                  "South Asian",
+                                  "Other",
+                                  "Global")) +
+        labs(title=gene, 
+             subtitle=paste0(table(exonic_data$Functional_impact)['D'], ' D variants; ', 
+                             table(exonic_data$Functional_impact)['N'], ' N variants; ',
+                             num_missed, ' missense variants missed by MVP'), 
+             x='', y='MAF of variants', color='Functional impact', shape=paste0('Deleterious variant ID', '\n', '(MAF>0.01)')) +
+        theme(title = element_text(size = (9), face='bold'),
+              plot.subtitle = element_text(size = 8.5, color = "gray50"),
+              axis.title = element_text(size = (8.5), face='bold'),
+              axis.text = element_text(size = (8)),
+              axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
+              legend.title = element_text(size=8.5), 
+              legend.text = element_text(size=8))
+  i=i+1
+
+}
+
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]],
+          plots[[6]], plots[[7]], plots[[8]], plots[[9]], ncol=3)
+ggsave(filename='plots/03_Anno_functional_impact/MAF_pop_vars_per_UGT1.pdf', width = 20, height = 13)
+
+plot_grid(plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]],
+          plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], ncol=2)
+ggsave(filename='plots/03_Anno_functional_impact/MAF_pop_vars_per_UGT2.pdf', width = 15, height = 23)
+
+plot_grid(plots[[20]], plots[[21]], ncol=2)
+ggsave(filename='plots/03_Anno_functional_impact/MAF_pop_vars_per_UGT3.pdf', width = 15, height = 5)
+
+plot_grid(plots[[22]])
+ggsave(filename='plots/03_Anno_functional_impact/MAF_pop_vars_per_UGT8.pdf', width = 8, height = 5)
 
 
 
