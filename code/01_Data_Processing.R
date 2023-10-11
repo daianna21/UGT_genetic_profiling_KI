@@ -1214,13 +1214,19 @@ var_data$Location_in_txs <- sapply(var_data$Position, function(x){location_deter
                                                                                                                                              # | 
 ## Add variant data to UGT1A1 data                                                                                                           # |
 UGT1A1_data <- rbind(UGT1A1_data, var_data[,-56])                                                                                            # |
+## Remove 2 variants without functional evidence in ClinVar                                                                                  # |
+UGT1A1_data <- UGT1A1_data[-which(UGT1A1_data$Variant_ID=='2-234668879-C-CATATAT' | UGT1A1_data$Variant_ID=='2-234668879-C-CATATATAT'), ]    # |
 save(UGT1A1_data, file = 'processed-data/01_Data_Processing/UGT1A1_data.Rdata')                                                              # |
                                                                                                                                              # | 
 ## Add variant data to UGT1A1 canonical and exonic dataset (though these are not exonic variants)                                            # |
 UGT1A1_canonical_data <- rbind(UGT1A1_canonical_data, var_data)                                                                              # |
+UGT1A1_canonical_data <- UGT1A1_canonical_data[-which(UGT1A1_canonical_data$Variant_ID=='2-234668879-C-CATATAT' |                            # |
+                                                        UGT1A1_canonical_data$Variant_ID=='2-234668879-C-CATATATAT'), ]                      # |
 save(UGT1A1_canonical_data , file = 'processed-data/01_Data_Processing/UGT1A1_canonical_data.Rdata')                                         # |
                                                                                                                                              # |  
 UGT1A1_exonic_data <- rbind(UGT1A1_exonic_data, var_data)                                                                                    # |
+UGT1A1_exonic_data <- UGT1A1_exonic_data[-which(UGT1A1_exonic_data$Variant_ID=='2-234668879-C-CATATAT' |                                     # |
+                                                        UGT1A1_exonic_data$Variant_ID=='2-234668879-C-CATATATAT'), ]                         # |
 save(UGT1A1_exonic_data , file = 'processed-data/01_Data_Processing/UGT1A1_exonic_data.Rdata')                                               # |
 #                                                                                                                                            # | 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
@@ -1250,7 +1256,7 @@ UGT1A1_exonic_data[UGT1A1_exonic_data$Variant_ID=='2-234669144-G-A', c('Chromoso
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
-## Add missing regulatory variant '2-234637707-T-C' for UGT1A3                                                                  # |
+## Examine missing regulatory variant '2-234637707-T-C' for UGT1A3                                                              # |
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 #                                                                                                                               # |                 
 ## Identify variant                                                                                                             # |
@@ -1259,25 +1265,9 @@ unlist(sapply(UGT1_genes, function(gene){if('2-234637707-T-C' %in% eval(parse_ex
 #                                                                                                                               # | 
 #  UGT1A8                                                                                                                       # |
 # "UGT1A8"                                                                                                                      # |
-var_data <- UGT1A8_data[UGT1A8_data$Variant_ID=='2-234637707-T-C',]                                                             # | 
+var_data <- UGT1A8_data[UGT1A8_data$Variant_ID=='2-234637707-T-C',]                                                             # |
+## Variant not added as it has no functional evidence in ClinVar                                                                # |
                                                                                                                                 # | 
-## Change Transcript and VEP Annotation data from UGT1A8 to A3                                                                  # |
-var_data$Transcript <- canonical_UGT1_txs[['UGT1A3']]                                                                           # |
-var_data$Canonical_txs <- TRUE                                                                                                  # |
-var_data$VEP_Annotation <- '5\' upstream'                                                                                       # |
-## Add location in tx (5' upstream)                                                                                             # |
-var_data$Location_in_txs <- location_determination(var_data$Position, var_data$Transcript, NULL)[[1]]                           # |
-                                                                                                                                # | 
-## Add variant data to UGT1A3 complete, canonical and exonic datasets                                                           # |
-UGT1A3_data <- rbind(UGT1A3_data, var_data[,-56])                                                                               # |
-save(UGT1A3_data, file = 'processed-data/01_Data_Processing/UGT1A3_data.Rdata')                                                 # | 
-                                                                                                                                # | 
-UGT1A3_canonical_data <- rbind(UGT1A3_canonical_data, var_data)                                                                 # |
-save(UGT1A3_canonical_data , file = 'processed-data/01_Data_Processing/UGT1A3_canonical_data.Rdata')                            # |
-                                                                                                                                # | 
-UGT1A3_exonic_data <- rbind(UGT1A3_exonic_data, var_data)                                                                       # |
-save(UGT1A3_exonic_data , file = 'processed-data/01_Data_Processing/UGT1A3_exonic_data.Rdata')                                  # |
-#                                                                                                                               # | 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
 
 
