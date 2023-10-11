@@ -976,26 +976,26 @@ ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', wid
 ## Plot allele frequencies of predicted D variants per method
 colors = c('ADME'='mediumpurple2', 
            'AlphaMissense'='red3',
-           'CADD'='blue2', 
+           'CADD'='darkorange3', 
            'ClinPred'='turquoise3',
            'DANN'='yellow3', 
-           'Eigen-PC'='saddlebrown',
+           'Eigen-PC'='olivedrab3',
            'FATHMM'='lightsalmon2', 
            'fathmm-MKL'='lightcoral', 
-           'LRT'='orchid1',
+           'LRT'='lightsteelblue3',
            'M-CAP'='yellow4', 
            'MetaLR'='steelblue2', 
            'MetaSVM'='dodgerblue3', 
            'MutationAssessor'='goldenrod', 
-           'MutPred'='magenta3',
-           'MVP'='pink3', 
+           'MutPred'='magenta2',
+           'MVP'='blue2', 
            'Polyphen2 HDIV'='darkseagreen3', 
            'Polyphen2 HVAR'='mediumseagreen', 
            'PrimateAI'='darkred',
            'PROVEAN'='darkorchid3', 
            'REVEL'='cadetblue3', 
-           'SIFT'='aquamarine2', 
-           'VEST4'='peachpuff3')
+           'SIFT'='peachpuff3', 
+           'VEST4'='aquamarine4')
 
 for (variant in new_variants_predictions$Variant_ID){
   allele_freq <- vector()
