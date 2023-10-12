@@ -770,6 +770,7 @@ barplot_gene_fam<- function(gene_family){
   
   var_data <- data.frame(matrix(ncol = 3))
   colnames(var_data) <- c('gene', 'location', 'number')
+  total_num <- list()
   
   for (gene in genes){
     gene_data <- eval(parse_expr(paste0(gene, '_canonical_data')))
@@ -799,14 +800,18 @@ barplot_gene_fam<- function(gene_family){
       data[i,'number'] <- table(gene_data$Location_in_txs)[ordered_locations[i]]
     }
     var_data <- rbind(var_data, data)
+    total_num[[gene]] <- sum(data[!is.na(data$number), 'number'])
   }
   
   var_data$number <- replace(var_data$number, which(is.na(var_data$number)), 0)
   var_data$gene <- factor(var_data$gene, levels = unique(var_data$gene))
   var_data <- var_data[-1,]
+  total_num <- melt(total_num)
+  colnames(total_num) <- c('n', 'gene')
   
   p <- ggplot(var_data, aes(fill=factor(location, levels=ordered_locations), y=number, x=gene)) + 
     geom_bar(position="stack", stat="identity") + 
+    geom_text(data=total_num, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.2) +
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of reported variants in canonical tx', fill='Location') +
     theme_bw() + 
     ylim(0, 2170) +
@@ -912,6 +917,7 @@ barplot_exonic_variants <- function(gene_family){
   p <- ggplot(var_data, aes(y=number, x=gene)) + 
     geom_bar(stat="identity", fill=var_colors[['Exon']]) + 
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of exonic variants in canonical tx') +
+    geom_text(aes(label=number), vjust=-0.25, size=3.4) +
     theme_bw() + 
     ylim(0, 750) +
     theme(axis.text = element_text(size = 10),
@@ -960,6 +966,7 @@ barplot_exonic_variants_anno <- function(gene_family){
   colnames(exonic_var_data) <- c('gene', 'annotation', 'number')
   
   ## Number of exonic variants from each annotation per gene
+  total_num <- list()
   i=1
   for (gene in genes){
     exonic_gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
@@ -969,14 +976,18 @@ barplot_exonic_variants_anno <- function(gene_family){
       exonic_var_data[i,] <- c(gene, annotation, number)
       i=i+1
     }
+    total_num[[gene]] <- dim(exonic_gene_data)[1]
   }
+  total_num <- melt(total_num)
+  colnames(total_num) <- c('n', 'gene')
   
   exonic_var_data$gene <- factor(exonic_var_data$gene, levels = unique(exonic_var_data$gene))
   exonic_var_data$number <- as.numeric(exonic_var_data$number)
   exonic_var_data$number <- replace(exonic_var_data$number, which(is.na(exonic_var_data$number)), 0)
   
   p <- ggplot(exonic_var_data, aes(y=number, x=gene, fill=factor(annotation, levels = ordered_annotations))) + 
-    geom_bar(position="stack", stat="identity") + 
+    geom_bar(position="stack", stat="identity") +
+    geom_text(data=total_num, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of exonic variants in canonical tx',
          fill='Variant annotation') +
     theme_bw() + 
@@ -1013,6 +1024,7 @@ locations <- c('5\' upstream', '5\'UTR',  'Intron 6-7', 'Intron 5-6',  'Intron 4
                        '5\'UTR, Intron 1-2', 'Intron 1-2, 5\'UTR', 
                        'Exon 1', 'Exon 2', 'Exon 3', 'Exon 4', 'Exon 5', 'Exon 6', 'Exon 7', '3\'UTR')
 
+total_num <- list()
 for(gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')){
   
     UGT_variants <- eval(parse_expr(paste0(gene_family, '_variants')))
@@ -1025,16 +1037,20 @@ for(gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')){
       data[i,'number'] <- table(UGT_variants$Location_in_txs)[locations[i]]
     }
   var_data <- rbind(var_data, data)
+  total_num[[gene_family]] <- dim(UGT_variants)[1]
 }
   
 var_data$number <- replace(var_data$number, which(is.na(var_data$number)), 0)
 var_data$gene_family <- factor(var_data$gene_family, levels = unique(var_data$gene_family))
 var_data <- var_data[-1,]
-  
+total_num <- as.data.frame(melt(total_num))
+colnames(total_num) <- c('n', 'gene')
+
 p1 <- ggplot(var_data, aes(fill=factor(location, levels=locations), y=number, x=gene_family)) + 
   geom_bar(position="stack", stat="identity") + 
   labs(x='UGT gene family', y='Total number of variants in canonical tx of genes', fill='Location') +
   theme_bw() + 
+  geom_text(data=total_num, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
   ylim(0, 7200) +
   scale_fill_manual(values = var_colors) +
   theme(axis.text = element_text(size = 8),
@@ -1064,6 +1080,7 @@ p2 <- ggplot(data, aes(y=number, x=gene_family, fill=category)) +
   geom_bar(stat="identity", position=position_dodge()) + 
   labs(x='UGT gene family', y='Number of variants in canonical tx of genes', fill='Type') +
   theme_bw() + 
+  geom_text(aes(label=number, x=gene_family), position=position_dodge(.9), vjust=-0.25, size=3.4) +
   scale_fill_manual(values = var_colors) +
   ylim(0, 7200) +
   theme(axis.text = element_text(size = 8),
@@ -1141,6 +1158,7 @@ annotations <- c("frameshift_variant", "inframe_deletion", "inframe_insertion", 
                  "splice_donor_variant", "splice_region_variant", "synonymous_variant", "start_lost",   
                  "stop_lost", "stop_gained", "stop_retained_variant")
 
+total_num <- list()
 var_data <- data.frame(matrix(ncol = 3))
 colnames(var_data) <- c('gene_family', 'annotation', 'number')
 
@@ -1156,16 +1174,20 @@ for(gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')){
     data[i,'number'] <- table(UGT_exonic_variants$VEP_Annotation)[annotations[i]]
   }
   var_data <- rbind(var_data, data)
+  total_num[[gene_family]] <- dim(UGT_exonic_variants)[1]
 }
 
 var_data$number <- replace(var_data$number, which(is.na(var_data$number)), 0)
 var_data$gene_family <- factor(var_data$gene_family, levels = unique(var_data$gene_family))
 var_data <- var_data[-1,]
+total_num <- as.data.frame(melt(total_num))
+colnames(total_num) <- c('n', 'gene')
 
 p3 <- ggplot(var_data, aes(fill=factor(annotation, levels=annotations), y=number, x=gene_family)) + 
   geom_bar(position="stack", stat="identity") + 
   labs(x='UGT gene family', y='Number of exonic variants in canonical tx of genes', fill='Variant annotation') +
   theme_bw() + 
+  geom_text(data=total_num, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
   ylim(0, 7200) +
   scale_fill_manual(values = exonic_vars_anno_colors) +
   theme(axis.text = element_text(size = 8),

@@ -23,8 +23,8 @@ UGT8_genes <- c('UGT8')
 
 ## Load exonic data for each gene 
 for (gene in UGT_genes){
-  load(here(paste0('~/Desktop/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata')),
-       verbose=TRUE)
+  exonic_vars <- eval(parse_expr(load(here(paste0('~/Desktop/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata')),
+       verbose=TRUE)))
   assign( paste0(gene, '_exonic_data'), exonic_vars)
 }
 
