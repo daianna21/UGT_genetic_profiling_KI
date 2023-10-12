@@ -37,9 +37,18 @@ canonical_txs <- list('UGT1A1'= 'ENST00000305208.5', 'UGT1A3'='ENST00000482026.1
 
 
 ## Load exonic data for each gene 
+non_minor_alleles_allGenes <- vector()
 for (gene in UGT_genes){
-  load(here(paste0('~/Desktop/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata')),
-       verbose=TRUE)
+  exonic_vars <- eval(parse_expr(load(here(paste0('~/Desktop/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata')),
+       verbose=TRUE)))
+  ## Variants with global allele freqs > 0.5 (not minor allele)
+  non_minor_alleles <- exonic_vars[which(exonic_vars$Allele_Frequency>0.5), ]
+  if (dim(non_minor_alleles)[1]!=0){
+    non_minor_alleles <- cbind(gene, exonic_vars[which(exonic_vars$Allele_Frequency>0.5), ])
+    non_minor_alleles_allGenes <- rbind(non_minor_alleles_allGenes, non_minor_alleles)
+    ## Remove them from exonic data
+    exonic_vars <- exonic_vars[which(exonic_vars$Allele_Frequency<=0.5), ]
+  }
   assign( paste0(gene, '_exonic_data'), exonic_vars)
 }
 
@@ -64,6 +73,7 @@ for (gene in UGT_genes){
 ## Necessary columns per variant: Chromosome   Start    End    Reference    Alternate
 ## Start and End are the same for missense variants (single nt mutations)
 
+## Annotate and predict missense variants
 
 for (gene in UGT_genes){
   UGT_missense_vars <- eval(parse_expr(paste0(gene, '_missense_vars')))
@@ -130,10 +140,27 @@ for (gene in UGT_genes){
 }
  
 
+# Invert alleles and re-annotate variants with MAF>0.5
+r <- non_minor_alleles_allGenes$Reference
+non_minor_alleles_allGenes$Reference <- non_minor_alleles_allGenes$Alternate
+non_minor_alleles_allGenes$Alternate <- r
+non_minor_alleles_allGenes_ANNOVAR_format <- non_minor_alleles_allGenes[,c('Chromosome', 'Position', 'Position', 'Reference', 'Alternate')]
+colnames(non_minor_alleles_allGenes_ANNOVAR_format) <- c('Chromosome', 'Start', 'End', 'Ref', 'Obs')
+save(non_minor_alleles_allGenes_ANNOVAR_format, file = 'processed-data/03_Anno_functional_impact/non_minor_alleles_allGenes_ANNOVAR_format.Rdata')
+write.table(non_minor_alleles_allGenes_ANNOVAR_format, file = 'processed-data/03_Anno_functional_impact/non_minor_alleles_allGenes_ANNOVAR_format.txt',
+            row.names = FALSE, col.names = FALSE, sep = '\t')
+write.table(non_minor_alleles_allGenes_ANNOVAR_format, file = 'processed-data/03_Anno_functional_impact/non_minor_alleles_allGenes_ANNOVAR_format.csv',
+            row.names = FALSE, col.names = FALSE, sep = '\t')
+
+
 
 # _______________________________________________________________________________
 #  3.1.2  Examination of ANNOVAR gene-based annotation output 
 # _______________________________________________________________________________
+
+## Load ANNOVAR output for inverted non minor allele variants
+non_minor_allele_anno <- read.csv('processed-data/03_Anno_functional_impact/ANNOVAR_output/myanno_non_minor.hg19_multianno.csv')
+
 
 ## Download ANNOVAR output for each gene
 for (gene in UGT_genes){
@@ -142,7 +169,7 @@ for (gene in UGT_genes){
   
 }
 
-############################ 1. Confirm all variants are annotated as exonic  ############################# 
+############################ 1. Confirm all missense variants are annotated as exonic  ############################# 
 
 sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', gene, '$Func.refGene')))))})
 
@@ -249,7 +276,7 @@ location_determination(70066297, canonical_UGT2_txs[['UGT2B11']], 'Exon 6')
 # ---------------------------------------------------------------------------------------------------------------------------
 
 
-################################ 2.  Check all variants are non-synonymous  ################################
+################################ 2.  Check all missense variants are non-synonymous  ################################
 
 sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', gene, '$ExonicFunc.refGene')))))})
 
@@ -408,6 +435,28 @@ sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', g
 # 
 # $UGT8
 # [1] "UGT8"
+
+
+################################ 4.  Check exonic function of inverted non minor allele variants  ################################
+non_minor_allele_anno[,1:9]
+# Chr     Start       End Ref Alt Func.refGene Gene.refGene GeneDetail.refGene ExonicFunc.refGene
+# 1    2 234627937 234627937   C   T       exonic       UGT1A4                  .     synonymous SNV
+# 2    2 234622429 234622429   C   T       exonic       UGT1A5                  .     synonymous SNV
+# 3    2 234590970 234590970   G   T       exonic       UGT1A7                  .     synonymous SNV
+# 4    2 234590974 234590974   A   C       exonic       UGT1A7                  .     synonymous SNV
+# 5    2 234590975 234590975   A   G       exonic       UGT1A7                  .     synonymous SNV
+# 6    4  70513139  70513139   T   C       exonic       UGT2A1                  .     synonymous SNV
+# 7    4  69795626  69795626   T   C       exonic       UGT2A3                  .     synonymous SNV
+# 8    4  70355211  70355211   C   T       exonic       UGT2B4                  .     synonymous SNV
+# 9    4  69964337  69964337   T   A       exonic       UGT2B7                  .     synonymous SNV
+# 10   4  69964338  69964338   C   T       exonic       UGT2B7                  .     synonymous SNV
+# 11   4  69972949  69972949   G   C       exonic       UGT2B7                  .     synonymous SNV
+# 12   4  69512847  69512847   G   T       exonic      UGT2B15                  .     synonymous SNV
+# 13   4  69536084  69536084   C   A       exonic      UGT2B15                  .     synonymous SNV
+# 14   4  69417570  69417570   G   A       exonic      UGT2B17                  .     synonymous SNV
+# 15   4  70146230  70146230   A   G       exonic      UGT2B28                  .     synonymous SNV
+# 16   4 115544714 115544714   G   A       exonic         UGT8                  .     synonymous SNV
+# 17   4 115589302 115589302   G   A       exonic         UGT8                  .     synonymous SNV
 
 
 
@@ -1293,7 +1342,25 @@ for (gene in UGT_genes){
   colnames(data) <- c('Variant_ID', 'Functional_impact', 'Group', 'MAF')
   
   ## Different shapes for D variants with MAF>=0.01
-  shapes <- c(8,11,14,9,7,25,3,15,2,12,6)
+  shapes <- c('2-234668879-C-CAT'=8,
+              '2-234668879-C-CATAT'=11,
+              '2-234675779-A-G'=14,
+              '2-234676872-C-T'=9,
+              '2-234637917-C-T'=7,
+              '2-234638282-G-GT'=25,
+              '2-234622331-GC-G'=3,
+              '2-234590935-G-T'=15,
+              '2-234545998-G-A'=2,
+              '4-70512787-A-T'=12,
+              '4-69811110-A-C'=6,
+              '4-69693141-GT-G'=5,
+              '4-69693242-T-C'=4,
+              '4-70070366-A-T'=10,
+              '4-70078393-C-T'=13,
+              '4-69512937-T-A'=17,
+              '4-69528742-G-A'=18,
+              '4-69536234-G-T'=25)
+  
   ## Label those variants
   data$Label <- apply(data, 1, function(x){if (is.na(x['MAF'])){NA}
                                            else if(x['Functional_impact']=='D' & as.numeric(x['MAF'])>=0.01){x['Variant_ID']} else{NA}})
@@ -1302,10 +1369,10 @@ for (gene in UGT_genes){
   
   plots[[i]] <- ggplot(data = data, mapping = aes(x = Group, y = MAF, color = Functional_impact)) +
         geom_point(data=subset(data, is.na(Label)), alpha = 0.9, size = 1.3, position = position_jitterdodge(seed=2)) +
-        geom_point(data=subset(data, !is.na(Label)), aes(shape=Label), size=1.5, color='darkred', stroke = 0.7, position = position_jitterdodge(seed=2, jitter.width=0.1, dodge.width = 0.5)) +
+        geom_point(data=subset(data, !is.na(Label)), aes(shape=Label), size=1.5, color='tomato3', stroke = 0.7, position = position_jitterdodge(seed=2, jitter.width=0.1, dodge.width = 0.5)) +
         theme_bw() +
         scale_color_manual(values = c("skyblue2", "tomato"), labels = c("Neutral", "Deleterious")) +
-        scale_shape_manual(values=shapes[1:length(unique(which(!is.na(data$Label))))]) + 
+        scale_shape_manual(values=shapes[subset(data, !is.na(Label))$Variant_ID]) + 
         scale_x_discrete(breaks=c(paste0('MAF_',populations), 'Allele_Frequency'),
                          labels=c("African/African American",
                                   "Latino/Admixed American",
