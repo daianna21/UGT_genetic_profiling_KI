@@ -1182,7 +1182,7 @@ ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf')
 
 
 ################################################################################
-##    1.2  Integration of additional variants of pharmacogenomic relevance
+##    1.2  Integration of punctual variants of pharmacogenomic relevance
 ################################################################################
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
