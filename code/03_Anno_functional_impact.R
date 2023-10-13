@@ -46,8 +46,6 @@ for (gene in UGT_genes){
   if (dim(non_minor_alleles)[1]!=0){
     non_minor_alleles <- cbind(gene, exonic_vars[which(exonic_vars$Allele_Frequency>0.5), ])
     non_minor_alleles_allGenes <- rbind(non_minor_alleles_allGenes, non_minor_alleles)
-    ## Remove them from exonic data
-    exonic_vars <- exonic_vars[which(exonic_vars$Allele_Frequency<=0.5), ]
   }
   assign( paste0(gene, '_exonic_data'), exonic_vars)
 }
@@ -140,27 +138,10 @@ for (gene in UGT_genes){
 }
  
 
-# Invert alleles and re-annotate variants with MAF>0.5
-r <- non_minor_alleles_allGenes$Reference
-non_minor_alleles_allGenes$Reference <- non_minor_alleles_allGenes$Alternate
-non_minor_alleles_allGenes$Alternate <- r
-non_minor_alleles_allGenes_ANNOVAR_format <- non_minor_alleles_allGenes[,c('Chromosome', 'Position', 'Position', 'Reference', 'Alternate')]
-colnames(non_minor_alleles_allGenes_ANNOVAR_format) <- c('Chromosome', 'Start', 'End', 'Ref', 'Obs')
-save(non_minor_alleles_allGenes_ANNOVAR_format, file = 'processed-data/03_Anno_functional_impact/non_minor_alleles_allGenes_ANNOVAR_format.Rdata')
-write.table(non_minor_alleles_allGenes_ANNOVAR_format, file = 'processed-data/03_Anno_functional_impact/non_minor_alleles_allGenes_ANNOVAR_format.txt',
-            row.names = FALSE, col.names = FALSE, sep = '\t')
-write.table(non_minor_alleles_allGenes_ANNOVAR_format, file = 'processed-data/03_Anno_functional_impact/non_minor_alleles_allGenes_ANNOVAR_format.csv',
-            row.names = FALSE, col.names = FALSE, sep = '\t')
-
-
 
 # _______________________________________________________________________________
 #  3.1.2  Examination of ANNOVAR gene-based annotation output 
 # _______________________________________________________________________________
-
-## Load ANNOVAR output for inverted non minor allele variants
-non_minor_allele_anno <- read.csv('processed-data/03_Anno_functional_impact/ANNOVAR_output/myanno_non_minor.hg19_multianno.csv')
-
 
 ## Download ANNOVAR output for each gene
 for (gene in UGT_genes){
@@ -435,28 +416,6 @@ sapply(UGT_genes, function(gene){names(table(eval(parse_expr(paste0('myanno_', g
 # 
 # $UGT8
 # [1] "UGT8"
-
-
-################################ 4.  Check exonic function of inverted non minor allele variants  ################################
-non_minor_allele_anno[,1:9]
-# Chr     Start       End Ref Alt Func.refGene Gene.refGene GeneDetail.refGene ExonicFunc.refGene
-# 1    2 234627937 234627937   C   T       exonic       UGT1A4                  .     synonymous SNV
-# 2    2 234622429 234622429   C   T       exonic       UGT1A5                  .     synonymous SNV
-# 3    2 234590970 234590970   G   T       exonic       UGT1A7                  .     synonymous SNV
-# 4    2 234590974 234590974   A   C       exonic       UGT1A7                  .     synonymous SNV
-# 5    2 234590975 234590975   A   G       exonic       UGT1A7                  .     synonymous SNV
-# 6    4  70513139  70513139   T   C       exonic       UGT2A1                  .     synonymous SNV
-# 7    4  69795626  69795626   T   C       exonic       UGT2A3                  .     synonymous SNV
-# 8    4  70355211  70355211   C   T       exonic       UGT2B4                  .     synonymous SNV
-# 9    4  69964337  69964337   T   A       exonic       UGT2B7                  .     synonymous SNV
-# 10   4  69964338  69964338   C   T       exonic       UGT2B7                  .     synonymous SNV
-# 11   4  69972949  69972949   G   C       exonic       UGT2B7                  .     synonymous SNV
-# 12   4  69512847  69512847   G   T       exonic      UGT2B15                  .     synonymous SNV
-# 13   4  69536084  69536084   C   A       exonic      UGT2B15                  .     synonymous SNV
-# 14   4  69417570  69417570   G   A       exonic      UGT2B17                  .     synonymous SNV
-# 15   4  70146230  70146230   A   G       exonic      UGT2B28                  .     synonymous SNV
-# 16   4 115544714 115544714   G   A       exonic         UGT8                  .     synonymous SNV
-# 17   4 115589302 115589302   G   A       exonic         UGT8                  .     synonymous SNV
 
 
 
@@ -1070,7 +1029,7 @@ data$Method <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', 
 data$Method <- factor(data$Method, levels=names(numD))
 
 ## Identify variants with allele freq >0.5
-data[which(data$Allele_Frequency>=0.5),]
+data[which(data$Allele_Frequency>0.5),]
 #       Variant_ID  Allele_Frequency         Method
 #   4-69795626-C-T         0.7568806 Polyphen2 HDIV
 #   4-69795626-C-T         0.7568806 Polyphen2 HVAR
@@ -1078,21 +1037,81 @@ data[which(data$Allele_Frequency>=0.5),]
 #   4-69795626-C-T         0.7568806           DANN
 #  4-115589302-A-G         0.9953603            LRT
 
-## Invert frequencies to have MAF only
-data[which(data$Allele_Frequency>=0.5), 'Allele_Frequency'] <- 1-data[which(data$Allele_Frequency>=0.5), 'Allele_Frequency']
+shapes <- c('4-69795626-C-T'=17,
+            '4-115589302-A-G'=15)
+data$label <- apply(data, 1, function(x){if (as.numeric(x['Allele_Frequency'])>0.5){x['Variant_ID']} else {NA}})
+## Number of D vars per method
+num_per_method <- as.data.frame(table(data$Method))
+colnames(num_per_method) <- c('Method', 'n')
 
-ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Method)) +
-  geom_jitter(width = 0.1, alpha = 0.7, size = 1) +
+ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Method, shape=label)) +
+  geom_jitter(data=subset(data, is.na(label)), shape=16, width = 0.1, height = 0, alpha = 0.7, size = 1.5) +
+  geom_point(data=subset(data, !is.na(label)), aes(shape=label), alpha = 0.7, size = 1.3, stroke = 1) +
+  scale_shape_manual(values = shapes) +
   theme_bw() +
   scale_color_manual(values = colors) +
-  labs(x='', y='MAF of missense variants predicted as deleterious') +
-  theme(legend.position = 'none',
-        axis.title = element_text(size = (9), face='bold'),
+  guides(color = 'none') + 
+  geom_text(data = num_per_method, aes(x=Method, label=n,  y=-0.05, shape=NULL, color=NULL), size=2) +
+  labs(x='', y='GMAF of missense variants predicted as deleterious', shape='Variant ID (GMAF>0.5)') +
+  theme(title = element_text(size = (9), face='bold'),
+        axis.title = element_text(size = (8.5), face='bold'),
         axis.text = element_text(size = (8)),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
+        legend.title = element_text(size=8), 
+        legend.text = element_text(size=7.5))
 
-ggsave(filename='plots/03_Anno_functional_impact/MAF_Dvars_perMethod.pdf', width = 6.2, height = 5)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_allDvars_perMethod.pdf', width = 8, height = 5)
 
+
+
+## Plot GMAF of variants predicted as D by each methods in each gene
+i=1
+plots <- list()
+for (gene in UGT_genes){
+  gene_vars <- eval(parse_expr(paste0(gene, '_missense_vars')))$Variant_ID
+  gene_D_vars <- data[which(data$Variant_ID %in% gene_vars),]
+  gene_D_vars$Method <- factor(gene_D_vars$Method, levels=names(numD))
+  ## Number of D vars per method
+  num_per_method <- as.data.frame(table(gene_D_vars$Method))
+  colnames(num_per_method) <- c('Method', 'n')
+  num_per_method$Method <- factor(x = num_per_method$Method, levels=names(numD))
+  
+  plots[[i]] <- ggplot(data = gene_D_vars, mapping = aes(x = Method, y = Allele_Frequency, color = Method, shape=label)) +
+    geom_text(data = num_per_method, aes(label=n,  y=-0.03, shape=NULL, color=NULL), size=2) +
+    geom_jitter(data=subset(gene_D_vars, is.na(label)), shape=16, width = 0.2, height = 0.0, alpha = 0.7, size = 1) +
+    geom_point(data=subset(gene_D_vars, !is.na(label)), mapping=aes(shape=label), alpha = 0.7, size = 1, stroke = 1) +
+    scale_shape_manual(values = shapes) +
+    scale_y_continuous(limits = c(-0.03, 1), breaks = seq(0, 1, by = 0.1)) +
+    scale_color_manual(values = colors) +
+    theme_bw() +
+    guides(color = 'none') + 
+    labs(x='', y='GMAF of missense variants predicted as deleterious', shape='Variant ID (GMAF>0.5)', 
+         title=gene, subtitle = paste0(length(unique(gene_D_vars$Variant_ID)), ' variants predicted as deleterious in total')) +
+    theme(title = element_text(size = (9), face='bold'),
+          axis.title = element_text(size = (8.5), face='bold'),
+          axis.text = element_text(size = (8)),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
+          legend.title = element_text(size=6.5), 
+          legend.text = element_text(size=6), 
+          legend.key = element_blank(),,
+          legend.background=element_blank(),
+          legend.key.size = unit(0, 'lines'),
+          legend.justification = c(0.9,0.9), legend.position = c(0.9,0.95))
+  i=i+1
+}
+
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]], plots[[8]], plots[[9]], ncol=3)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT1_Dvars_perMethod.pdf', width = 16, height = 14)
+
+plot_grid(plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
+          plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], ncol=5)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT2_Dvars_perMethod.pdf', width = 22, height = 8)
+
+plot_grid(plots[[20]], plots[[21]], ncol=2)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT3_Dvars_perMethod.pdf', width = 11, height = 5)
+
+plot_grid(plots[[22]])
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT8_Dvars_perMethod.pdf', width = 5.7, height = 4.2)
 
 
 ## Plot cumulative MAF per method
@@ -1144,11 +1163,6 @@ for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
 
 ## Unique variants
 unique_clinvar_variants<- unique(unlist(sapply(paste0('clinvar_variants_', UGT_genes[which(UGT_genes!='UGT2A3')], '$Variant_ID'), function(x){eval(parse_expr(x))})))
-## Add known variants not present in ClinVar
-known_exonic_vars <- c('2-234669144-G-A', '2-234526871-C-G','4-70346565-A-T','4-69964338-T-C', '4-69962449-G-T','4-69536084-A-C')
-## Effect of such variants 
-c('D', 'N', ......)
-unique_clinvar_variants <- append(unique_clinvar_variants, known_exonic_vars)
 
 ## Predictions for those variants
 clinvar_variants_predictions <- new_variants_predictions[which(new_variants_predictions$Variant_ID %in% unique_clinvar_variants),]
@@ -1156,14 +1170,9 @@ clinvar_variants_predictions <- new_variants_predictions[which(new_variants_pred
 for (variant in clinvar_variants_predictions$Variant_ID){
   variant_effects <- vector()
   for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
-    if (variant %in% known_exonic_vars){
-      variant_effects <- 'D'
-    }
-    else{
-      gene_variants <- eval(parse_expr(paste0('clinvar_variants_', gene)))
-      if (variant %in% gene_variants$Variant_ID){
-        variant_effects <- append(variant_effects, unlist(gene_variants[which(gene_variants$Variant_ID==variant), 'effect']))
-      }
+    gene_variants <- eval(parse_expr(paste0('clinvar_variants_', gene)))
+    if (variant %in% gene_variants$Variant_ID){
+      variant_effects <- append(variant_effects, unlist(gene_variants[which(gene_variants$Variant_ID==variant), 'effect']))
     }
   }
   
