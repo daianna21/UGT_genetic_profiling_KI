@@ -1076,6 +1076,12 @@ for (gene in UGT_genes){
   colnames(num_per_method) <- c('Method', 'n')
   num_per_method$Method <- factor(x = num_per_method$Method, levels=names(numD))
   
+  ## No predictions by AlphaMissense for UGT8 tx
+  if (gene=='UGT8'){
+    gene_D_vars <- subset(gene_D_vars, Method!='AlphaMissense')
+    num_per_method <- subset(num_per_method, Method!='AlphaMissense')
+  }
+  
   plots[[i]] <- ggplot(data = gene_D_vars, mapping = aes(x = Method, y = Allele_Frequency, color = Method, shape=label)) +
     geom_text(data = num_per_method, aes(label=n,  y=-0.03, shape=NULL, color=NULL), size=2) +
     geom_jitter(data=subset(gene_D_vars, is.na(label)), shape=16, width = 0.2, height = 0.0, alpha = 0.7, size = 1) +
@@ -1112,6 +1118,7 @@ ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT3_Dvars_perMethod.pdf',
 
 plot_grid(plots[[22]])
 ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT8_Dvars_perMethod.pdf', width = 5.7, height = 4.2)
+
 
 
 ## Plot cumulative MAF per method
