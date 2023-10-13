@@ -977,6 +977,67 @@ ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', wid
 
 
 
+## Plot the number of D, N and missing variants per algorithm per gene
+i=1
+plots <- list()
+for (gene in UGT_genes){
+  gene_vars <- eval(parse_expr(paste0(gene, '_missense_vars')))$Variant_ID
+  gene_vars <- new_variants_predictions[which(new_variants_predictions$Variant_ID %in% gene_vars),]
+
+  vars_per_method <- melt(sapply(colnames(gene_vars)[2:23], function(x){ c('D'=length(which(gene_vars[,x]=='D')),
+                                                                           'N'=length(which(gene_vars[,x]=='N')),
+                                                                           '.'=length(which(gene_vars[,x]=='.'))) }))
+  colnames(vars_per_method) <- c('Prediction',  'Method', 'Numbers')
+  vars_per_method$Method <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', vars_per_method$Method))))
+  # Order methods by number of D variants
+  numD<- sapply(colnames(gene_vars)[2:23], function(x){table(gene_vars[, x])['D']})
+  numD <- numD[order(numD, decreasing = TRUE)]
+  names(numD) <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred.D', '', names(numD)))))
+  vars_per_method$Method <- factor(vars_per_method$Method, levels=names(numD))
+  ## Order to have D variants first in each bar
+  cat_order <- c('.', 'N', 'D')
+  vars_per_method$Prediction <- factor(vars_per_method$Prediction, levels=cat_order)
+  vars_per_method$Numbers <- as.numeric(vars_per_method$Numbers)
+
+   
+  ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) + 
+    geom_bar(position="stack", stat="identity", colour = 'black', width=.7) + 
+    theme_classic() +
+    labs(
+      y = 'Number of predicted missense variants',
+      x= '',
+      title=gene,
+      subtitle = paste0(dim(gene_vars)[1], ' total missense variants')
+    ) +
+    scale_fill_manual(values = c("grey80", "skyblue2", "tomato"), labels = c("Missing", "Neutral", "Deleterious")) + 
+    # scale_y_discrete(limits= c(0, round(dim(gene_vars)[1]/4), round(dim(gene_vars)[1]/2),
+    #                            round(3*dim(gene_vars)[1]/4), dim(gene_vars)[1])) +
+    coord_cartesian(ylim = c(0, dim(gene_vars)[1]), # This focuses the x-axis on the range of interest
+                    clip = 'off') +
+    geom_text(data=subset(vars_per_method, Prediction=='.'), aes(label=Numbers, y=dim(gene_vars)[1]+40, 
+                                                                 fill=NULL), hjust = 0.5, size = 2.6) +
+    geom_text(data=subset(vars_per_method, Prediction=='N'), aes(label=Numbers, y=dim(gene_vars)[1]+26, 
+                                                                 fill=NULL), hjust = 0.5, size = 2.6) +
+    geom_text(data=subset(vars_per_method, Prediction=='D'), aes(label=Numbers, y=dim(gene_vars)[1]+13, 
+                                                                 fill=NULL), hjust = 0.5, size = 2.6) +
+   
+    theme(plot.title = element_text(size = (12), face='bold', vjust = 8, hjust=0), 
+          plot.subtitle = element_text(size = (10), vjust = 9.8, hjust=0, color="gray50", face='bold'), 
+          legend.direction = "vertical",
+          legend.position = c(1.07, 1.06),
+          legend.key.size = unit(0.3, units = 'cm'),
+          plot.margin = unit(c(3, 3, 0.5, 0.5), "cm"),
+          axis.title = element_text(size = (11), face='bold'),
+          axis.text = element_text(size = (10)),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          legend.text = element_text(size = 9),
+          legend.title = element_text(size =10, face='bold'))
+
+}
+ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', width = 8, height = 6)
+
+
+
 ## Plot allele frequencies of predicted D variants per method
 colors = c('ADME'='mediumpurple2', 
            'AlphaMissense'='red3',
@@ -1126,48 +1187,112 @@ ggplot() +
   sapply(names(numD), function(method){eval(parse_expr(paste0('geom_line(data=data[which(data$Method==\'', method, '\'),], aes(x=1:dim(data[which(data$Method==\'', method, '\'),])[1], y = cumsum(Allele_Frequency), color=Method), size=1, alpha=0.75)')))}) +
   theme_bw() +
   scale_color_manual(values = colors[names(numD)], breaks = names(numD)) +
-  labs(x='Number of missense variants predicted as deleterious', y='Accumulated MAF of variants') +
+  labs(x='Number of missense variants predicted as deleterious', y='Accumulated GMAF of variants') +
   theme(axis.title = element_text(size = (9), face='bold'),
         axis.text = element_text(size = (8)),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
-ggsave(filename='plots/03_Anno_functional_impact/cumMAF_Dvars_perMethod.pdf', width = 11, height = 7)  
+ggsave(filename='plots/03_Anno_functional_impact/cumGMAF_Dvars_perMethod.pdf', width = 11, height = 7)  
 
 
 
 ## Plot carrier frequencies of predicted D variants per method
-data$Carrier_Frequency <- 2*data$Allele_Frequency*(1-data$Allele_Frequency)
+data$Carrier_Frequency <- (2*data$Allele_Frequency*(1-data$Allele_Frequency)) + (data$Allele_Frequency)**2
+num_per_method <- as.data.frame(table(data$Method))
+colnames(num_per_method) <- c('Method', 'n')
+
+## Identify variants with allele freq >0.5
+data[which(data$Carrier_Frequency>0.5),]
+# Variant_ID      Allele_Frequency         Method           label Carrier_Frequency
+# 2-234602202-A-C        0.3443850           SIFT            <NA>         0.5701690
+#  4-69795626-C-T        0.7568806 Polyphen2 HDIV  4-69795626-C-T         0.9408930
+#  4-69795626-C-T        0.7568806 Polyphen2 HVAR  4-69795626-C-T         0.9408930
+#  4-69795626-C-T        0.7568806           CADD  4-69795626-C-T         0.9408930
+#  4-69795626-C-T        0.7568806           DANN  4-69795626-C-T         0.9408930
+#  4-70156313-T-A        0.4690027            LRT            <NA>         0.7180419
+#  4-70160309-C-G        0.4894400            LRT            <NA>         0.7393285
+# 4-115589302-A-G        0.9953603            LRT 4-115589302-A-G         0.9999785
+
+shapes <- c('4-69795626-C-T'=17,
+            '4-115589302-A-G'=15, 
+            '2-234602202-A-C'=4,
+            '4-70156313-T-A'=0,
+            '4-70160309-C-G'=18)
+
+data$label <- apply(data, 1, function(x){if (as.numeric(x['Carrier_Frequency'])>0.5){x['Variant_ID']} else {NA}})
+
+## Number of D vars per method
+num_per_method <- as.data.frame(table(data$Method))
+colnames(num_per_method) <- c('Method', 'n')
 
 ggplot(data = data, mapping = aes(x = Method, y = Carrier_Frequency, color = Method)) +
-  geom_jitter(width = 0.1, alpha = 0.7, size = 1) +
+  geom_jitter(data=subset(data, is.na(label)), shape=16, width = 0.1, height = 0, alpha = 0.7, size = 1.5) +
+  geom_point(data=subset(data, !is.na(label)), aes(shape=label), alpha = 0.7, size = 1.1, stroke = 1) +
+  scale_shape_manual(values = shapes) +
   theme_bw() +
   scale_color_manual(values = colors) +
-  labs(x='', y='Carrier frequency of missense variants predicted as deleterious') +
-  theme(legend.position = 'none',
-        axis.title = element_text(size = (9), face='bold'),
-        axis.text = element_text(size = (8)),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  guides(color = 'none') + 
+  geom_text(data = num_per_method, aes(x=Method, label=n,  y=-0.05, shape=NULL, color=NULL), size=2) +
+  labs(x='', y='Carrier frequency of missense variants predicted as deleterious', shape=paste0('Variant ID', '\n', '(Carrier frequency >0.5)')) +
+  theme(title = element_text(size = (9), face='bold'),
+      axis.title = element_text(size = (8.5), face='bold'),
+      axis.text = element_text(size = (8)),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
+      legend.title = element_text(size=8), 
+      legend.text = element_text(size=7.5))
 
-ggsave(filename='plots/03_Anno_functional_impact/CarrierFreq_Dvars_perMethod.pdf', width = 6.2, height = 5)
+ggsave(filename='plots/03_Anno_functional_impact/CarrierFreq_Dvars_perMethod.pdf', width = 8, height = 5)
 
 
 
 ## Evaluate prediction accuracy of methods
 ## ClinVar variants for each gene (no variants in UGT2A3)
+benchmark_data <- vector()
 for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
   data <- read_delim(paste0('~/Desktop/UGT_genetic_profiling_KI/raw-data/ClinVar_data/clinvar_variants_', gene, '.txt'), delim='\t', show_col_types = FALSE)
   ## Add variant ID
-  data$Variant_ID <- paste(data$GRCh37Chromosome, data$GRCh37Location, 
-                           sapply(data$Name, function(x){substr(strsplit(x, '>')[[1]][1], nchar(strsplit(x, '>')[[1]][1]), nchar(strsplit(x, '>')[[1]][1]))}),
-                           sapply(data$Name, function(x){substr(strsplit(x, '>')[[1]][2], 1,1)}), sep='-')
+  data$Ref <- sapply(data$Name, function(x){substr(strsplit(x, '>')[[1]][1], nchar(strsplit(x, '>')[[1]][1]), nchar(strsplit(x, '>')[[1]][1]))})
+  data$Alt <- sapply(data$Name, function(x){substr(strsplit(x, '>')[[1]][2], 1,1)})
+  data$Variant_ID <- paste(data$GRCh37Chromosome, data$GRCh37Location, data$Ref, data$Alt, sep='-')
   ## Add D/N effect
   data$effect <- sapply(data$`Clinical significance (Last reviewed)`, function(x){
     if (length(grep('Pathogenic|pathogenic', x))!=0) {'D'}
     else if(length(grep('Benign|benign', x))!=0) {'N'}
   })
   assign(paste0('clinvar_variants_', gene), data)
+  print(paste0(dim(data)[1], ' benchmark variants in ', gene))
+  ## Generate input file to run predictions in ANNOVAR for these variants
+  benchmark_data <- rbind(benchmark_data, data[, c('GRCh37Chromosome', 'GRCh37Location', 'GRCh37Location', 'Ref', 'Alt')])
 }
 
+## "18 benchmark variants in UGT1A1"
+## "20 benchmark variants in UGT1A3"
+## "24 benchmark variants in UGT1A4"
+## "27 benchmark variants in UGT1A5"
+## "30 benchmark variants in UGT1A6"
+## "37 benchmark variants in UGT1A7"
+## "38 benchmark variants in UGT1A8"
+## "37 benchmark variants in UGT1A9"
+## "3 benchmark variants in UGT2A1"
+## "2 benchmark variants in UGT2A2"
+## "1 benchmark variants in UGT2B7"
+## "1 benchmark variants in UGT2B10"
+## "1 benchmark variants in UGT2B11"
+## "3 benchmark variants in UGT2B15"
+## "5 benchmark variants in UGT2B17"
+## "8 benchmark variants in UGT2B28"
+## "1 benchmark variants in UGT3A1"
+## "2 benchmark variants in UGT3A2"
+## "3 benchmark variants in UGT8"
+
+## ANNOVAR input 
+benchmark_data <- unique(as.data.frame(benchmark_data))
+colnames(benchmark_data) <- c('Chromosome', 'Start', 'End', 'Ref', 'Obs')
+save(benchmark_data, file ='processed-data/03_Anno_functional_impact/benchmark_data.Rdata')
+write.table(benchmark_data, file ='processed-data/03_Anno_functional_impact/benchmark_data.txt', row.names = FALSE, col.names = FALSE, sep = '\t')
+write.table(benchmark_data, file ='processed-data/03_Anno_functional_impact/benchmark_data.csv', row.names = FALSE, col.names = FALSE, sep = '\t')
+
+## ANNOVAR output
 ## Unique variants
 unique_clinvar_variants<- unique(unlist(sapply(paste0('clinvar_variants_', UGT_genes[which(UGT_genes!='UGT2A3')], '$Variant_ID'), function(x){eval(parse_expr(x))})))
 
