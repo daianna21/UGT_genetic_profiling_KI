@@ -978,29 +978,50 @@ ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', wid
 
 
 ## Plot the number of D, N and missing variants per algorithm per gene
-i=1
-plots <- list()
-for (gene in UGT_genes){
+
+DNM_vars_per_method_per_gene <- function(gene){
   gene_vars <- eval(parse_expr(paste0(gene, '_missense_vars')))$Variant_ID
   gene_vars <- new_variants_predictions[which(new_variants_predictions$Variant_ID %in% gene_vars),]
-
-  vars_per_method <- melt(sapply(colnames(gene_vars)[2:23], function(x){ c('D'=length(which(gene_vars[,x]=='D')),
+  
+  DNM_numbers <- sapply(colnames(gene_vars)[2:23], function(x){ c('D'=length(which(gene_vars[,x]=='D')),
                                                                            'N'=length(which(gene_vars[,x]=='N')),
-                                                                           '.'=length(which(gene_vars[,x]=='.'))) }))
+                                                                           '.'=length(which(gene_vars[,x]=='.'))) })
+  vars_per_method <- melt(DNM_numbers)
   colnames(vars_per_method) <- c('Prediction',  'Method', 'Numbers')
   vars_per_method$Method <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', vars_per_method$Method))))
-  # Order methods by number of D variants
-  numD<- sapply(colnames(gene_vars)[2:23], function(x){table(gene_vars[, x])['D']})
-  numD <- numD[order(numD, decreasing = TRUE)]
-  names(numD) <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred.D', '', names(numD)))))
-  vars_per_method$Method <- factor(vars_per_method$Method, levels=names(numD))
+  
+  # Order methods by number of D variants first, and N variants second
+  DNM_numbers <- as.data.frame(t(DNM_numbers))
+  DNM_numbers <- DNM_numbers[order(DNM_numbers$D, DNM_numbers$N,  decreasing = TRUE),]
+  numD <- rownames(DNM_numbers)
+  numD <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', numD))))
+  vars_per_method$Method <- factor(vars_per_method$Method, levels=numD)
+  
   ## Order to have D variants first in each bar
   cat_order <- c('.', 'N', 'D')
   vars_per_method$Prediction <- factor(vars_per_method$Prediction, levels=cat_order)
   vars_per_method$Numbers <- as.numeric(vars_per_method$Numbers)
-
-   
-  ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) + 
+  
+  if (dim(gene_vars)[1]>450){
+    s=21
+  }
+  else if(dim(gene_vars)[1]>400){
+    s=18
+  }
+  else if (dim(gene_vars)[1]>=344){
+    s=15
+  }
+  else if(dim(gene_vars)[1]>300){
+    s=13
+  }
+  else if (dim(gene_vars)[1]<250){
+    s=9
+  }
+  else {
+    s=11
+  }
+  
+  p <- ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) + 
     geom_bar(position="stack", stat="identity", colour = 'black', width=.7) + 
     theme_classic() +
     labs(
@@ -1010,17 +1031,15 @@ for (gene in UGT_genes){
       subtitle = paste0(dim(gene_vars)[1], ' total missense variants')
     ) +
     scale_fill_manual(values = c("grey80", "skyblue2", "tomato"), labels = c("Missing", "Neutral", "Deleterious")) + 
-    # scale_y_discrete(limits= c(0, round(dim(gene_vars)[1]/4), round(dim(gene_vars)[1]/2),
-    #                            round(3*dim(gene_vars)[1]/4), dim(gene_vars)[1])) +
     coord_cartesian(ylim = c(0, dim(gene_vars)[1]), # This focuses the x-axis on the range of interest
                     clip = 'off') +
-    geom_text(data=subset(vars_per_method, Prediction=='.'), aes(label=Numbers, y=dim(gene_vars)[1]+40, 
+    geom_text(data=subset(vars_per_method, Prediction=='.'), aes(label=Numbers, y=dim(gene_vars)[1]+(3*s), 
                                                                  fill=NULL), hjust = 0.5, size = 2.6) +
-    geom_text(data=subset(vars_per_method, Prediction=='N'), aes(label=Numbers, y=dim(gene_vars)[1]+26, 
+    geom_text(data=subset(vars_per_method, Prediction=='N'), aes(label=Numbers, y=dim(gene_vars)[1]+(2*s), 
                                                                  fill=NULL), hjust = 0.5, size = 2.6) +
-    geom_text(data=subset(vars_per_method, Prediction=='D'), aes(label=Numbers, y=dim(gene_vars)[1]+13, 
+    geom_text(data=subset(vars_per_method, Prediction=='D'), aes(label=Numbers, y=dim(gene_vars)[1]+s, 
                                                                  fill=NULL), hjust = 0.5, size = 2.6) +
-   
+    
     theme(plot.title = element_text(size = (12), face='bold', vjust = 8, hjust=0), 
           plot.subtitle = element_text(size = (10), vjust = 9.8, hjust=0, color="gray50", face='bold'), 
           legend.direction = "vertical",
@@ -1032,9 +1051,29 @@ for (gene in UGT_genes){
           axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
           legend.text = element_text(size = 9),
           legend.title = element_text(size =10, face='bold'))
-
+  return(p)
 }
-ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', width = 8, height = 6)
+
+i=1
+plots <- list()
+for (gene in UGT_genes){
+  plots[[i]] <- DNM_vars_per_method_per_gene(gene)
+  i=i+1
+}
+
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]], plots[[8]], plots[[9]], ncol=3)
+ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method_UGT1_genes.pdf', width = 24, height = 19)
+
+plot_grid(plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], ncol=5)
+ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method_UGT2_genes.pdf', width = 39, height = 13)
+
+plot_grid(plots[[20]], plots[[21]], ncol=2)
+ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method_UGT3_genes.pdf', width = 16, height = 6)
+
+plot_grid(plots[[22]])
+ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method_UGT8_genes.pdf', width = 8, height = 5.8)
+
+
 
 
 
