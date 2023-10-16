@@ -959,19 +959,28 @@ ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) +
   theme_classic() +
   labs(
     y = 'Number of predicted missense variants',
-    x= ''
+    x= '',
+    subtitle = paste0(dim(new_variants_predictions)[1], ' total missense variants across all UGT genes')
   ) +
   scale_fill_manual(values = c("grey80", "skyblue2", "tomato"), labels = c("Missing", "Neutral", "Deleterious")) + 
-  scale_y_discrete(limits= c(0, 1500, 3000, 4500, dim(new_variants_predictions)[1])) +
-  theme(
-    legend.position="top", 
-    legend.direction = "horizontal",
-    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-    axis.title = element_text(size = (11), face='bold'),
-    axis.text = element_text(size = (10)),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-    legend.text = element_text(size = 9),
-    legend.title = element_text(size =10, face='bold'))
+  #scale_y_discrete(limits= c(0, 1500, 3000, 4500, dim(new_variants_predictions)[1])) +
+  coord_cartesian(ylim = c(0, dim(new_variants_predictions)[1]),clip = 'off') +
+  geom_text(data=subset(vars_per_method, Prediction=='.'), aes(label=Numbers, y=dim(new_variants_predictions)[1]+730, 
+                                                               fill=NULL), hjust = 0.5, size = 2.2) +
+  geom_text(data=subset(vars_per_method, Prediction=='N'), aes(label=Numbers, y=dim(new_variants_predictions)[1]+460, 
+                                                               fill=NULL), hjust = 0.5, size = 2.2) +
+  geom_text(data=subset(vars_per_method, Prediction=='D'), aes(label=Numbers, y=dim(new_variants_predictions)[1]+190, 
+                                                               fill=NULL), hjust = 0.5, size = 2.2) +
+  theme(plot.subtitle = element_text(size = (10), vjust = 9.8, hjust=0, color="gray50", face='bold'), 
+        legend.direction = "vertical",
+        legend.position = c(1.07, 1.05),
+        legend.key.size = unit(0.3, units = 'cm'),
+        plot.margin = unit(c(3, 3, 0.5, 0.5), "cm"),
+        axis.title = element_text(size = (11), face='bold'),
+        axis.text = element_text(size = (10)),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.text = element_text(size = 9),
+        legend.title = element_text(size =10, face='bold'))
 
 ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', width = 8, height = 6)
 
