@@ -942,6 +942,7 @@ scatterplot_compare_2methods('FATHMM', 'DANN')
 ####################  3.1.5.2 Evaluate predictions of different algorithms  ####################
 
 ## Plot the number of predicted D, N and missing variants per algorithm
+
 vars_per_method <- melt(sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])}))
 colnames(vars_per_method) <- c('Prediction', 'Method', 'Numbers')
 vars_per_method$Method <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', vars_per_method$Method))))
@@ -984,7 +985,7 @@ ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) +
 
 ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', width = 8, height = 6)
 
-
+# -------------------------------------------------------------------------------------------------
 
 ## Plot the number of D, N and missing variants per algorithm per gene
 
@@ -1082,11 +1083,10 @@ ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method_UGT3_gene
 plot_grid(plots[[22]])
 ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method_UGT8_genes.pdf', width = 8, height = 5.8)
 
-
-
-
+# --------------------------------------------------------------------------------------------------------------
 
 ## Plot allele frequencies of predicted D variants per method
+
 colors = c('ADME'='mediumpurple2', 
            'AlphaMissense'='red3',
            'CADD'='darkorange3', 
@@ -1161,8 +1161,10 @@ ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Meth
   scale_color_manual(values = colors) +
   guides(color = 'none') + 
   geom_text(data = num_per_method, aes(x=Method, label=n,  y=-0.05, shape=NULL, color=NULL), size=2) +
-  labs(x='', y='GMAF of missense variants predicted as deleterious', shape='Variant ID (GMAF>0.5)') +
+  labs(x='', y='GMAF of missense variants predicted as deleterious', shape='Variant ID (GMAF>0.5)', 
+       subtitle = paste0(dim(new_variants_predictions)[1], ' total missense variants across all UGT genes')) +
   theme(title = element_text(size = (9), face='bold'),
+        plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
         axis.title = element_text(size = (8.5), face='bold'),
         axis.text = element_text(size = (8)),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
@@ -1171,7 +1173,7 @@ ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Meth
 
 ggsave(filename='plots/03_Anno_functional_impact/GMAF_allDvars_perMethod.pdf', width = 8, height = 5)
 
-
+# ----------------------------------------------------------------------------------------------------
 
 ## Plot GMAF of variants predicted as D by each methods in each gene
 i=1
@@ -1201,8 +1203,9 @@ for (gene in UGT_genes){
     theme_bw() +
     guides(color = 'none') + 
     labs(x='', y='GMAF of missense variants predicted as deleterious', shape='Variant ID (GMAF>0.5)', 
-         title=gene, subtitle = paste0(length(unique(gene_D_vars$Variant_ID)), ' variants predicted as deleterious in total')) +
+         title=gene, subtitle = paste0(length(unique(gene_D_vars$Variant_ID)), ' missense variants predicted as deleterious by at least one method')) +
     theme(title = element_text(size = (9), face='bold'),
+          plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
           axis.title = element_text(size = (8.5), face='bold'),
           axis.text = element_text(size = (8)),
           axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
@@ -1220,7 +1223,7 @@ ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT1_Dvars_perMethod.pdf',
 
 plot_grid(plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
           plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], ncol=5)
-ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT2_Dvars_perMethod.pdf', width = 22, height = 8)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT2_Dvars_perMethod.pdf', width = 24, height = 8)
 
 plot_grid(plots[[20]], plots[[21]], ncol=2)
 ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT3_Dvars_perMethod.pdf', width = 11, height = 5)
@@ -1228,7 +1231,7 @@ ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT3_Dvars_perMethod.pdf',
 plot_grid(plots[[22]])
 ggsave(filename='plots/03_Anno_functional_impact/GMAF_UGT8_Dvars_perMethod.pdf', width = 5.7, height = 4.2)
 
-
+# ---------------------------------------------------------------------------------------------------------
 
 ## Plot cumulative MAF per method
 ggplot() +
@@ -1242,9 +1245,10 @@ ggplot() +
 
 ggsave(filename='plots/03_Anno_functional_impact/cumGMAF_Dvars_perMethod.pdf', width = 11, height = 7)  
 
-
+# ----------------------------------------------------------------------------------------------------
 
 ## Plot carrier frequencies of predicted D variants per method
+
 data$Carrier_Frequency <- (2*data$Allele_Frequency*(1-data$Allele_Frequency)) + (data$Allele_Frequency)**2
 num_per_method <- as.data.frame(table(data$Method))
 colnames(num_per_method) <- c('Method', 'n')
@@ -1281,21 +1285,25 @@ ggplot(data = data, mapping = aes(x = Method, y = Carrier_Frequency, color = Met
   scale_color_manual(values = colors) +
   guides(color = 'none') + 
   geom_text(data = num_per_method, aes(x=Method, label=n,  y=-0.05, shape=NULL, color=NULL), size=2) +
-  labs(x='', y='Carrier frequency of missense variants predicted as deleterious', shape=paste0('Variant ID', '\n', '(Carrier frequency >0.5)')) +
+  labs(x='', y='Carrier frequency of missense variants predicted as deleterious', shape=paste0('Variant ID', '\n', '(Carrier frequency >0.5)'),
+       subtitle = paste0(dim(new_variants_predictions)[1], ' total missense variants across all UGT genes')) +
   theme(title = element_text(size = (9), face='bold'),
-      axis.title = element_text(size = (8.5), face='bold'),
-      axis.text = element_text(size = (8)),
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
-      legend.title = element_text(size=8), 
-      legend.text = element_text(size=7.5))
+        plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
+        axis.title = element_text(size = (8.5), face='bold'),
+        axis.text = element_text(size = (8)),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
+        legend.title = element_text(size=8), 
+        legend.text = element_text(size=7.5))
 
 ggsave(filename='plots/03_Anno_functional_impact/CarrierFreq_Dvars_perMethod.pdf', width = 8, height = 5)
 
 
 
 ## Evaluate prediction accuracy of methods
+
 ## ClinVar variants for each gene (no variants in UGT2A3)
 benchmark_data <- vector()
+benchmark_whole_data <- vector()
 for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
   data <- read_delim(paste0('~/Desktop/UGT_genetic_profiling_KI/raw-data/ClinVar_data/clinvar_variants_', gene, '.txt'), delim='\t', show_col_types = FALSE)
   ## Add variant ID
@@ -1310,6 +1318,7 @@ for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
   assign(paste0('clinvar_variants_', gene), data)
   print(paste0(dim(data)[1], ' benchmark variants in ', gene))
   ## Generate input file to run predictions in ANNOVAR for these variants
+  benchmark_whole_data <-rbind(benchmark_whole_data, data[,c('Variant_ID', 'effect')])
   benchmark_data <- rbind(benchmark_data, data[, c('GRCh37Chromosome', 'GRCh37Location', 'GRCh37Location', 'Ref', 'Alt')])
 }
 
@@ -1341,34 +1350,62 @@ write.table(benchmark_data, file ='processed-data/03_Anno_functional_impact/benc
 write.table(benchmark_data, file ='processed-data/03_Anno_functional_impact/benchmark_data.csv', row.names = FALSE, col.names = FALSE, sep = '\t')
 
 ## ANNOVAR output
-## Unique variants
-unique_clinvar_variants<- unique(unlist(sapply(paste0('clinvar_variants_', UGT_genes[which(UGT_genes!='UGT2A3')], '$Variant_ID'), function(x){eval(parse_expr(x))})))
+benchmark_scores <- as.data.frame(read_csv('processed-data/03_Anno_functional_impact/ANNOVAR_output/myanno_benchmark.hg19_multianno.csv'))
+colnames(benchmark_scores) <- lapply(strsplit(colnames(benchmark_scores), '\\.\\.\\.'), function(x){x[[1]]})
 
-## Predictions for those variants
-clinvar_variants_predictions <- new_variants_predictions[which(new_variants_predictions$Variant_ID %in% unique_clinvar_variants),]
-## Add clinical consequence
-for (variant in clinvar_variants_predictions$Variant_ID){
-  variant_effects <- vector()
-  for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
-    gene_variants <- eval(parse_expr(paste0('clinvar_variants_', gene)))
-    if (variant %in% gene_variants$Variant_ID){
-      variant_effects <- append(variant_effects, unlist(gene_variants[which(gene_variants$Variant_ID==variant), 'effect']))
-    }
-  }
-  
-  ## Verify effect of shared variants is conserved across genes
-  if(length(unique(variant_effects))==1){variant_effects <- unique(variant_effects)}
-  clinvar_variants_predictions[which(clinvar_variants_predictions$Variant_ID==variant), 'clinical_effect'] <- variant_effects 
+## Scores of interest
+scores_algorithms <- c('SIFT_score', 'Polyphen2_HDIV_score', 'Polyphen2_HVAR_score', 'LRT_score','MutationAssessor_score', 'FATHMM_score', 
+                       'fathmm-MKL_coding_score', 'PROVEAN_score', 'VEST3_score', 'VEST4_score', 'CADD_phred', 'DANN_score', 'MetaSVM_score', 'MetaLR_score', 
+                       'REVEL_score', 'PrimateAI_score', 'M-CAP_score', 'ClinPred_score', 'Eigen-PC-raw_coding', 'MutPred_score', 'MVP_score')
+benchmark_scores <- benchmark_scores[,scores_algorithms]
+## Add variant ID and effect 
+benchmark_whole_data <- unique(as.data.frame(benchmark_whole_data))
+benchmark_scores <- cbind(benchmark_whole_data, benchmark_scores)
+colnames(benchmark_scores)[c(9, 13, 19, 21)] <- c('fathmm.MKL_score', 'CADD_phred_score', 'M.CAP_score', 'Eigen.PC_score')
+
+## Add ADME scores
+ADME_pred<- data.frame(matrix(nrow=dim(benchmark_scores)[1], ncol=length(ADME_thresholds)+1))
+colnames(ADME_pred) <- c('Variant_ID', paste0(names(ADME_thresholds), '_pred'))
+ADME_pred$Variant_ID <- benchmark_scores$Variant_ID
+
+for(algorithm in names(ADME_thresholds)){
+  ## Evaluate if the algorithm score of each variant passes cutoff (1) or not (0)
+  ADME_pred[paste0(algorithm, '_pred')] <- apply(benchmark_scores, 1, 
+                                                                    function(x){if (x[paste0(algorithm, '_score')]=='.'){'.'}
+                                                                      else if (eval(parse_expr(paste0('as.numeric(x[paste0(algorithm, \'_score\')])', ADME_thresholds[[algorithm]]))) ){1}
+                                                                      else{0} })
 }
 
-## Determine if predictions are TP, TN, FP and FN
-positive_negative_predictions <- data.frame(matrix(ncol=22, nrow=dim(clinvar_variants_predictions)[1]))
-colnames(positive_negative_predictions) <- colnames(clinvar_variants_predictions)[2:23]
-for (algorithm in colnames(clinvar_variants_predictions)[2:23]){
-  positive_negative_predictions[,algorithm] <- unlist(apply(clinvar_variants_predictions, 1, function(x){if(x[algorithm]=='D' & x['clinical_effect']=='D'){'TP'}
-    else if(x[algorithm]=='N' & x['clinical_effect']=='D'){'FN'}
-    else if(x[algorithm]=='D' & x['clinical_effect']=='N'){'FP'}
-    else if(x[algorithm]=='N' & x['clinical_effect']=='N'){'TN'}
+## Add global ADME scores for each variant 
+benchmark_scores$ADME_score <- signif(apply(ADME_pred[,-1], 1, function(x){mean(as.numeric(x[which(x!='.')]))}), digits=3)
+benchmark_scores$ADME_score[which(is.nan(benchmark_scores$ADME_score))] <- '.'
+
+## AlphaMissense scores (searching in canonical txs of UGT genes)
+benchmark_scores$AlphaMissense_score <- unlist(sapply(benchmark_scores$Variant_ID, function(x){AM_score_pred(x)[1]}))
+
+## Categorical predictions 
+benchmark_pred <- data.frame(matrix(nrow=dim(benchmark_scores)[1], ncol=length(names(algorithms_thresholds))+1))
+colnames(benchmark_pred) <- c('Variant_ID', paste0(names(algorithms_thresholds), '_pred'))
+benchmark_pred$Variant_ID <- benchmark_scores$Variant_ID
+
+for(algorithm in names(algorithms_thresholds)){
+  benchmark_pred[paste0(algorithm, '_pred')] <- apply(benchmark_scores, 1, 
+                                                               function(x){if (x[paste0(algorithm, '_score')]=='.' | x[paste0(algorithm, '_score')]=='-'){'.'}
+                                                                 else if (eval(parse_expr(paste0('as.numeric(x[paste0(algorithm, \'_score\')])', algorithms_thresholds[[algorithm]]))) ){'D'}
+                                                                 else{'N'} })
+}
+
+benchmark_scores_preds <- cbind(benchmark_scores, benchmark_pred[,-1])
+
+
+## Determine if predictions are TP, TN, FP or FN
+positive_negative_predictions <- data.frame(matrix(ncol=22, nrow=dim(benchmark_scores_preds)[1]))
+colnames(positive_negative_predictions) <- colnames(benchmark_pred)[-1]
+for (algorithm in colnames(benchmark_pred)[-1]){
+  positive_negative_predictions[,algorithm] <- unlist(apply(benchmark_scores_preds, 1, function(x){if(x[algorithm]=='D' & x['effect']=='D'){'TP'}
+    else if(x[algorithm]=='N' & x['effect']=='D'){'FN'}
+    else if(x[algorithm]=='D' & x['effect']=='N'){'FP'}
+    else if(x[algorithm]=='N' & x['effect']=='N'){'TN'}
     else if(x[algorithm]=='.'){'NA'}}))
 }
 
@@ -1379,15 +1416,14 @@ specificities <- apply(positive_negative_predictions, 2, function(x){
   length(which(x=='TN'))/(length(which(x=='TN')) + length(which(x=='FP')))})
 
 ## TP, TN, FP, FN with ADME optimized thresholds
-ADME_clinvar_variants_predictions <- ADME_categorical_predictions[which(ADME_categorical_predictions$Variant_ID %in% unique_clinvar_variants),]
-ADME_clinvar_variants_predictions$clinical_effect <- clinvar_variants_predictions$clinical_effect
-ADME_predictions <- data.frame(matrix(ncol=5, nrow=dim(ADME_clinvar_variants_predictions)[1]))
-colnames(ADME_predictions) <- colnames(ADME_clinvar_variants_predictions)[2:6]
-for (algorithm in colnames(ADME_clinvar_variants_predictions)[2:6]){
-  ADME_predictions[,algorithm] <- unlist(apply(ADME_clinvar_variants_predictions, 1, function(x){if(x[algorithm]==1 & x['clinical_effect']=='D'){'TP'}
-    else if(x[algorithm]==0 & x['clinical_effect']=='D'){'FN'}
-    else if(x[algorithm]==1 & x['clinical_effect']=='N'){'FP'}
-    else if(x[algorithm]==0 & x['clinical_effect']=='N'){'TN'}
+ADME_pred$effect <- benchmark_scores_preds$effect
+ADME_predictions <- data.frame(matrix(ncol=5, nrow=dim(ADME_pred)[1]))
+colnames(ADME_predictions) <- colnames(ADME_pred)[2:6]
+for (algorithm in colnames(ADME_pred)[2:6]){
+  ADME_predictions[,algorithm] <- unlist(apply(ADME_pred, 1, function(x){if(x[algorithm]==1 & x['effect']=='D'){'TP'}
+    else if(x[algorithm]==0 & x['effect']=='D'){'FN'}
+    else if(x[algorithm]==1 & x['effect']=='N'){'FP'}
+    else if(x[algorithm]==0 & x['effect']=='N'){'TN'}
     else if(x[algorithm]=='.'){'NA'}}))
 }
 
@@ -1401,16 +1437,16 @@ names(ADME_sensitivities)[4] <- names(ADME_specificities)[4] <- 'VEST4'
 
 ## ROC curves
 r <- list()
-for (algorithm in colnames(clinvar_variants_predictions)[24:45]){
-  r[[algorithm]] <- roc(response=as.factor(clinvar_variants_predictions$clinical_effect), 
-                        predictor=as.numeric(clinvar_variants_predictions[,algorithm]), 
+for (algorithm in paste0(names(algorithms_thresholds), '_score')){
+  r[[algorithm]] <- roc(response=as.factor(benchmark_scores_preds$effect), 
+                        predictor=as.numeric(benchmark_scores_preds[,algorithm]), 
                         levels=c('N', 'D'), na.rm=TRUE)
 }
 ## Add AUC per method
 data <- as.data.frame(cbind('AUC'=paste0('AUC = ', signif(as.numeric(lapply(r, function(x){x$auc})), digits=3))))
 ## Add number of D and N variants used to evaluate each method
-data$num_vars <- sapply(colnames(clinvar_variants_predictions)[2:23], function(x){
-                       DN_num <- table(clinvar_variants_predictions[which(clinvar_variants_predictions[,x]!='.'), 'clinical_effect'])
+data$num_vars <- sapply(colnames(benchmark_pred)[2:23], function(x){
+                       DN_num <- table(benchmark_scores_preds[which(benchmark_scores_preds[,x]!='.'), 'effect'])
                        paste0('n = ', DN_num['D'], ' D; ', DN_num['N'], ' N')
                        })
 ## Locate coordinate corresponding to the used threshold for each method
@@ -1438,23 +1474,6 @@ ggroc(r) +
   ## Point for ADME optimized thresholds
   geom_point(data=data, aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_methods.pdf', width = 8, height = 8)
-
-## ROC curves without MutPred
-ggroc(r[-18]) + 
-  facet_wrap(~name, ncol=7) +
-  theme_bw() + theme(legend.position = "none") + 
-  geom_text(data = data[-18,], aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
-  theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
-        strip.text = element_text(face="bold"),
-        axis.text = element_text( size = 6)) +
-  geom_text(data = data[-18,], aes(0, 0.05, label= num_vars, hjust = 1), size=2.5, color='black') +
-  scale_color_manual(values=colors) +
-  ## Point corresponding to used threshold
-  geom_point(data=data[-18,], aes(x=specificity, y=sensitivity)) +
-  ## Point for ADME optimized thresholds
-  geom_point(data=data[-18,], aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
-ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_21methods.pdf', width = 11, height = 5)
-
 
 
 
