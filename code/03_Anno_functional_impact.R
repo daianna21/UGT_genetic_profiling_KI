@@ -1549,130 +1549,91 @@ Youden_indices <- function(method){
   ## J at optimal threshold - J at conventional threshold = delta(J)
   delta_J <- max_J -J_conventional
   
-  if(method=='SIFT'){
-    nudge_x_c = 0.13
-    nudge_y_c = 0.01
-    nudge_x_o = 0.1
-    nudge_y_o = 0.1
-  }
-  else if(method=='MutationAssessor'){
-    nudge_x_c = -0.2
-    nudge_y_c = 0.01
-    nudge_x_o = 0.45
-    nudge_y_o = 0.15
-  }
-  else if(method=='FATHMM'){
-    nudge_x_c = -0.45
-    nudge_y_c = 0.1
-    nudge_x_o = 0.45
-    nudge_y_o = 0.1
-  }
-  else if(method=='PROVEAN'){
-    nudge_x_c = 0.9
-    nudge_y_c = 0.055
-    nudge_x_o = -0.5
-    nudge_y_o = 0.055
+  ## df for plot arguments
+  args <- list()
+  args[['SIFT']] <- c('nudge_x_c' = 0.13, 'nudge_y_c' = 0.01, 'nudge_x_o' =-0.03, 'nudge_y_o' = 0.15, 'curv'=0.35, 'hjust'=1, 'vjust'=0)
+  args[['Polyphen2_HDIV']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.2, 'nudge_y_o' = 0.15, 'curv'=0.25, 'hjust'=0, 'vjust'=-1)
+  args[['Polyphen2_HVAR']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
+  args[['MutationAssessor']] <- c('nudge_x_c' = -0.2, 'nudge_y_c' = 0.01, 'nudge_x_o' = 0.45, 'nudge_y_o' = 0.15, 'curv'=0.35, 'hjust'=1, 'vjust'=1)
+  args[['FATHMM']] <- c('nudge_x_c' = -0.85, 'nudge_y_c' = 0.1, 'nudge_x_o' = -0.03, 'nudge_y_o' = 0.12, 'curv'=0.35, 'hjust'=1, 'vjust'=0)
+  args[['fathmm.MKL']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.2, 'nudge_y_o' = 0.15, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
+  args[['PROVEAN']] <- c('nudge_x_c' = 0.9, 'nudge_y_c' = 0.045, 'nudge_x_o' = -0.9, 'nudge_y_o' = 0.0, 'curv'=0.15, 'hjust'=0.1, 'vjust'=0.1)
+  args[['PrimateAI']] <- c('nudge_x_c' = 0.0, 'nudge_y_c' = 0.2, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.02, 'curv'=0.35, 'hjust'=1, 'vjust'=0)
+  args[['MutPred']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = 0.055, 'nudge_x_o' = 0.1, 'nudge_y_o' = 0.055, 'curv'=0.35, 'hjust'=1, 'vjust'=0)
+  args[['MetaSVM']] <- c('nudge_x_c' = 0.07, 'nudge_y_c' = 0.07, 'nudge_x_o' = 0.1, 'nudge_y_o' = 0.2, 'curv'=0.35, 'hjust'=-0.63, 'vjust'=0.7)
+  args[['MetaLR']] <- c('nudge_x_c' = -0.15, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
+  args[['M.CAP']] <- c('nudge_x_c' = 0.05, 'nudge_y_c' = -0.12, 'nudge_x_o' = -0.15, 'nudge_y_o' = 0.1, 'curv'=-0.05, 'hjust'=1, 'vjust'=0.3)
+  args[['ClinPred']] <- c('nudge_x_c' = 0.06, 'nudge_y_c' = -0.05, 'nudge_x_o' = 0.09, 'nudge_y_o' = 0.16, 'curv'=-0.3, 'hjust'=0, 'vjust'=0)
+  args[['CADD_phred']] <- c('nudge_x_c' = 0.06, 'nudge_y_c' = -0.05, 'nudge_x_o' = 0.09, 'nudge_y_o' = 0.16, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
+  args[['Eigen.PC']] <- c('nudge_x_c' = -0.4, 'nudge_y_c' = 0.1, 'nudge_x_o' = 0.8, 'nudge_y_o' = 0.15, 'curv'=-0.35, 'hjust'=0.8, 'vjust'=0)
+  args[['MVP']] <- c('nudge_x_c' = 0.01, 'nudge_y_c' = 0.09, 'nudge_x_o' = 0.03, 'nudge_y_o' = 0.19, 'curv'=0.35, 'hjust'=0, 'vjust'=0.1)
+  args[['DANN']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.02, 'nudge_x_o' = -0.05, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
+  args[['REVEL']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
+  args[['LRT']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
+  args[['VEST4']] <- c('nudge_x_c' = -0.15, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.1, 'curv'=0.35, 'hjust'=1, 'vjust'=0)
+  args[['ADME']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=1, 'vjust'=0)
+  args[['AlphaMissense']] <- c('nudge_x_c' = 0.06, 'nudge_y_c' = 0.05, 'nudge_x_o' = -0.1, 'nudge_y_o' = 0.06, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
+
+  if(method=='PROVEAN' | method=='PrimateAI' | method=='MetaSVM' | method=='MetaLR' | method=='REVEL' | method=='AlphaMissense'){
     scores_to_show <- c(1,3,5)
-  }
-  else if(method=='PrimateAI'){
-    nudge_x_c = -0.1
-    nudge_y_c = 0
-    nudge_x_o = 0.1
-    nudge_y_o = 0.055
-    scores_to_show <- c(1,3,5)
-  }
-  else if(method=='MutPred'){
-    nudge_x_c = -0.1
-    nudge_y_c = 0.055
-    nudge_x_o = 0.1
-    nudge_y_o = 0.055
-  }
-  else if(method=='MetaSVM'){
-    nudge_x_c = 0.07
-    nudge_y_c = 0.07
-    nudge_x_o = 0.1
-    nudge_y_o = 0.2
-  }
-  else if(method=='ClinPred' | method=='CADD_phred'){
-    nudge_x_c = 0.06
-    nudge_y_c = -0.05
-    nudge_x_o = 0.09
-    nudge_y_o = 0.16
   }
   else if(method=='Eigen.PC'){
-    nudge_x_c = -0.2
-    nudge_y_c = 0.09
-    nudge_x_o = 0.13
-    nudge_y_o = 0.15
-  }
-  else if(method=='MVP'){
-    nudge_x_c = 0.01
-    nudge_y_c = 0.09
-    nudge_x_o = 0.03
-    nudge_y_o = 0.19
-  }
-  else if(method=='DANN'){
-    nudge_x_c = -0.1
-    nudge_y_c = 0.03
-    nudge_x_o = -0.05
-    nudge_y_o = 0.1
-  }
-  else if (method=='AlphaMissense'){
-    nudge_x_c = 0.06
-    nudge_y_c = 0.05
-    nudge_x_o = -0.1
-    nudge_y_o = 0.06
+    scores_to_show <- c(1,4,5)
   }
   else{
-    nudge_x_c = -0.1
-    nudge_y_c = -0.1
-    nudge_x_o = 0.15
-    nudge_y_o = 0.1
     scores_to_show <- c(1,5)
   }
   
-
   ## Plot scores vs J 
   p <- ggplot(scores_Js, aes(x=score, y=J))+
     geom_line(color=colors[method_name], size=1) + 
+    
+    ## Line for score that yields the max J
+    geom_segment(aes(x = max_J_score, y = 0, xend = max_J_score, yend = max_J), linetype=1, linewidth=0.3, color='grey60') +
     ## Max J with optimized threshold
     geom_point(x=max_J_score, y=max_J, color='red') + 
     geom_text_repel(data = subset(scores_Js, J==max_J & score!=conv_threshold), label=signif(max_J, digits=3), 
                     size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1, 
-                    box.padding = 0.5, lineheight=unit(1, 'lines'), nudge_x = nudge_x_o, nudge_y = nudge_y_o, fontface='bold') + 
-    ## Line for score that yields the max J
-    geom_segment(aes(x = max_J_score, y = 0, xend = max_J_score, yend = max_J), linetype=1, linewidth=0.3, color='grey60') +
+                    box.padding = 0.5, lineheight=unit(2, 'lines'), nudge_x = args[[method]]['nudge_x_o'], 
+                    nudge_y = args[[method]]['nudge_y_o'], fontface='bold') + 
     
     ## J with conventional threshold
     geom_point(x=conv_threshold, y=J_conventional, color=colors[method_name]) +
     geom_text_repel(data = subset(scores_Js, score==conv_threshold), label=signif(J, digits=3), 
                     size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=0, vjust=1, 
-                    box.padding = 0.5, lineheight=unit(1, 'lines'), nudge_x = nudge_x_c, nudge_y = nudge_y_c, fontface='bold') + 
+                    box.padding = 0.5, lineheight=unit(1, 'lines'), nudge_x = args[[method]]['nudge_x_c'], 
+                    nudge_y = args[[method]]['nudge_y_c'], fontface='bold') + 
     ## Line for conventional score 
     geom_segment(aes(x = conv_threshold, y = 0, xend = conv_threshold, yend = J_conventional), linetype=3, linewidth=0.6, color='grey60') +
+    
     theme_classic() +
-    coord_cartesian(ylim=c(0, NA), expand = FALSE) +
-    scale_x_continuous(breaks = sort(c(min(as.numeric(scores_Js$score)), max(as.numeric(scores_Js$score)),
-                                       signif(c(seq(from=min(as.numeric(scores_Js$score)), 
-                                                  to=max(as.numeric(scores_Js$score)), 
-                                                  length.out=5)[-scores_to_show], conv_threshold, max_J_score), digits=2)))) +
     labs(x='Score', y='Youden index (J)', title=method_name) +
+    coord_cartesian(ylim=c(0, NA), expand = FALSE) +
+    scale_x_continuous(breaks = sort(c(round(min(as.numeric(scores_Js$score))), round(max(as.numeric(scores_Js$score))),
+                                       signif(c(seq(from=min(as.numeric(scores_Js$score)),
+                                                  to=max(as.numeric(scores_Js$score)),
+                                                  length.out=5)[-scores_to_show], conv_threshold), digits=2)))) +
+  
     ## Label for delta J
-    geom_label(x=(max(as.numeric(method_data[,method_score]))+min(as.numeric(method_data[,method_score])))/2, y=0.11, 
+    geom_label(x=(max(as.numeric(method_data[,method_score]))+min(as.numeric(method_data[,method_score])))/2, y=0.14, 
                label=paste0('ΔJ = ', signif(delta_J, digits=2)), 
                size=2.8, color='grey30', label.size = NA, fontface='bold', label.padding = unit(0.1, "lines"))+
+    
     theme(title = element_text(size = (9), face='bold'),
           plot.title = element_text(hjust = 0.5),
           axis.title = element_text(size = (8.5), face='bold'),
           axis.text = element_text(size = (8)), 
-          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5, size=6))
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5, size=7))
   
-  if(method=='DANN'){
-    p <- p + geom_text_repel(data = subset(scores_Js, score==max_J_score), label=signif(max_J_score, digits=3), 
-                             aes(x=max_J_score, y=0.1),
-                             size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=0, vjust=1, 
-                             box.padding = 0.5, lineheight=unit(1, 'lines'), segment.curvature = 0.2)
+  
+  if(method!='MutationAssessor'){
+    ## Text for new score
+    p <- p + geom_text_repel(data = subset(scores_Js, score==max_J_score & score!=conv_threshold), label=signif(max_J_score, digits=3), 
+                        aes(x=max_J_score, y=0.05), size=2.5, color='grey40', min.segment.length = unit(0, 'lines'), 
+                        hjust=args[[method]]['hjust'], vjust=args[[method]]['vjust'], 
+                        box.padding = unit(0.5, "lines"), lineheight=unit(1, 'lines'), segment.curvature = args[[method]]['curv']) 
   }
+  
   
   if(method=='LRT'){
     p <- ggplot(scores_Js, aes(x=score, y=J))+
@@ -1682,19 +1643,19 @@ Youden_indices <- function(method){
                       size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1, 
                       box.padding = 0.5, lineheight=unit(1, 'lines'), nudge_x = 0.1, nudge_y = 0, fontface='bold') + 
       geom_segment(aes(x = max_J_score, y = 0, xend = max_J_score, yend = max_J), linetype=1, linewidth=0.3, color='grey60') +
+      geom_text_repel(data = subset(scores_Js, score==max_J_score & score!=conv_threshold), label=signif(max_J_score, digits=3), 
+                      aes(x=max_J_score, y=0.05), size=2.5, color='grey40', min.segment.length = unit(0, 'lines'), 
+                      hjust=args[[method]]['hjust'], vjust=args[[method]]['vjust'], 
+                      box.padding = unit(0.5, "lines"), lineheight=unit(1, 'lines'), segment.curvature = args[[method]]['curv']) +
       theme_classic() +
       coord_cartesian(ylim=c(-0.01, max(as.numeric(scores_Js$J))+0.05), 
                       xlim=c(-0.01, max(as.numeric(scores_Js$score))),
                       expand = FALSE) +
       labs(x='Score', y='Youden index (J)', title=method_name) +
       ## Label for delta J
-      geom_label(x=(max(as.numeric(method_data[,method_score]))+min(as.numeric(method_data[,method_score])))/2, y=0.11, 
+      geom_label(x=(max(as.numeric(method_data[,method_score]))+min(as.numeric(method_data[,method_score])))/2, y=0.14, 
                  label=paste0('ΔJ = ', signif(delta_J, digits=2)), 
                  size=2.8, color='grey30', label.size = NA, fontface='bold', label.padding = unit(0.1, "lines"))+
-      geom_text_repel(data = subset(scores_Js, score==max_J_score), label=signif(max_J_score, digits=3), 
-                      aes(x=max_J_score, y=0.1),
-                      size=2.5, color='grey40', min.segment.length = unit(0, 'lines'), hjust=0.5, vjust=1, 
-                      box.padding = 0.5, lineheight=unit(1.2, 'lines'), segment.curvature = -0.2) +
       theme(title = element_text(size = (9), face='bold'),
             plot.title = element_text(hjust = 0.5),
             axis.title = element_text(size = (8.5), face='bold'),
@@ -1718,7 +1679,7 @@ plot_grid(plots[[1]], plots[[2]], plots[[4]], plots[[5]], plots[[6]],
           plots[[7]], plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]],
           plots[[13]], plots[[14]], plots[[15]], plots[[16]], plots[[17]], plots[[18]], 
           plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=7)
-ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.pdf', width = 26, height = 10)
+ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.png', width = 22, height = 8)
 
 
 ## MCAP new threshold in line, digits in intermediate x scores, delta symbol, red rhombus 
