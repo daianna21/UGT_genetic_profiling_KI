@@ -1709,6 +1709,7 @@ ggroc(r) +
   geom_point(data=data, aes(x=new_threshold_specificity, y=new_threshold_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_new_thresholds_methods.pdf', width = 8, height = 8)
 
+# ---------------------------------------------------------------------------------------------------------
 
 ## Predictions of benchmark variants with these cutoffs
 
@@ -1762,6 +1763,7 @@ ggroc(r) +
 
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_UGT-optimizedMethod.pdf', width = 2.1, height = 2)
 
+# ---------------------------------------------------------------------------------------------------------
 
 ## Use framework for all missense variants
 
@@ -1786,9 +1788,9 @@ table(new_variants_predictions$UGT_optimized_pred)
 #   D     N 
 # 445  5907 
 
+# ---------------------------------------------------------------------------------------------------------
 
-## GMAF of D variants per gene
-## Plot GMAF of variants predicted as D by each methods in each gene
+## Plot GMAF of D variants per gene
 
 GMAFs_genes <- vector()
 for (gene in UGT_genes){
@@ -1866,6 +1868,7 @@ ggplot(data = GMAFs_genes, mapping = aes(x = gene, y = GMAFs, color = gene)) +
           legend.text = element_text(size=7.5, face='bold'))
 
 ggsave(filename='plots/03_Anno_functional_impact/GMAF_Dvars_byUGTopMethod.pdf', width = 8, height = 4.5)
+
 
 
 
