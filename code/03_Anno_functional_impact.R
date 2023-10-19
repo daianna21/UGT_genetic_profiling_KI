@@ -1669,10 +1669,15 @@ Youden_indices <- function(method){
 
 i=1
 plots <- list()
+new_thresholds <- vector()
 for (method in names(algorithms_thresholds)){
-  plots[[i]] <- Youden_indices(method)[[1]]
+  output <- Youden_indices(method)
+  new_thresholds <- rbind(new_thresholds, output[[2]])
+  plots[[i]] <- output[[1]]
   i=i+1
 }
+new_thresholds <- as.data.frame(new_thresholds)
+rownames(new_thresholds) <- names(algorithms_thresholds)
 
 ## Don't include PolyPhen2 HVAR
 plot_grid(plots[[1]], plots[[2]], plots[[4]], plots[[5]], plots[[6]],
@@ -1682,15 +1687,34 @@ plot_grid(plots[[1]], plots[[2]], plots[[4]], plots[[5]], plots[[6]],
 ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.png', width = 22, height = 8)
 
 
-## MCAP new threshold in line, digits in intermediate x scores, delta symbol, red rhombus 
-
-
-
 ## Add coordinate for new thresholds in ROC curves
+data$new_threshold_sensitivity <- new_thresholds$sensitivity
+data$new_threshold_specificity <- new_thresholds$specificity
 
+ggroc(r) + 
+  facet_wrap(~name) +
+  theme_bw() + theme(legend.position = "none") + 
+  geom_text(data = data, aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
+  theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
+        strip.text = element_text(face="bold"),
+        axis.text = element_text( size = 6)) +
+  geom_text(data = data, aes(0, 0.05, label= num_vars, hjust = 1), size=2.5, color='black') +
+  scale_color_manual(values=colors) +
+  ## Point corresponding to used threshold
+  geom_point(data=data, aes(x=specificity, y=sensitivity)) +
+  ## Point for ADME optimized thresholds
+  geom_point(data=data, aes(x=new_threshold_specificity, y=new_threshold_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
+ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_new_thresholds_methods.pdf', width = 8, height = 8)
 
 
 ## Predict variant effect by all algorithms using these new thresholds
+
+
+
+
+
+
+
 
 
 ## Number of missing scores per variant
