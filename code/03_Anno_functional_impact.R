@@ -1477,10 +1477,279 @@ ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_methods.pdf', width = 8
 
 
 
+# ____________________________________________________________________________________________
+#  3.1.6  Development of a UGT-optimized prediction framework
+# ____________________________________________________________________________________________
+
+## Function to compute Youden index (J) for all potential thresholds of an algorithm
+
+Youden_indices <- function(method){
+  
+  method_score <- paste0(method, '_score')
+  method_pred <- paste0(method, '_pred')
+  method_name <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', method))))
+  
+  ## Method scores for benchmark variants
+  method_data <- benchmark_scores_preds[which(benchmark_scores_preds[,method_score]!='.'), c(method_score, 'effect')]
+  
+  ## Conventional threshold
+  conv_threshold <- as.numeric(gsub('[<, =, >]', '', algorithms_thresholds[[method]]))
+  ## J at the conventional threshold
+  J_conventional <- sensitivities[method_pred] + specificities[method_pred] -1 
+  
+  ## Define potential thresholds (scores)
+  scores <- seq(from=min(as.numeric(method_data[,method_score])), to=max(as.numeric(method_data[,method_score])), length.out=100)
+  ## Add conventional threshold, max and min scores if not included 
+  if (!conv_threshold %in% scores){scores <- append(scores, conv_threshold)}
+  if (!max(as.numeric(method_data[,method_score])) %in% scores){scores <- append(scores, max(as.numeric(method_data[,method_score])))}
+  if (!min(as.numeric(method_data[,method_score])) %in% scores){scores <- append(scores, min(as.numeric(method_data[,method_score])))}
+  
+  ## Sensitivity, specificity and J at each new threshold
+  scores_Js <- vector()
+  Js <- vector()
+  for (score in scores){
+    ## New threshold given by score
+    ## Same direction
+    direction <- gsub('[0-9, ., =, -]', '', algorithms_thresholds[[method]])
+    threshold <- paste0(direction, '(', score, ')')
+    
+    ## Categorize based on new threshold
+    pred_at_threshold <- sapply(method_data[,method_score], function(x){
+                      if (eval(parse_expr(paste0('as.numeric(x)', threshold))) ){'D'}
+                          else{'N'} })
+    pred_vs_real <- as.data.frame(cbind(pred_at_threshold, 'effect'=method_data$effect))
+    
+    ## Define TP, TN, FP and FN
+    pred_vs_real$comparison <- apply(pred_vs_real, 1, function(x){if(x['pred_at_threshold']=='D' & x['effect']=='D'){'TP'}
+                                                       else if(x['pred_at_threshold']=='N' & x['effect']=='D'){'FN'}
+                                                       else if(x['pred_at_threshold']=='D' & x['effect']=='N'){'FP'}
+                                                       else if(x['pred_at_threshold']=='N' & x['effect']=='N'){'TN'} })
+    
+    ## Sensitivity and specificity at the given threshold
+    sensitivity <- length(which(pred_vs_real$comparison=='TP'))/(length(which(pred_vs_real$comparison=='TP')) + length(which(pred_vs_real$comparison=='FN')))
+    specificity <- length(which(pred_vs_real$comparison=='TN'))/(length(which(pred_vs_real$comparison=='TN')) + length(which(pred_vs_real$comparison=='FP')))
+    
+    ## J at the threshold
+    J = sensitivity + specificity -1
+    
+    ## Add if J hasn't been reached before with another threshold; add conventional score
+    if (! J %in% Js | score==conv_threshold | score==max(as.numeric(method_data[,method_score]))){
+      scores_Js <- rbind(scores_Js, c('score'=score, 'sensitivity'=sensitivity, 'specificity'=specificity, 'J'=J))
+    }
+    Js <- append(Js, J)
+  }
+  
+  scores_Js <- as.data.frame(scores_Js)
+  max_J_data <- scores_Js[which.max(scores_Js$J),]
+  max_J <- scores_Js[which.max(scores_Js$J),'J']
+  max_J_score <- scores_Js[which.max(scores_Js$J),'score'] ## optimal threshold
+  max_J_sensitivity <- scores_Js[which.max(scores_Js$J),'sensitivity']
+  max_J_specificity <- scores_Js[which.max(scores_Js$J),'specificity']
+
+  ## J at optimal threshold - J at conventional threshold = delta(J)
+  delta_J <- max_J -J_conventional
+  
+  if(method=='SIFT'){
+    nudge_x_c = 0.13
+    nudge_y_c = 0.01
+    nudge_x_o = 0.1
+    nudge_y_o = 0.1
+  }
+  else if(method=='MutationAssessor'){
+    nudge_x_c = -0.2
+    nudge_y_c = 0.01
+    nudge_x_o = 0.45
+    nudge_y_o = 0.15
+  }
+  else if(method=='FATHMM'){
+    nudge_x_c = -0.45
+    nudge_y_c = 0.1
+    nudge_x_o = 0.45
+    nudge_y_o = 0.1
+  }
+  else if(method=='PROVEAN'){
+    nudge_x_c = 0.9
+    nudge_y_c = 0.055
+    nudge_x_o = -0.5
+    nudge_y_o = 0.055
+    scores_to_show <- c(1,3,5)
+  }
+  else if(method=='PrimateAI'){
+    nudge_x_c = -0.1
+    nudge_y_c = 0
+    nudge_x_o = 0.1
+    nudge_y_o = 0.055
+    scores_to_show <- c(1,3,5)
+  }
+  else if(method=='MutPred'){
+    nudge_x_c = -0.1
+    nudge_y_c = 0.055
+    nudge_x_o = 0.1
+    nudge_y_o = 0.055
+  }
+  else if(method=='MetaSVM'){
+    nudge_x_c = 0.07
+    nudge_y_c = 0.07
+    nudge_x_o = 0.1
+    nudge_y_o = 0.2
+  }
+  else if(method=='ClinPred' | method=='CADD_phred'){
+    nudge_x_c = 0.06
+    nudge_y_c = -0.05
+    nudge_x_o = 0.09
+    nudge_y_o = 0.16
+  }
+  else if(method=='Eigen.PC'){
+    nudge_x_c = -0.2
+    nudge_y_c = 0.09
+    nudge_x_o = 0.13
+    nudge_y_o = 0.15
+  }
+  else if(method=='MVP'){
+    nudge_x_c = 0.01
+    nudge_y_c = 0.09
+    nudge_x_o = 0.03
+    nudge_y_o = 0.19
+  }
+  else if(method=='DANN'){
+    nudge_x_c = -0.1
+    nudge_y_c = 0.03
+    nudge_x_o = -0.05
+    nudge_y_o = 0.1
+  }
+  else if (method=='AlphaMissense'){
+    nudge_x_c = 0.06
+    nudge_y_c = 0.05
+    nudge_x_o = -0.1
+    nudge_y_o = 0.06
+  }
+  else{
+    nudge_x_c = -0.1
+    nudge_y_c = -0.1
+    nudge_x_o = 0.15
+    nudge_y_o = 0.1
+    scores_to_show <- c(1,5)
+  }
+  
+
+  ## Plot scores vs J 
+  p <- ggplot(scores_Js, aes(x=score, y=J))+
+    geom_line(color=colors[method_name], size=1) + 
+    ## Max J with optimized threshold
+    geom_point(x=max_J_score, y=max_J, color='red') + 
+    geom_text_repel(data = subset(scores_Js, J==max_J & score!=conv_threshold), label=signif(max_J, digits=3), 
+                    size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1, 
+                    box.padding = 0.5, lineheight=unit(1, 'lines'), nudge_x = nudge_x_o, nudge_y = nudge_y_o, fontface='bold') + 
+    ## Line for score that yields the max J
+    geom_segment(aes(x = max_J_score, y = 0, xend = max_J_score, yend = max_J), linetype=1, linewidth=0.3, color='grey60') +
+    
+    ## J with conventional threshold
+    geom_point(x=conv_threshold, y=J_conventional, color=colors[method_name]) +
+    geom_text_repel(data = subset(scores_Js, score==conv_threshold), label=signif(J, digits=3), 
+                    size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=0, vjust=1, 
+                    box.padding = 0.5, lineheight=unit(1, 'lines'), nudge_x = nudge_x_c, nudge_y = nudge_y_c, fontface='bold') + 
+    ## Line for conventional score 
+    geom_segment(aes(x = conv_threshold, y = 0, xend = conv_threshold, yend = J_conventional), linetype=3, linewidth=0.6, color='grey60') +
+    theme_classic() +
+    coord_cartesian(ylim=c(0, NA), expand = FALSE) +
+    scale_x_continuous(breaks = sort(c(min(as.numeric(scores_Js$score)), max(as.numeric(scores_Js$score)),
+                                       signif(c(seq(from=min(as.numeric(scores_Js$score)), 
+                                                  to=max(as.numeric(scores_Js$score)), 
+                                                  length.out=5)[-scores_to_show], conv_threshold, max_J_score), digits=2)))) +
+    labs(x='Score', y='Youden index (J)', title=method_name) +
+    ## Label for delta J
+    geom_label(x=(max(as.numeric(method_data[,method_score]))+min(as.numeric(method_data[,method_score])))/2, y=0.11, 
+               label=paste0('ΔJ = ', signif(delta_J, digits=2)), 
+               size=2.8, color='grey30', label.size = NA, fontface='bold', label.padding = unit(0.1, "lines"))+
+    theme(title = element_text(size = (9), face='bold'),
+          plot.title = element_text(hjust = 0.5),
+          axis.title = element_text(size = (8.5), face='bold'),
+          axis.text = element_text(size = (8)), 
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5, size=6))
+  
+  if(method=='DANN'){
+    p <- p + geom_text_repel(data = subset(scores_Js, score==max_J_score), label=signif(max_J_score, digits=3), 
+                             aes(x=max_J_score, y=0.1),
+                             size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=0, vjust=1, 
+                             box.padding = 0.5, lineheight=unit(1, 'lines'), segment.curvature = 0.2)
+  }
+  
+  if(method=='LRT'){
+    p <- ggplot(scores_Js, aes(x=score, y=J))+
+      geom_line(color=colors[method_name], size=1) + 
+      geom_point(x=max_J_score, y=max_J, color='red') + 
+      geom_text_repel(data = subset(scores_Js, J==max_J), label=signif(max_J, digits=3), 
+                      size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1, 
+                      box.padding = 0.5, lineheight=unit(1, 'lines'), nudge_x = 0.1, nudge_y = 0, fontface='bold') + 
+      geom_segment(aes(x = max_J_score, y = 0, xend = max_J_score, yend = max_J), linetype=1, linewidth=0.3, color='grey60') +
+      theme_classic() +
+      coord_cartesian(ylim=c(-0.01, max(as.numeric(scores_Js$J))+0.05), 
+                      xlim=c(-0.01, max(as.numeric(scores_Js$score))),
+                      expand = FALSE) +
+      labs(x='Score', y='Youden index (J)', title=method_name) +
+      ## Label for delta J
+      geom_label(x=(max(as.numeric(method_data[,method_score]))+min(as.numeric(method_data[,method_score])))/2, y=0.11, 
+                 label=paste0('ΔJ = ', signif(delta_J, digits=2)), 
+                 size=2.8, color='grey30', label.size = NA, fontface='bold', label.padding = unit(0.1, "lines"))+
+      geom_text_repel(data = subset(scores_Js, score==max_J_score), label=signif(max_J_score, digits=3), 
+                      aes(x=max_J_score, y=0.1),
+                      size=2.5, color='grey40', min.segment.length = unit(0, 'lines'), hjust=0.5, vjust=1, 
+                      box.padding = 0.5, lineheight=unit(1.2, 'lines'), segment.curvature = -0.2) +
+      theme(title = element_text(size = (9), face='bold'),
+            plot.title = element_text(hjust = 0.5),
+            axis.title = element_text(size = (8.5), face='bold'),
+            axis.text = element_text(size = (8)), 
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5, size=6))
+    
+  }
+  
+  return(list(p, max_J_data))
+}
+
+i=1
+plots <- list()
+for (method in names(algorithms_thresholds)){
+  plots[[i]] <- Youden_indices(method)[[1]]
+  i=i+1
+}
+
+## Don't include PolyPhen2 HVAR
+plot_grid(plots[[1]], plots[[2]], plots[[4]], plots[[5]], plots[[6]],
+          plots[[7]], plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]],
+          plots[[13]], plots[[14]], plots[[15]], plots[[16]], plots[[17]], plots[[18]], 
+          plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=7)
+ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.pdf', width = 26, height = 10)
+
+
+## MCAP new threshold in line, digits in intermediate x scores, delta symbol, red rhombus 
+
+
+
+## Add coordinate for new thresholds in ROC curves
+
+
+
+## Predict variant effect by all algorithms using these new thresholds
+
+
+## Number of missing scores per variant
+table(apply(new_variants_predictions[,24:45], 1, function(x){length(which(x=='.'))}))
+#    0    1    2    3    4    5    7    8    9   10   21 
+# 2827 1383 1543  346  180   46    2   17    6    1    1 
+
+## Consensus on prediction 
+
+
+
+## UGT-optimized score as the mean of all algorithms' predictions for each variant
+
+
+## D, N and M variants with this framework
+
 
 
 ################################################################################
-##          3.2  Annotate functional consequence of UGT variants 
+##          3.2  Annotate functional consequence of all UGT variants 
 ################################################################################
 
 ## Define categories of predicted effect of exonic variant types
