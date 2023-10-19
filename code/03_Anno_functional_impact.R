@@ -1108,7 +1108,8 @@ colors = c('ADME'='mediumpurple2',
            'PROVEAN'='darkorchid3', 
            'REVEL'='cadetblue3', 
            'SIFT'='peachpuff3', 
-           'VEST4'='aquamarine4')
+           'VEST4'='aquamarine4',
+           'UGT-optimized'='palevioletred2')
 
 for (variant in new_variants_predictions$Variant_ID){
   allele_freq <- vector()
@@ -1540,11 +1541,13 @@ Youden_indices <- function(method){
   }
   
   scores_Js <- as.data.frame(scores_Js)
-  max_J_data <- scores_Js[which.max(scores_Js$J),]
+  ## New threshold
   max_J <- scores_Js[which.max(scores_Js$J),'J']
   max_J_score <- scores_Js[which.max(scores_Js$J),'score'] ## optimal threshold
   max_J_sensitivity <- scores_Js[which.max(scores_Js$J),'sensitivity']
   max_J_specificity <- scores_Js[which.max(scores_Js$J),'specificity']
+  new_threshold <- paste0(direction, '(', max_J_score, ')')
+  max_J_data <- c(scores_Js[which.max(scores_Js$J),], 'new_threshold'=new_threshold)
 
   ## J at optimal threshold - J at conventional threshold = delta(J)
   delta_J <- max_J -J_conventional
@@ -1707,29 +1710,163 @@ ggroc(r) +
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_new_thresholds_methods.pdf', width = 8, height = 8)
 
 
-## Predict variant effect by all algorithms using these new thresholds
+## Predictions of benchmark variants with these cutoffs
+
+new_algorithms_thresholds <- new_thresholds$new_threshold
+names(new_algorithms_thresholds) <- names(algorithms_thresholds)
+
+new_benchmark_pred <- data.frame(matrix(nrow=dim(benchmark_scores)[1], ncol=length(names(new_algorithms_thresholds))+1))
+colnames(new_benchmark_pred) <- c('Variant_ID', paste0(names(new_algorithms_thresholds), '_pred'))
+new_benchmark_pred$Variant_ID <- benchmark_scores$Variant_ID
+
+for(algorithm in names(new_algorithms_thresholds)){
+  new_benchmark_pred[paste0(algorithm, '_pred')] <- apply(benchmark_scores, 1, 
+                                                      function(x){if (x[paste0(algorithm, '_score')]=='.'){NA}
+                                                        else if (eval(parse_expr(paste0('as.numeric(x[paste0(algorithm, \'_score\')])', new_algorithms_thresholds[[algorithm]]))) ){1}
+                                                        else{0} })
+}
+
+## Global UGT-optimized score as the mean of all predictions for each variant
+UGT_optimized_score <- apply(new_benchmark_pred[,-1], 1, function(x){mean(x[which(x!='.')])})
+UGT_optimized_score[which(is.nan(UGT_optimized_score))] <- NA
+
+r <- list()
+r[['UGT-optimized']] <- roc(response=as.factor(benchmark_scores$effect), 
+                        predictor=as.numeric(UGT_optimized_score), 
+                        levels=c('N', 'D'), na.rm=TRUE)
+## Add AUC 
+AUC=paste0('AUC = ', r$`UGT-optimized`$auc)
+## Add number of D and N variants used
+DN_num <- table(benchmark_scores[which(!is.na(UGT_optimized_score)), 'effect'])
+num_vars <- paste0('n = ', DN_num['D'], ' D; ', DN_num['N'], ' N')
+## Compute J and find best threshold
+Js <- as.data.frame(cbind('threshold'=signif(r$`UGT-optimized`$thresholds, digits=3), 
+                          'specificity'=r$`UGT-optimized`$specificities, 
+                          'sensitivity'=r$`UGT-optimized`$sensitivities, 
+                          'J'=(r$`UGT-optimized`$specificities + r$`UGT-optimized`$sensitivities -1)))
+ggroc(r) + 
+  facet_wrap(~ name) +
+  theme_bw() + theme(legend.position = "none") + 
+  geom_text(aes(0, 0.19), label= AUC, hjust = 1, size=3.2, fontface='bold') +
+  theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
+        strip.text = element_text(face="bold"),
+        axis.text = element_text( size = 6)) +
+  geom_text(x=0, y=0.05, label= num_vars, hjust = 1, size=2.5, color='black') +
+  scale_color_manual(values=colors) +
+  ## Point corresponding to best threshold
+  annotate('point', x=Js[which.max(Js$J),'specificity'], y=Js[which.max(Js$J),'sensitivity'], color=colors[['UGT-optimized']]) +
+  geom_text_repel(data=Js[which.max(Js$J),], aes(x=specificity, y=sensitivity), 
+                  label=paste0('Threshold of ', Js[which.max(Js$J),'threshold']),
+                  size=2.4, color='grey20', min.segment.length = unit(0, 'lines'),
+                  box.padding = unit(0.8, "lines"), lineheight=unit(6, 'lines'), segment.curvature = 0)
+
+ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_UGT-optimizedMethod.pdf', width = 2.1, height = 2)
 
 
+## Use framework for all missense variants
+
+## New categories with optimized thresholds
+new_categorical_predictions <- data.frame(matrix(nrow=dim(new_variants_predictions)[1], ncol=length(names(new_algorithms_thresholds))+1))
+colnames(new_categorical_predictions) <- c('Variant_ID', paste0(names(new_algorithms_thresholds), '_pred'))
+new_categorical_predictions$Variant_ID <- new_variants_predictions$Variant_ID
+
+for(algorithm in names(new_algorithms_thresholds)){
+  new_categorical_predictions[paste0(algorithm, '_pred')] <- apply(new_variants_predictions, 1, 
+                                                               function(x){if (x[paste0(algorithm, '_score')]=='.'){NA}
+                                                                 else if (eval(parse_expr(paste0('as.numeric(x[paste0(algorithm, \'_score\')])', new_algorithms_thresholds[[algorithm]]))) ){1}
+                                                                 else{0} })
+}
+
+new_variants_predictions$UGT_optimized_score <- apply(new_categorical_predictions[,-1], 1, function(x){mean(x[which(!is.na(x))])}) 
+## Predictions
+new_variants_predictions$UGT_optimized_pred <- sapply(new_variants_predictions$UGT_optimized_score, function(x){if(x>0.83){'D'}
+                                                                                                                else{'N'}})
+## Number of D and N variants predicted
+table(new_variants_predictions$UGT_optimized_pred)
+#   D     N 
+# 445  5907 
 
 
+## GMAF of D variants per gene
+## Plot GMAF of variants predicted as D by each methods in each gene
 
+GMAFs_genes <- vector()
+for (gene in UGT_genes){
+  ## D variants in the gene
+  gene_data <- eval(parse_expr(paste0(gene, '_missense_vars')))
+  gene_vars <- gene_data$Variant_ID
+  gene_D_vars <- new_variants_predictions[which(new_variants_predictions$Variant_ID %in% gene_vars & 
+                                                new_variants_predictions$UGT_optimized_pred=='D'), 'Variant_ID']
+  GMAFs <- gene_data[which(gene_data$Variant_ID %in% gene_D_vars), c('Variant_ID', 'Allele_Frequency')]
+  
+  ## Number of D vars per method
+  num_D <- length(gene_D_vars)
+  
+  GMAFs_genes <- rbind(GMAFs_genes, cbind('Variant_ID'=GMAFs$Variant_ID, 'GMAFs'=GMAFs$Allele_Frequency, 'gene'=rep(gene, num_D)))
+}
+  
+GMAFs_genes <- as.data.frame(GMAFs_genes)
+GMAFs_genes$GMAFs <- as.numeric(GMAFs_genes$GMAFs)
+GMAFs_genes$gene <- factor(GMAFs_genes$gene, levels=UGT_genes)
 
+## Number of D variants per gene
+num_D_per_gene <- as.data.frame(table(GMAFs_genes$gene))
+colnames(num_D_per_gene) <- c('gene', 'number')
 
+## Colors for genes
+genes_colors <- c('UGT1A1'='darkorange',
+                   'UGT1A3'='darkorchid',
+                   'UGT1A4'='aquamarine2',
+                   'UGT1A5'='hotpink2',
+                   'UGT1A6'='olivedrab3',
+                   'UGT1A7'='lightpink2',
+                   'UGT1A8'='skyblue3',
+                   'UGT1A9'='tomato2',
+                   'UGT1A10'='yellow3',
+                   'UGT2A1'='orchid2',
+                   'UGT2A2'='gold4',
+                   'UGT2A3'='mediumpurple',
+                   'UGT2B4'='lightsalmon2',
+                   'UGT2B7'='lightblue3',
+                   'UGT2B10'='seagreen',
+                   'UGT2B11'='plum2',
+                   'UGT2B15'='sienna',
+                   'UGT2B17'='seashell3',
+                   'UGT2B28'='seagreen2',
+                   'UGT3A1'='steelblue2',
+                   'UGT3A2'='orchid',
+                   'UGT8'='peachpuff2')
 
+## Shapes for variants with GMAF>0.01
+GMAFs_genes$label <- apply(GMAFs_genes, 1, function(x){if(as.numeric(x['GMAFs'])>0.01){x['Variant_ID']} else{NA}})
+GMAFs_genes[which(GMAFs_genes$GMAFs>0.01),]
+#     Variant_ID       GMAFs    gene           label
+# 4-70462042-C-T  0.07988111  UGT2A1  4-70462042-C-T
+# 4-70462042-C-T  0.07988111  UGT2A2  4-70462042-C-T
+shapes <- c('4-70462042-C-T'=17)
 
-## Number of missing scores per variant
-table(apply(new_variants_predictions[,24:45], 1, function(x){length(which(x=='.'))}))
-#    0    1    2    3    4    5    7    8    9   10   21 
-# 2827 1383 1543  346  180   46    2   17    6    1    1 
+ggplot(data = GMAFs_genes, mapping = aes(x = gene, y = GMAFs, color = gene)) +
+    geom_jitter(data=subset(GMAFs_genes, is.na(label)), shape=16, width = 0.2, height = 0, alpha = 0.7, size = 0.8) +
+    geom_point(data=subset(GMAFs_genes, !is.na(label)), aes(shape=label), alpha = 0.7, size = 0.8, stroke = 1) +
+    scale_y_continuous(limits = c(-0.03, 1), breaks = seq(0, 1, by = 0.1)) +
+    scale_color_manual(values = genes_colors) +
+    scale_shape_manual(values = shapes) +
+    theme_bw() +
+    guides(color = 'none') + 
+    geom_text(data = num_D_per_gene, aes(x=gene, label=number,  y=-0.03, color=NULL), size=2) +
+    labs(x='', y='GMAF of missense variants predicted as deleterious', 
+        subtitle = paste0(table(new_variants_predictions$UGT_optimized_pred)['D'], 
+                          ' missense variants predicted as deleterious by this UGT-optimized framework'),
+        shape='Variant ID (GMAF>0.01)') +
+    theme(plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
+          axis.title = element_text(size = (8.5), face='bold'),
+          axis.text = element_text(size = (8)),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
+          legend.title = element_text(size=8, face='bold'), 
+          legend.text = element_text(size=7.5, face='bold'))
 
-## Consensus on prediction 
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_Dvars_byUGTopMethod.pdf', width = 8, height = 4.5)
 
-
-
-## UGT-optimized score as the mean of all algorithms' predictions for each variant
-
-
-## D, N and M variants with this framework
 
 
 
