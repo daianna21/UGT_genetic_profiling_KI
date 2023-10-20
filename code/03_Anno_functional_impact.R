@@ -1697,7 +1697,7 @@ data$new_threshold_sensitivity <- unlist(new_thresholds$sensitivity)
 data$new_threshold_specificity <- unlist(new_thresholds$specificity)
 
 ggroc(r[-3]) + 
-  facet_wrap(~name, ncol=7) +
+  facet_wrap(~factor(name, levels=names(r[-3])), ncol=7) +
   theme_bw() + theme(legend.position = "none") + 
   geom_text(data = subset(data, name!='Polyphen2 HVAR'), aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
   theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
