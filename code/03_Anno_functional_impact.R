@@ -1534,8 +1534,9 @@ Youden_indices <- function(method){
     ## J at the threshold
     J = sensitivity + specificity -1
     
-    ## Add if J hasn't been reached before with another threshold; add conventional score
-    if (! J %in% Js | score==conv_threshold | score==max(as.numeric(method_data[,method_score]))){
+    ## Add if J hasn't been reached before with another threshold; add conventional and max score; 
+    ## Don't include scores that yield J<0
+    if ((! J %in% Js | score==conv_threshold | score==max(as.numeric(method_data[,method_score]))) & J>=0 ){
       scores_Js <- rbind(scores_Js, c('score'=score, 'sensitivity'=sensitivity, 'specificity'=specificity, 'J'=J))
     }
     Js <- append(Js, J)
@@ -1561,16 +1562,16 @@ Youden_indices <- function(method){
   args[['MutationAssessor']] <- c('nudge_x_c' = -0.2, 'nudge_y_c' = 0.01, 'nudge_x_o' = 0.45, 'nudge_y_o' = 0.15, 'curv'=0.35, 'hjust'=1, 'vjust'=1)
   args[['FATHMM']] <- c('nudge_x_c' = -0.85, 'nudge_y_c' = 0.1, 'nudge_x_o' = -0.03, 'nudge_y_o' = 0.12, 'curv'=0.35, 'hjust'=1, 'vjust'=0)
   args[['fathmm.MKL']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.2, 'nudge_y_o' = 0.15, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
-  args[['PROVEAN']] <- c('nudge_x_c' = 0.9, 'nudge_y_c' = 0.045, 'nudge_x_o' = -0.9, 'nudge_y_o' = 0.0, 'curv'=0.15, 'hjust'=0.1, 'vjust'=0.1)
+  args[['PROVEAN']] <- c('nudge_x_c' = 0.9, 'nudge_y_c' = 0.025, 'nudge_x_o' = -0.9, 'nudge_y_o' = 0.0, 'curv'=0.15, 'hjust'=0.1, 'vjust'=0.1)
   args[['PrimateAI']] <- c('nudge_x_c' = 0.0, 'nudge_y_c' = 0.2, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.02, 'curv'=0.35, 'hjust'=1, 'vjust'=0)
   args[['MutPred']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = 0.055, 'nudge_x_o' = 0.1, 'nudge_y_o' = 0.055, 'curv'=0.35, 'hjust'=1, 'vjust'=0)
   args[['MetaSVM']] <- c('nudge_x_c' = 0.07, 'nudge_y_c' = 0.07, 'nudge_x_o' = 0.1, 'nudge_y_o' = 0.2, 'curv'=0.35, 'hjust'=-0.63, 'vjust'=0.7)
   args[['MetaLR']] <- c('nudge_x_c' = -0.15, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
-  args[['M.CAP']] <- c('nudge_x_c' = 0.05, 'nudge_y_c' = -0.12, 'nudge_x_o' = -0.15, 'nudge_y_o' = 0.1, 'curv'=-0.05, 'hjust'=1, 'vjust'=0.3)
-  args[['ClinPred']] <- c('nudge_x_c' = 0.06, 'nudge_y_c' = -0.05, 'nudge_x_o' = 0.09, 'nudge_y_o' = 0.16, 'curv'=-0.3, 'hjust'=0, 'vjust'=0)
-  args[['CADD_phred']] <- c('nudge_x_c' = 0.06, 'nudge_y_c' = -0.05, 'nudge_x_o' = 0.09, 'nudge_y_o' = 0.16, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
+  args[['M.CAP']] <- c('nudge_x_c' = 0.05, 'nudge_y_c' = -0.17, 'nudge_x_o' = 0.14, 'nudge_y_o' = 0, 'curv'=-0.05, 'hjust'=1, 'vjust'=0.3)
+  args[['ClinPred']] <- c('nudge_x_c' = 0.06, 'nudge_y_c' = -0.05, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.2, 'curv'=-0.3, 'hjust'=0, 'vjust'=0)
+  args[['CADD_phred']] <- c('nudge_x_c' = 0.06, 'nudge_y_c' = -0.05, 'nudge_x_o' = 2, 'nudge_y_o' = 0, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
   args[['Eigen.PC']] <- c('nudge_x_c' = -0.4, 'nudge_y_c' = 0.1, 'nudge_x_o' = 0.8, 'nudge_y_o' = 0.15, 'curv'=-0.35, 'hjust'=0.8, 'vjust'=0)
-  args[['MVP']] <- c('nudge_x_c' = 0.01, 'nudge_y_c' = 0.09, 'nudge_x_o' = 0.03, 'nudge_y_o' = 0.19, 'curv'=0.35, 'hjust'=0, 'vjust'=0.1)
+  args[['MVP']] <- c('nudge_x_c' = 0.1, 'nudge_y_c' = 0, 'nudge_x_o' = -0.18, 'nudge_y_o' = 0, 'curv'=0.35, 'hjust'=0, 'vjust'=0.1)
   args[['DANN']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.02, 'nudge_x_o' = -0.05, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
   args[['REVEL']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
   args[['LRT']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
@@ -1612,8 +1613,8 @@ Youden_indices <- function(method){
     
     theme_classic() +
     labs(x='Score', y='Youden index (J)', title=method_name) +
-    coord_cartesian(ylim=c(0, NA), expand = FALSE) +
-    scale_x_continuous(breaks = sort(c(round(min(as.numeric(scores_Js$score))), round(max(as.numeric(scores_Js$score))),
+    coord_cartesian(ylim=c(0, 1), expand = FALSE) +
+    scale_x_continuous(breaks = sort(c(min(as.numeric(scores_Js$score)), max(as.numeric(scores_Js$score)),
                                        signif(c(seq(from=min(as.numeric(scores_Js$score)),
                                                   to=max(as.numeric(scores_Js$score)),
                                                   length.out=5)[-scores_to_show], conv_threshold), digits=2)))) +
@@ -1652,7 +1653,7 @@ Youden_indices <- function(method){
                       hjust=args[[method]]['hjust'], vjust=args[[method]]['vjust'], 
                       box.padding = unit(0.5, "lines"), lineheight=unit(1, 'lines'), segment.curvature = args[[method]]['curv']) +
       theme_classic() +
-      coord_cartesian(ylim=c(-0.01, max(as.numeric(scores_Js$J))+0.05), 
+      coord_cartesian(ylim=c(0, 1), 
                       xlim=c(-0.01, max(as.numeric(scores_Js$score))),
                       expand = FALSE) +
       labs(x='Score', y='Youden index (J)', title=method_name) +
@@ -1692,30 +1693,32 @@ ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.png', width 
 
 
 ## Add coordinate for new thresholds in ROC curves
-data$new_threshold_sensitivity <- new_thresholds$sensitivity
-data$new_threshold_specificity <- new_thresholds$specificity
+data$new_threshold_sensitivity <- unlist(new_thresholds$sensitivity)
+data$new_threshold_specificity <- unlist(new_thresholds$specificity)
 
-ggroc(r) + 
-  facet_wrap(~name) +
+ggroc(r[-3]) + 
+  facet_wrap(~name, ncol=7) +
   theme_bw() + theme(legend.position = "none") + 
-  geom_text(data = data, aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
+  geom_text(data = subset(data, name!='Polyphen2 HVAR'), aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
   theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
         strip.text = element_text(face="bold"),
         axis.text = element_text( size = 6)) +
-  geom_text(data = data, aes(0, 0.05, label= num_vars, hjust = 1), size=2.5, color='black') +
+  geom_text(data = subset(data, name!='Polyphen2 HVAR'), aes(0, 0.05, label= num_vars, hjust = 1), size=2.5, color='black') +
   scale_color_manual(values=colors) +
-  ## Point corresponding to used threshold
-  geom_point(data=data, aes(x=specificity, y=sensitivity)) +
-  ## Point for ADME optimized thresholds
-  geom_point(data=data, aes(x=new_threshold_specificity, y=new_threshold_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
-ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_new_thresholds_methods.pdf', width = 8, height = 8)
+  ## Point corresponding to conventional threshold
+  geom_point(data=subset(data, name!='Polyphen2 HVAR'), aes(x=specificity, y=sensitivity)) +
+  ## Point for UGT optimized thresholds
+  geom_point(data=subset(data, name!='Polyphen2 HVAR'), aes(x=new_threshold_specificity, y=new_threshold_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
+
+ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_new_thresholds_methods.pdf', width = 11, height = 5)
 
 # ---------------------------------------------------------------------------------------------------------
 
 ## Predictions of benchmark variants with these cutoffs
 
-new_algorithms_thresholds <- new_thresholds$new_threshold
-names(new_algorithms_thresholds) <- names(algorithms_thresholds)
+## Don't include PolyPhen2 HVAR
+new_algorithms_thresholds <- new_thresholds[which(rownames(new_thresholds)!='Polyphen2_HVAR'),'new_threshold']
+names(new_algorithms_thresholds) <- names(algorithms_thresholds)[-3]
 
 new_benchmark_pred <- data.frame(matrix(nrow=dim(benchmark_scores)[1], ncol=length(names(new_algorithms_thresholds))+1))
 colnames(new_benchmark_pred) <- c('Variant_ID', paste0(names(new_algorithms_thresholds), '_pred'))
@@ -1782,12 +1785,12 @@ for(algorithm in names(new_algorithms_thresholds)){
 
 new_variants_predictions$UGT_optimized_score <- apply(new_categorical_predictions[,-1], 1, function(x){mean(x[which(!is.na(x))])}) 
 ## Predictions
-new_variants_predictions$UGT_optimized_pred <- sapply(new_variants_predictions$UGT_optimized_score, function(x){if(x>0.83){'D'}
+new_variants_predictions$UGT_optimized_pred <- sapply(new_variants_predictions$UGT_optimized_score, function(x){if(x>0.821){'D'}
                                                                                                                 else{'N'}})
 ## Number of D and N variants predicted
 table(new_variants_predictions$UGT_optimized_pred)
 #   D     N 
-# 445  5907 
+# 448  5904 
 
 # ---------------------------------------------------------------------------------------------------------
 
@@ -1849,14 +1852,14 @@ GMAFs_genes[which(GMAFs_genes$GMAFs>0.01),]
 shapes <- c('4-70462042-C-T'=17)
 
 ggplot(data = GMAFs_genes, mapping = aes(x = gene, y = GMAFs, color = gene)) +
-    geom_jitter(data=subset(GMAFs_genes, is.na(label)), shape=16, width = 0.2, height = 0, alpha = 0.7, size = 0.8) +
-    geom_point(data=subset(GMAFs_genes, !is.na(label)), aes(shape=label), alpha = 0.7, size = 0.8, stroke = 1) +
-    scale_y_continuous(limits = c(-0.03, 1), breaks = seq(0, 1, by = 0.1)) +
+    geom_jitter(data=subset(GMAFs_genes, is.na(label)), shape=16, width = 0.3, height = 0, alpha = 0.8, size = 1.2) +
+    geom_point(data=subset(GMAFs_genes, !is.na(label)), aes(shape=label), alpha = 0.8, size = 1.2, stroke = 1) +
+    scale_y_continuous(trans='log10') +
     scale_color_manual(values = genes_colors) +
     scale_shape_manual(values = shapes) +
     theme_bw() +
     guides(color = 'none') + 
-    geom_text(data = num_D_per_gene, aes(x=gene, label=number,  y=-0.03, color=NULL), size=2) +
+    geom_text(data = num_D_per_gene, aes(x=gene, label=number,  y=2.75e-06, color=NULL), size=2) +
     labs(x='', y='GMAF of missense variants predicted as deleterious', 
         subtitle = paste0(table(new_variants_predictions$UGT_optimized_pred)['D'], 
                           ' missense variants predicted as deleterious by this UGT-optimized framework'),
