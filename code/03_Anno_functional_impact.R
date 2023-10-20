@@ -1439,7 +1439,7 @@ names(ADME_sensitivities)[4] <- names(ADME_specificities)[4] <- 'VEST4'
 ## ROC curves
 r <- list()
 for (algorithm in paste0(names(algorithms_thresholds), '_score')){
-  r[[algorithm]] <- roc(response=as.factor(benchmark_scores_preds$effect), 
+  r[[algorithm]] <- roc(response=benchmark_scores_preds$effect, 
                         predictor=as.numeric(benchmark_scores_preds[,algorithm]), 
                         levels=c('N', 'D'), na.rm=TRUE)
 }
@@ -1474,6 +1474,7 @@ ggroc(r) +
   geom_point(data=data, aes(x=specificity, y=sensitivity)) +
   ## Point for ADME optimized thresholds
   geom_point(data=data, aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
+
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_methods.pdf', width = 8, height = 8)
 
 
@@ -2014,6 +2015,10 @@ ggsave(filename='plots/03_Anno_functional_impact/MAF_pop_vars_per_UGT3.pdf', wid
 
 plot_grid(plots[[22]])
 ggsave(filename='plots/03_Anno_functional_impact/MAF_pop_vars_per_UGT8.pdf', width = 8, height = 5)
+
+
+
+
 
 
 
