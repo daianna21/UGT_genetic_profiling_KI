@@ -1208,7 +1208,7 @@ ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf')
 ################################################################################
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
-## Add missing promotor variants rs34983651 for UGT1A1, including the regulatory variant '2-234668879-C-CAT' (UGT1A1*28)                     # |
+## Add missing deleterious promotor variants rs34983651 for UGT1A1, including the regulatory variant '2-234668879-C-CAT' (UGT1A1*28)                     # |
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
 #                                                                                                                                            # |      
 ## Identify variants in datasets                                                                                                             # |
@@ -1236,19 +1236,22 @@ var_data$Location_in_txs <- sapply(var_data$Position, function(x){location_deter
                                                                                                                                              # | 
 ## Add variant data to UGT1A1 data                                                                                                           # |
 UGT1A1_data <- rbind(UGT1A1_data, var_data[,-56])                                                                                            # |
-## Remove 2 variants without functional evidence in ClinVar                                                                                  # |
-UGT1A1_data <- UGT1A1_data[-which(UGT1A1_data$Variant_ID=='2-234668879-C-CATATAT' | UGT1A1_data$Variant_ID=='2-234668879-C-CATATATAT'), ]    # |
+## Remove 2 variants without functional evidence in ClinVar and a 3rd that is benign                                                         # |
+UGT1A1_data <- UGT1A1_data[-which(UGT1A1_data$Variant_ID=='2-234668879-C-CATATAT' | UGT1A1_data$Variant_ID=='2-234668879-C-CATATATAT' |      # |    
+                                  UGT1A1_data$Variant_ID=='2-234668879-CAT-C'), ]                                                            # |
 save(UGT1A1_data, file = 'processed-data/01_Data_Processing/UGT1A1_data.Rdata')                                                              # |
                                                                                                                                              # | 
 ## Add variant data to UGT1A1 canonical and exonic dataset (though these are not exonic variants)                                            # |
 UGT1A1_canonical_data <- rbind(UGT1A1_canonical_data, var_data)                                                                              # |
 UGT1A1_canonical_data <- UGT1A1_canonical_data[-which(UGT1A1_canonical_data$Variant_ID=='2-234668879-C-CATATAT' |                            # |
-                                                        UGT1A1_canonical_data$Variant_ID=='2-234668879-C-CATATATAT'), ]                      # |
+                                                        UGT1A1_canonical_data$Variant_ID=='2-234668879-C-CATATATAT' |                        # |
+                                                        UGT1A1_canonical_data$Variant_ID=='2-234668879-CAT-C'), ]                            # |
 save(UGT1A1_canonical_data , file = 'processed-data/01_Data_Processing/UGT1A1_canonical_data.Rdata')                                         # |
                                                                                                                                              # |  
 UGT1A1_exonic_data <- rbind(UGT1A1_exonic_data, var_data)                                                                                    # |
 UGT1A1_exonic_data <- UGT1A1_exonic_data[-which(UGT1A1_exonic_data$Variant_ID=='2-234668879-C-CATATAT' |                                     # |
-                                                        UGT1A1_exonic_data$Variant_ID=='2-234668879-C-CATATATAT'), ]                         # |
+                                                        UGT1A1_exonic_data$Variant_ID=='2-234668879-C-CATATATAT' |                           # |
+                                                        UGT1A1_exonic_data$Variant_ID=='2-234668879-CAT-C'), ]                               # |
 save(UGT1A1_exonic_data , file = 'processed-data/01_Data_Processing/UGT1A1_exonic_data.Rdata')                                               # |
 #                                                                                                                                            # | 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
