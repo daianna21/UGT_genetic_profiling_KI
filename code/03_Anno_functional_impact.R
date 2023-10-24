@@ -8,6 +8,7 @@ library(reshape2)
 library(corrplot)
 library(pROC)
 library(ggrepel)
+library(ggExtra)
 library(sessioninfo)
 
 
@@ -1903,6 +1904,7 @@ for (gene in UGT_genes){
     else if (exonic_data[x, 'VEP_Annotation']=='missense_variant'){new_variants_predictions[which(new_variants_predictions$Variant_ID==x), 'UGT_optimized_pred']}
     else{'NA'} })
   assign(paste0(gene, '_exonic_data'), exonic_data)
+  save(exonic_data, file = paste0('processed-data/03_Anno_functional_impact/', gene, '_exonic_data.Rdata'))
 }
 
 
@@ -1954,20 +1956,25 @@ ggplot(data = GMAFs_Dvars_genes, mapping = aes(x = gene, y = Allele_Frequency, c
   scale_color_manual(values = genes_colors) +
   scale_shape_manual(values = shapes) +
   theme_bw() +
-  guides(color = 'none') + 
+  guides(color = 'none', fill='none') + 
   geom_text(data = num_D_per_gene, aes(x=gene, label=number,  y=(1e-05)/4*3, color=NULL), size=2) +
   labs(x='', y='log10(GMAF) of deleterious variants', 
        subtitle = paste0(length(unique(GMAFs_Dvars_genes$Variant_ID)), 
                          ' deleterious variants across all UGT genes'),
        shape='Variant ID (GMAF>0.01)') +
   theme(plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
+        legend.position = c(0.85, 0.85),
+        legend.key.size = unit(0.3, units = 'cm'),
+        legend.background=element_blank(), 
+        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
         axis.title = element_text(size = (8.5), face='bold'),
         axis.text = element_text(size = (8)),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
         legend.title = element_text(size=8, face='bold'), 
         legend.text = element_text(size=7.5, face='bold'))
 
-ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene.png', width = 8, height = 4.5)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene.png', width = 6, height = 4.5)
+save(GMAFs_Dvars_genes, file='processed-data/03_Anno_functional_impact/GMAFs_Dvars_genes.Rdata')
 
 
 ## Plot GMAF of all D variants per gene family
@@ -2013,6 +2020,7 @@ ggplot(data = GMAFs_Dvars_gene_fam, mapping = aes(x = gene_fam, y = Allele_Frequ
         legend.text = element_text(size=7.5, face='bold'))
 
 ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene_fam.png', width = 5, height = 4.5)
+save(GMAFs_Dvars_gene_fam, file='processed-data/03_Anno_functional_impact/GMAFs_Dvars_gene_fam.Rdata')
 
 
 
