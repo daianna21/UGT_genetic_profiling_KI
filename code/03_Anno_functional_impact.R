@@ -1910,7 +1910,6 @@ for (gene in UGT_genes){
   gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
   ## D variants only
   GMAFs_Dvars <- gene_data[which(gene_data$Functional_impact=='D'), c('Variant_ID', 'Allele_Frequency')]
-  GMAFs_Dvars$Carrier_Frequency <- sapply(GMAFs_Dvars$Allele_Frequency, function(p){(p**2)+(2*p*(1-p))})
   
   ## Number of D vars per gene
   num_D <- dim(GMAFs_Dvars)[1]
@@ -1924,6 +1923,9 @@ GMAFs_Dvars_genes$gene <- factor(GMAFs_Dvars_genes$gene, levels=UGT_genes)
 ## Number of D variants per gene
 num_D_per_gene <- as.data.frame(table(GMAFs_Dvars_genes$gene))
 colnames(num_D_per_gene) <- c('gene', 'number')
+
+## Reduce all GMAF<=1e-05 to the single category '<=1e-05'
+GMAFs_Dvars_genes$Allele_Frequency <- sapply(GMAFs_Dvars_genes$Allele_Frequency, function(x){if(x<=1e-05){1e-05} else{x}})
 
 ## Define shapes for D variants with GMAF>0.01
 GMAFs_Dvars_genes$label <- apply(GMAFs_Dvars_genes, 1, function(x){if(as.numeric(x['Allele_Frequency'])>0.01){x['Variant_ID']} else{NA}})
@@ -1943,12 +1945,13 @@ shapes <- c('2-234668879-C-CAT'=8,
 ggplot(data = GMAFs_Dvars_genes, mapping = aes(x = gene, y = Allele_Frequency, color = gene)) +
   geom_jitter(data=subset(GMAFs_Dvars_genes, is.na(label)), shape=16, width = 0.3, height = 0, alpha = 0.8, size = 1.2) +
   geom_point(data=subset(GMAFs_Dvars_genes, !is.na(label)), aes(shape=label), alpha = 0.8, size = 1.2, stroke = 1) +
-  scale_y_continuous(trans='log10') +
+  scale_y_continuous(trans='log10', breaks=c(1e-01, 1e-02, 1e-03, 1e-04, 1e-05),
+                     labels=c('-1', '-2', '-3', '-4', '≤-5')) +
   scale_color_manual(values = genes_colors) +
   scale_shape_manual(values = shapes) +
   theme_bw() +
   guides(color = 'none') + 
-  geom_text(data = num_D_per_gene, aes(x=gene, label=number,  y=2.75e-06, color=NULL), size=2) +
+  geom_text(data = num_D_per_gene, aes(x=gene, label=number,  y=(1e-05)/4*3, color=NULL), size=2) +
   labs(x='', y='log10(GMAF) of deleterious variants', 
        subtitle = paste0(length(unique(GMAFs_Dvars_genes$Variant_ID)), 
                          ' deleterious variants across all UGT genes'),
@@ -1960,7 +1963,7 @@ ggplot(data = GMAFs_Dvars_genes, mapping = aes(x = gene, y = Allele_Frequency, c
         legend.title = element_text(size=8, face='bold'), 
         legend.text = element_text(size=7.5, face='bold'))
 
-ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene.pdf', width = 8, height = 4.5)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene.png', width = 8, height = 4.5)
 
 
 ## Plot GMAF of all D variants per gene family
@@ -1981,7 +1984,7 @@ for (fam in gene_families){
 ## Number of D vars per family
 num_D_per_gene_fam <- as.data.frame(table(GMAFs_Dvars_gene_fam$gene_fam))
 colnames(num_D_per_gene_fam) <- c('gene_fam', 'number')
-  
+
 gene_fams_colors <- c('UGT1'='hotpink', 'UGT2'='tan1', 'UGT3'='purple1', 'UGT8'='steelblue2')
 
 ggplot(data = GMAFs_Dvars_gene_fam, mapping = aes(x = gene_fam, y = Allele_Frequency, color = gene_fam)) +
