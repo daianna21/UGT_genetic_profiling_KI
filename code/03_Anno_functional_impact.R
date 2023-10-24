@@ -718,7 +718,6 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
           ncol=5)
 
 ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 20, height = 12)
-save(new_variants_predictions, file='processed-data/03_Anno_functional_impact/new_variants_predictions.Rdata')
 
 
 # ------------------------------------------------------------------------------
@@ -1250,6 +1249,7 @@ ggsave(filename='plots/03_Anno_functional_impact/cumGMAF_Dvars_perMethod.pdf', w
 
 ## Plot carrier frequencies of predicted D variants per method
 
+## Carrier frequency is q**2 + 2pq with q the frequency of the alternate allele
 data$Carrier_Frequency <- (2*data$Allele_Frequency*(1-data$Allele_Frequency)) + (data$Allele_Frequency)**2
 num_per_method <- as.data.frame(table(data$Method))
 colnames(num_per_method) <- c('Method', 'n')
@@ -1787,6 +1787,8 @@ new_variants_predictions$UGT_optimized_score <- apply(new_categorical_prediction
 ## Predictions
 new_variants_predictions$UGT_optimized_pred <- sapply(new_variants_predictions$UGT_optimized_score, function(x){if(x>0.821){'D'}
                                                                                                                 else{'N'}})
+save(new_variants_predictions, file='processed-data/03_Anno_functional_impact/new_variants_predictions.Rdata')
+
 ## Number of D and N variants predicted
 table(new_variants_predictions$UGT_optimized_pred)
 #   D     N 
@@ -1849,7 +1851,7 @@ GMAFs_genes[which(GMAFs_genes$GMAFs>0.01),]
 #     Variant_ID       GMAFs    gene           label
 # 4-70462042-C-T  0.07988111  UGT2A1  4-70462042-C-T
 # 4-70462042-C-T  0.07988111  UGT2A2  4-70462042-C-T
-shapes <- c('4-70462042-C-T'=17)
+shapes <- c('4-70462042-C-T'=25)
 
 ggplot(data = GMAFs_genes, mapping = aes(x = gene, y = GMAFs, color = gene)) +
     geom_jitter(data=subset(GMAFs_genes, is.na(label)), shape=16, width = 0.3, height = 0, alpha = 0.8, size = 1.2) +
@@ -1860,7 +1862,7 @@ ggplot(data = GMAFs_genes, mapping = aes(x = gene, y = GMAFs, color = gene)) +
     theme_bw() +
     guides(color = 'none') + 
     geom_text(data = num_D_per_gene, aes(x=gene, label=number,  y=2.75e-06, color=NULL), size=2) +
-    labs(x='', y='GMAF of missense variants predicted as deleterious', 
+    labs(x='', y='log10(GMAF) of missense variants predicted as deleterious', 
         subtitle = paste0(table(new_variants_predictions$UGT_optimized_pred)['D'], 
                           ' missense variants predicted as deleterious by this UGT-optimized framework'),
         shape='Variant ID (GMAF>0.01)') +
@@ -1883,33 +1885,130 @@ ggsave(filename='plots/03_Anno_functional_impact/GMAF_Dvars_byUGTopMethod.pdf', 
 
 ## Define categories of predicted effect of exonic variant types
 deleterious <- c('splice_donor_variant', 'splice_acceptor',
-                 'stop_gained', 'frameshift_variant', 'start_lost')
+                 'stop_gained', 'frameshift_variant', 'start_lost', '5\' upstream')
 
 neutral <- c('synonymous_variant', 'inframe_deletion', 'inframe_insertion', 
              'stop_retained_variant', 'splice_region_variant', 'stop_lost')
 
-## Take missense predictions by MVP (61 missing variants)
-valid_MVP_preds <- new_variants_predictions[which(new_variants_predictions$MVP_pred!='.'),c('Variant_ID', 'MVP_pred')]
-rownames(valid_MVP_preds) <- valid_MVP_preds$Variant_ID
-
-## Annotate functional impact of all exonic (+ 3 promoter variants in UGT1A1) variants in each gene
+## Annotate functional impact of all exonic (+ 2 promoter variants in UGT1A1) variants in each gene
 for (gene in UGT_genes){
   exonic_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
   exonic_data$Functional_impact <- sapply(exonic_data$Variant_ID, function(x){if (exonic_data[x, 'VEP_Annotation'] %in% deleterious){'D'}
     else if (exonic_data[x, 'VEP_Annotation'] %in% neutral){'N'}
-    ## Annotate MVP prediction for missense variants
-    else if (x %in% valid_MVP_preds$Variant_ID){valid_MVP_preds[x, 'MVP_pred']}
-    else{'.'} })
+    ## Take missense predictions by the UGT-optimized framework
+    else if (exonic_data[x, 'VEP_Annotation']=='missense_variant'){new_variants_predictions[which(new_variants_predictions$Variant_ID==x), 'UGT_optimized_pred']}
+    else{'NA'} })
   assign(paste0(gene, '_exonic_data'), exonic_data)
 }
 
-## Annotate effect of 5' upstream UGT1A1 variants according to ClinVar
-UGT1A1_exonic_data[which(UGT1A1_exonic_data$VEP_Annotation=='5\' upstream'), 'Functional_impact'] <- c('D', 'N', 'D')
+
+## Plot GMAF of all D variants per gene 
+
+GMAFs_Dvars_genes <- vector()
+for (gene in UGT_genes){
+  ## All variants in the gene
+  gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
+  ## D variants only
+  GMAFs_Dvars <- gene_data[which(gene_data$Functional_impact=='D'), c('Variant_ID', 'Allele_Frequency')]
+  GMAFs_Dvars$Carrier_Frequency <- sapply(GMAFs_Dvars$Allele_Frequency, function(p){(p**2)+(2*p*(1-p))})
+  
+  ## Number of D vars per gene
+  num_D <- dim(GMAFs_Dvars)[1]
+  
+  GMAFs_Dvars_genes <- rbind(GMAFs_Dvars_genes, cbind(GMAFs_Dvars, 'gene'=rep(gene, num_D)))
+}
+
+GMAFs_Dvars_genes <- as.data.frame(GMAFs_Dvars_genes)
+GMAFs_Dvars_genes$gene <- factor(GMAFs_Dvars_genes$gene, levels=UGT_genes)
+
+## Number of D variants per gene
+num_D_per_gene <- as.data.frame(table(GMAFs_Dvars_genes$gene))
+colnames(num_D_per_gene) <- c('gene', 'number')
+
+## Define shapes for D variants with GMAF>0.01
+GMAFs_Dvars_genes$label <- apply(GMAFs_Dvars_genes, 1, function(x){if(as.numeric(x['Allele_Frequency'])>0.01){x['Variant_ID']} else{NA}})
+GMAFs_Dvars_genes[which(GMAFs_Dvars_genes$Allele_Frequency>0.01),]
+#           Variant_ID    Allele_Frequency    gene               label
+#  2-234668879-C-CATAT          0.01559741  UGT1A1 2-234668879-C-CATAT
+#  2-234668879-C-CAT            0.34657642  UGT1A1   2-234668879-C-CAT
+#  4-70462042-C-T               0.07988111  UGT2A1      4-70462042-C-T
+#  4-70512787-A-T               0.03228072  UGT2A1      4-70512787-A-T
+#  4-70462042-C-T               0.07988111  UGT2A2      4-70462042-C-T
+
+shapes <- c('2-234668879-C-CAT'=8,
+            '2-234668879-C-CATAT'=11,
+            '4-70462042-C-T'=25,
+            '4-70512787-A-T'=3)
+
+ggplot(data = GMAFs_Dvars_genes, mapping = aes(x = gene, y = Allele_Frequency, color = gene)) +
+  geom_jitter(data=subset(GMAFs_Dvars_genes, is.na(label)), shape=16, width = 0.3, height = 0, alpha = 0.8, size = 1.2) +
+  geom_point(data=subset(GMAFs_Dvars_genes, !is.na(label)), aes(shape=label), alpha = 0.8, size = 1.2, stroke = 1) +
+  scale_y_continuous(trans='log10') +
+  scale_color_manual(values = genes_colors) +
+  scale_shape_manual(values = shapes) +
+  theme_bw() +
+  guides(color = 'none') + 
+  geom_text(data = num_D_per_gene, aes(x=gene, label=number,  y=2.75e-06, color=NULL), size=2) +
+  labs(x='', y='log10(GMAF) of deleterious variants', 
+       subtitle = paste0(length(unique(GMAFs_Dvars_genes$Variant_ID)), 
+                         ' deleterious variants across all UGT genes'),
+       shape='Variant ID (GMAF>0.01)') +
+  theme(plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
+        axis.title = element_text(size = (8.5), face='bold'),
+        axis.text = element_text(size = (8)),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
+        legend.title = element_text(size=8, face='bold'), 
+        legend.text = element_text(size=7.5, face='bold'))
+
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene.pdf', width = 8, height = 4.5)
 
 
-## Plot MAF of all D and N variants per gene in each population
+## Plot GMAF of all D variants per gene family
 
-## Define MAF in each population
+GMAFs_Dvars_gene_fam <- vector()
+
+for (fam in gene_families){
+  ## Genes 
+  UGT_genes <- eval(parse_expr(paste0(fam, '_genes')))
+  ## Subset to unique gene family variants
+  fam_vars <- unique(subset(GMAFs_Dvars_genes, gene %in% UGT_genes)[,-4])
+  ## Add gene fam info
+  fam_vars <- cbind(fam_vars, 'gene_fam'=rep(fam, dim(fam_vars)[1]))
+  
+  GMAFs_Dvars_gene_fam <- rbind(GMAFs_Dvars_gene_fam, fam_vars)
+  
+}
+## Number of D vars per family
+num_D_per_gene_fam <- as.data.frame(table(GMAFs_Dvars_gene_fam$gene_fam))
+colnames(num_D_per_gene_fam) <- c('gene_fam', 'number')
+  
+gene_fams_colors <- c('UGT1'='hotpink', 'UGT2'='tan1', 'UGT3'='purple1', 'UGT8'='steelblue2')
+
+ggplot(data = GMAFs_Dvars_gene_fam, mapping = aes(x = gene_fam, y = Allele_Frequency, color = gene_fam)) +
+  geom_jitter(data=subset(GMAFs_Dvars_gene_fam, is.na(label)), shape=16, width = 0.3, height = 0, alpha = 0.8, size = 1) +
+  geom_point(data=subset(GMAFs_Dvars_gene_fam, !is.na(label)), aes(shape=label), alpha = 0.8, size = 1, stroke = 1) +
+  scale_y_continuous(trans='log10') +
+  scale_color_manual(values = gene_fams_colors) +
+  scale_shape_manual(values = shapes) +
+  theme_bw() +
+  guides(color = 'none') + 
+  geom_text(data = num_D_per_gene_fam, aes(x=gene_fam, label=number,  y=2.75e-06, color=NULL), size=2.4) +
+  labs(x='', y='log10(GMAF) of deleterious variants', 
+       subtitle = paste0(length(unique(GMAFs_Dvars_gene_fam$Variant_ID)), 
+                         ' deleterious variants in UGT genes of all families'),
+       shape='Variant ID (GMAF>0.01)') +
+  theme(plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
+        axis.title = element_text(size = (8.5), face='bold'),
+        axis.text = element_text(size = (8)),
+        axis.text.x = element_text(face='bold'),
+        legend.title = element_text(size=8, face='bold'), 
+        legend.text = element_text(size=7.5, face='bold'))
+
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene_fam.pdf', width = 5, height = 4.5)
+
+
+## Plot allele frequencies of all D variants within each population
+
 populations <- c('African_or_African_American',
                  'Latino_or_Admixed_American',
                  'Ashkenazi_Jewish',
@@ -1919,108 +2018,137 @@ populations <- c('African_or_African_American',
                  'South_Asian',
                  'Other')
 
-plots <- list()
-i=1
+allD_vars_in_pops <- vector()
 for (gene in UGT_genes){
-
+  
   ## Exonic variants per gene
   exonic_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
-  ## Number of missense variants missed by MVP prediction
-  num_missed <- length(which(exonic_data$Functional_impact=='.'))
-  ## Subset to variants with valid functional consequence 
-  exonic_data <- exonic_data[which(exonic_data$Functional_impact!='.'),]
   
+  ## Compute MAF within each population 
   for (p in populations){
     exonic_data[,paste0('MAF_', p)] <- exonic_data[,paste0('Allele_Count_', p)]/exonic_data[,paste0('Allele_Number_', p)]
-    ## Define MAF 
-    exonic_data[which(exonic_data[,paste0('MAF_', p)]>=0.5), paste0('MAF_', p)] <- 1-exonic_data[which(exonic_data[,paste0('MAF_', p)]>=0.5), paste0('MAF_', p)]
     ## If no MAF available in the population
     nan <- which(is.nan(exonic_data[,paste0('MAF_', p)]))
-    #print(c(gene, p, length(nan)))
     exonic_data[nan, paste0('MAF_', p)] <- NA
+  
+    ## Add carrier frequencies in each population
+      ps <- exonic_data[,paste0('MAF_', p)]
+      exonic_data[,paste0('Carr_freq_', p)] <- sapply(ps, function(x){(x**2)+(2*x*(1-x))})
   }
-  ## Global MAF
-  exonic_data[which(exonic_data$Allele_Frequency>=0.5), 'Allele_Frequency'] <- 1-exonic_data[which(exonic_data$Allele_Frequency>=0.5), 'Allele_Frequency']
   
-  groups <- c(populations, 'global')
-  data <- exonic_data[,c('Variant_ID', 'Functional_impact', 'Allele_Frequency', paste0('MAF_', populations))]
-  data <- melt(data, id.vars = c('Variant_ID', 'Functional_impact'))
-  colnames(data) <- c('Variant_ID', 'Functional_impact', 'Group', 'MAF')
+  ## Global carr freq 
+  exonic_data$Global_carr_freq <- sapply(exonic_data$Allele_Frequency, function(x){(x**2)+(2*x*(1-x))})
   
-  ## Different shapes for D variants with MAF>=0.01
-  shapes <- c('2-234668879-C-CAT'=8,
-              '2-234668879-C-CATAT'=11,
-              '2-234675779-A-G'=14,
-              '2-234676872-C-T'=9,
-              '2-234637917-C-T'=7,
-              '2-234638282-G-GT'=25,
-              '2-234622331-GC-G'=3,
-              '2-234590935-G-T'=15,
-              '2-234545998-G-A'=2,
-              '4-70512787-A-T'=12,
-              '4-69811110-A-C'=6,
-              '4-69693141-GT-G'=5,
-              '4-69693242-T-C'=4,
-              '4-70070366-A-T'=10,
-              '4-70078393-C-T'=13,
-              '4-69512937-T-A'=17,
-              '4-69528742-G-A'=18,
-              '4-69536234-G-T'=25)
-  
-  ## Label those variants
-  data$Label <- apply(data, 1, function(x){if (is.na(x['MAF'])){NA}
-                                           else if(x['Functional_impact']=='D' & as.numeric(x['MAF'])>=0.01){x['Variant_ID']} else{NA}})
-  data$Functional_impact <- factor(data$Functional_impact, levels=c('N', 'D'))
-  data$Group <- factor(data$Group, levels=c(paste0('MAF_',populations), 'Allele_Frequency'))
-  
-  plots[[i]] <- ggplot(data = data, mapping = aes(x = Group, y = MAF, color = Functional_impact)) +
-        geom_point(data=subset(data, is.na(Label)), alpha = 0.9, size = 1.3, position = position_jitterdodge(seed=2)) +
-        geom_point(data=subset(data, !is.na(Label)), aes(shape=Label), size=1.5, color='tomato3', stroke = 0.7, position = position_jitterdodge(seed=2, jitter.width=0.1, dodge.width = 0.5)) +
-        theme_bw() +
-        scale_color_manual(values = c("skyblue2", "tomato"), labels = c("Neutral", "Deleterious")) +
-        scale_shape_manual(values=shapes[subset(data, !is.na(Label))$Variant_ID]) + 
-        scale_x_discrete(breaks=c(paste0('MAF_',populations), 'Allele_Frequency'),
-                         labels=c("African/African American",
-                                  "Latino/Admixed American",
-                                  "Ashkenazi Jewish",
-                                  "East Asian",
-                                  "European Finnish",
-                                  "European non Finnish",
-                                  "South Asian",
-                                  "Other",
-                                  "Global")) +
-        labs(title=gene, 
-             subtitle=paste0(table(exonic_data$Functional_impact)['D'], ' D variants; ', 
-                             table(exonic_data$Functional_impact)['N'], ' N variants; ',
-                             num_missed, ' missense variants missed by MVP'), 
-             x='', y='MAF of variants', color='Functional impact', shape=paste0('Deleterious variant ID', '\n', '(MAF>0.01)')) +
-        theme(title = element_text(size = (9), face='bold'),
-              plot.subtitle = element_text(size = 8.5, color = "gray50"),
-              axis.title = element_text(size = (8.5), face='bold'),
-              axis.text = element_text(size = (8)),
-              axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
-              legend.title = element_text(size=8.5), 
-              legend.text = element_text(size=8))
-  i=i+1
+  ## Carr freqs of D vars in each population
+  data <- exonic_data[which(exonic_data$Functional_impact=='D'),c('Variant_ID', 'Global_carr_freq', 
+                                                                  paste0('Carr_freq_', populations), 'Allele_Frequency', 
+                                                                  paste0('MAF_', populations))]
+  data <- melt(data, id.vars = c('Variant_ID'))
+  colnames(data) <- c('Variant_ID', 'Group', 'Carr_freq')
+  allD_vars_in_pops <- rbind(allD_vars_in_pops, data)
 
 }
 
-plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]],
-          plots[[6]], plots[[7]], plots[[8]], plots[[9]], ncol=3)
-ggsave(filename='plots/03_Anno_functional_impact/MAF_pop_vars_per_UGT1.pdf', width = 20, height = 13)
+allD_vars_in_pops <- unique(allD_vars_in_pops)
+allD_vars_in_pops$Group <- factor(allD_vars_in_pops$Group, levels=c(paste0('Carr_freq_',populations), 'Global_carr_freq'))
 
-plot_grid(plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]],
-          plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], ncol=2)
-ggsave(filename='plots/03_Anno_functional_impact/MAF_pop_vars_per_UGT2.pdf', width = 15, height = 23)
+## Number of variants with missing MAF per population
+table(allD_vars_carr_in_pops[which(!is.na(allD_vars_carr_in_pops$Carr_freq)), 'Group'])
+# Carr_freq_African_or_African_American  Carr_freq_Latino_or_Admixed_American            Carr_freq_Ashkenazi_Jewish 
+#                                  1206                                  1206                                  1206 
+# Carr_freq_East_Asian            Carr_freq_European_Finnish        Carr_freq_European_non_Finnish 
+#                 1206                                  1206                                  1206 
+# Carr_freq_South_Asian                       Carr_freq_Other                      Global_carr_freq 
+#                  1131                                  1206                                  1206  
 
-plot_grid(plots[[20]], plots[[21]], ncol=2)
-ggsave(filename='plots/03_Anno_functional_impact/MAF_pop_vars_per_UGT3.pdf', width = 15, height = 5)
+## Label variants with MAF>0.01; ignore missing MAFs
+allD_vars_carr_in_pops$Label <- apply(allD_vars_carr_in_pops, 1, function(x){if (is.na(x['Carr_freq'])){NA}
+  else if(as.numeric(x['Carr_freq'])>=0.01){x['Variant_ID']} else{NA}})
+## Order
+allD_vars_carr_in_pops$Label <- factor(allD_vars_carr_in_pops$Label, levels=c("2-234668879-C-CAT", "2-234668879-C-CATAT",
+                                                                               "2-234638282-G-GT","2-234638599-T-C",
+                                                                               "2-234622331-GC-G", "2-234621848-G-T",
+                                                                               "2-234676872-C-T", "2-234680955-C-T",
+                                                                               "4-70512787-A-T", "4-70504751-G-A",
+                                                                               "4-70462042-C-T", "4-69811110-A-C",
+                                                                               "4-70346480-G-A", 
+                                                                               "4-69693141-GT-G", "4-70078393-C-T",
+                                                                               "4-69536234-G-T", "4-69512937-T-A", 
+                                                                               "4-69512863-G-A", "4-69433906-A-T", NA))
+## Add in which genes those variants are
+commonDvars_genes <- sapply(levels(allD_vars_carr_in_pops$Label), function(x){as.vector(GMAFs_Dvars_genes[which(GMAFs_Dvars_genes$Variant_ID==x), 'gene'])})
+commonDvars_genes[7:8] <- 'UGT1A[1-10]'
+commonDvars_genes[11] <- 'UGT2A1, UGT2A2'
+variant_labels_withGene <- paste0(levels(allD_vars_carr_in_pops$Label), ' (', commonDvars_genes, ')')
 
-plot_grid(plots[[22]])
-ggsave(filename='plots/03_Anno_functional_impact/MAF_pop_vars_per_UGT8.pdf', width = 8, height = 5)
+## Aggregated carr freqs of D variants in each population
+aggregated_carr_per_pop <- melt(sapply(names(table(allD_vars_carr_in_pops$Group)), function(x){sum(allD_vars_carr_in_pops[which(!is.na(allD_vars_carr_in_pops$Carr_freq) & allD_vars_carr_in_pops$Group==x), 'Carr_freq'])}))
+aggregated_MAFs_per_pop$Group <- rownames(aggregated_MAFs_per_pop)
+colnames(aggregated_MAFs_per_pop)[1] <- 'aggregated_MAF'
+aggregated_MAFs_per_pop$aggregated_MAF <- signif(aggregated_MAFs_per_pop$aggregated_MAF, digits=3)
+aggregated_MAFs_per_pop$max_MAF <- sapply(names(table(allD_vars_MAF_in_pops$Group)), function(x){max(allD_vars_MAF_in_pops[which(!is.na(allD_vars_MAF_in_pops$MAF) &  allD_vars_MAF_in_pops$Group==x),'MAF'])})+0.01
+
+## Different shapes for D variants with MAF>=0.01 in at least one population
+shapes <- c('2-234668879-C-CAT'=8,
+            '2-234668879-C-CATAT'=11,
+            '4-70462042-C-T'=25,
+            '4-70512787-A-T'=3,
+            '2-234622331-GC-G'=14,
+            '2-234638282-G-GT'=7,
+            '2-234676872-C-T'=9,
+            '4-69512937-T-A'=1,
+            '4-69536234-G-T'=12,
+            '4-69693141-GT-G'=5,
+            '4-69811110-A-C'=4,
+            '4-70078393-C-T'=0)
+
+ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = Group)) +
+      geom_point(data=subset(allD_vars_MAF_in_pops, is.na(Label)), alpha = 0.65, size = 1.3, 
+                 position = position_jitter(width = 0.1, height = 0), color="tomato") +
+      geom_point(data=subset(allD_vars_MAF_in_pops, !is.na(Label)), aes(shape=Label), size=1.5, 
+                 position = position_jitter(width = 0.25, height = 0), color='tomato3', stroke = 0.9) +
+      theme_bw() +
+      scale_shape_manual(values=shapes[subset(allD_vars_MAF_in_pops, !is.na(Label))$Variant_ID], 
+                         labels = variant_labels_withGene) + 
+      scale_x_discrete(breaks=c(paste0('MAF_',populations), 'Allele_Frequency'),
+                       labels=c("African/African American",
+                                "Latino/Admixed American",
+                                "Ashkenazi Jewish",
+                                "East Asian",
+                                "European Finnish",
+                                "European non Finnish",
+                                "South Asian",
+                                "Other",
+                                "Global")) +
+      labs(title='Deleterious variants in all UGT genes', 
+           subtitle=paste0(length(unique(allD_vars_MAF_in_pops$Variant_ID)), ' deleterious variants in total'), 
+           x='', y='MAF of deleterious variants in each group', shape=paste0('Variant ID (MAF>0.01) & Gene(s)')) +
+       coord_cartesian(ylim = c(0, max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)), clip = 'off') +
+      geom_text(data=aggregated_MAFs_per_pop, aes(x=Group, y=max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)+0.03, shape=NULL, label=aggregated_MAF), size=2.4, color='grey20', fontface='bold') +
+  
+      theme(plot.title = element_text(size = (9), face='bold', vjust = 7.1, hjust=0),
+            plot.subtitle = element_text(size = 8.5, color = "gray50", vjust = 7, hjust=0, face='bold'),
+            plot.margin = unit(c(2, 0.5, 0.5, 0.5), "cm"),
+            axis.title = element_text(size = (8.5), face='bold'),
+            axis.text = element_text(size = (8)),
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
+            legend.title = element_text(size=8.5, face='bold'), 
+            legend.text = element_text(size=8),
+            panel.border = element_rect(colour = "black", fill = NA,
+                                        size = 0.2))
+
+ggsave(filename='plots/03_Anno_functional_impact/MAF_totalDvars_per_population.pdf', width = 8.5, height = 6)   
 
 
+## Aggregated MAF of D variants per gene and gene family in each population
+for (UGTgene in UGT_genes){
+  gene_vars <- subset(GMAFs_Dvars_genes, gene==UGTgene)$Variant_ID
+  vars_freqs <- subset(allD_vars_MAF_in_pops, Variant_ID %in% gene_vars)
+  ## Carrier frequencies: p**2 + 2pq 
+  vars_freqs$carr_freqs <- sapply(vars_freqs$MAF, function(p){(p**2)+(2*p*(1-p))})
+}
 
+  
 
 
 
