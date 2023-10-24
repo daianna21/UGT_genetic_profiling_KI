@@ -2018,7 +2018,7 @@ populations <- c('African_or_African_American',
                  'South_Asian',
                  'Other')
 
-allD_vars_in_pops <- vector()
+allD_vars_MAF_in_pops <- vector()
 for (gene in UGT_genes){
   
   ## Exonic variants per gene
@@ -2030,59 +2030,46 @@ for (gene in UGT_genes){
     ## If no MAF available in the population
     nan <- which(is.nan(exonic_data[,paste0('MAF_', p)]))
     exonic_data[nan, paste0('MAF_', p)] <- NA
-  
-    ## Add carrier frequencies in each population
-      ps <- exonic_data[,paste0('MAF_', p)]
-      exonic_data[,paste0('Carr_freq_', p)] <- sapply(ps, function(x){(x**2)+(2*x*(1-x))})
   }
-  
-  ## Global carr freq 
-  exonic_data$Global_carr_freq <- sapply(exonic_data$Allele_Frequency, function(x){(x**2)+(2*x*(1-x))})
-  
-  ## Carr freqs of D vars in each population
-  data <- exonic_data[which(exonic_data$Functional_impact=='D'),c('Variant_ID', 'Global_carr_freq', 
-                                                                  paste0('Carr_freq_', populations), 'Allele_Frequency', 
-                                                                  paste0('MAF_', populations))]
+  ## MAF of D vars in each population
+  data <- exonic_data[which(exonic_data$Functional_impact=='D'),c('Variant_ID', 'Allele_Frequency', paste0('MAF_', populations))]
   data <- melt(data, id.vars = c('Variant_ID'))
-  colnames(data) <- c('Variant_ID', 'Group', 'Carr_freq')
-  allD_vars_in_pops <- rbind(allD_vars_in_pops, data)
+  colnames(data) <- c('Variant_ID', 'Group', 'MAF')
+  allD_vars_MAF_in_pops <- rbind(allD_vars_MAF_in_pops, data)
 
 }
 
-allD_vars_in_pops <- unique(allD_vars_in_pops)
-allD_vars_in_pops$Group <- factor(allD_vars_in_pops$Group, levels=c(paste0('Carr_freq_',populations), 'Global_carr_freq'))
+allD_vars_MAF_in_pops <- unique(allD_vars_MAF_in_pops)
+allD_vars_MAF_in_pops$Group <- factor(allD_vars_MAF_in_pops$Group, levels=c(paste0('MAF_',populations), 'Allele_Frequency'))
 
 ## Number of variants with missing MAF per population
-table(allD_vars_carr_in_pops[which(!is.na(allD_vars_carr_in_pops$Carr_freq)), 'Group'])
-# Carr_freq_African_or_African_American  Carr_freq_Latino_or_Admixed_American            Carr_freq_Ashkenazi_Jewish 
-#                                  1206                                  1206                                  1206 
-# Carr_freq_East_Asian            Carr_freq_European_Finnish        Carr_freq_European_non_Finnish 
-#                 1206                                  1206                                  1206 
-# Carr_freq_South_Asian                       Carr_freq_Other                      Global_carr_freq 
-#                  1131                                  1206                                  1206  
+table(allD_vars_MAF_in_pops[which(!is.na(allD_vars_MAF_in_pops$MAF)), 'Group'])
+# Allele_Frequency MAF_African_or_African_American  MAF_Latino_or_Admixed_American            MAF_Ashkenazi_Jewish 
+#             1206                            1206                            1206                            1206 
+# MAF_East_Asian            MAF_European_Finnish        MAF_European_non_Finnish                 MAF_South_Asian 
+#           1206                            1206                            1206                            1131 
+# MAF_Other 
+#      1206 
 
 ## Label variants with MAF>0.01; ignore missing MAFs
-allD_vars_carr_in_pops$Label <- apply(allD_vars_carr_in_pops, 1, function(x){if (is.na(x['Carr_freq'])){NA}
-  else if(as.numeric(x['Carr_freq'])>=0.01){x['Variant_ID']} else{NA}})
+allD_vars_MAF_in_pops$Label <- apply(allD_vars_MAF_in_pops, 1, function(x){if (is.na(x['MAF'])){NA}
+  else if(as.numeric(x['MAF'])>=0.01){x['Variant_ID']} else{NA}})
 ## Order
-allD_vars_carr_in_pops$Label <- factor(allD_vars_carr_in_pops$Label, levels=c("2-234668879-C-CAT", "2-234668879-C-CATAT",
-                                                                               "2-234638282-G-GT","2-234638599-T-C",
-                                                                               "2-234622331-GC-G", "2-234621848-G-T",
-                                                                               "2-234676872-C-T", "2-234680955-C-T",
-                                                                               "4-70512787-A-T", "4-70504751-G-A",
-                                                                               "4-70462042-C-T", "4-69811110-A-C",
-                                                                               "4-70346480-G-A", 
-                                                                               "4-69693141-GT-G", "4-70078393-C-T",
-                                                                               "4-69536234-G-T", "4-69512937-T-A", 
-                                                                               "4-69512863-G-A", "4-69433906-A-T", NA))
-## Add in which genes those variants are
-commonDvars_genes <- sapply(levels(allD_vars_carr_in_pops$Label), function(x){as.vector(GMAFs_Dvars_genes[which(GMAFs_Dvars_genes$Variant_ID==x), 'gene'])})
-commonDvars_genes[7:8] <- 'UGT1A[1-10]'
-commonDvars_genes[11] <- 'UGT2A1, UGT2A2'
-variant_labels_withGene <- paste0(levels(allD_vars_carr_in_pops$Label), ' (', commonDvars_genes, ')')
+allD_vars_MAF_in_pops$Label <- factor(allD_vars_MAF_in_pops$Label, levels=c("2-234668879-C-CAT", "2-234668879-C-CATAT",
+                                                                         "2-234638282-G-GT", "2-234622331-GC-G",
+                                                                         "2-234676872-C-T", "4-70512787-A-T",
+                                                                         "4-70462042-C-T", "4-69811110-A-C", 
+                                                                         "4-69693141-GT-G", "4-70078393-C-T",
+                                                                         "4-69536234-G-T", "4-69512937-T-A", NA))
 
-## Aggregated carr freqs of D variants in each population
-aggregated_carr_per_pop <- melt(sapply(names(table(allD_vars_carr_in_pops$Group)), function(x){sum(allD_vars_carr_in_pops[which(!is.na(allD_vars_carr_in_pops$Carr_freq) & allD_vars_carr_in_pops$Group==x), 'Carr_freq'])}))
+## Add in which genes those variants are
+commonDvars_genes <- sapply(levels(allD_vars_MAF_in_pops$Label), function(x){as.vector(GMAFs_Dvars_genes[which(GMAFs_Dvars_genes$Variant_ID==x), 'gene'])})
+commonDvars_genes[5] <- 'UGT1A[1-10]'
+commonDvars_genes[7] <- 'UGT2A1, UGT2A2'
+variant_labels_withGene <- paste0(levels(allD_vars_MAF_in_pops$Label), ' (', commonDvars_genes, ')')
+
+## Aggregated frequencies of D variants in each population
+aggregated_MAFs_per_pop <- melt(sapply(names(table(allD_vars_MAF_in_pops$Group)), function(x){sum(allD_vars_MAF_in_pops[which(!is.na(allD_vars_MAF_in_pops$MAF) & allD_vars_MAF_in_pops$Group==x), 'MAF'])}))
 aggregated_MAFs_per_pop$Group <- rownames(aggregated_MAFs_per_pop)
 colnames(aggregated_MAFs_per_pop)[1] <- 'aggregated_MAF'
 aggregated_MAFs_per_pop$aggregated_MAF <- signif(aggregated_MAFs_per_pop$aggregated_MAF, digits=3)
