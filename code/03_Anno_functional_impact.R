@@ -1878,7 +1878,9 @@ ggplot(data = GMAFs_genes, mapping = aes(x = gene, y = GMAFs, color = gene)) +
           axis.text = element_text(size = (8)),
           axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
           legend.title = element_text(size=8, face='bold'), 
-          legend.text = element_text(size=7.5, face='bold'))
+          legend.text = element_text(size=7.5, face='bold'),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank())
 
 ggsave(filename='plots/03_Anno_functional_impact/GMAF_Dvars_byUGTopMethod.png', width = 8, height = 4.5)
 
@@ -2053,9 +2055,10 @@ ggplot(data = GMAFs_Dvars_gene_fam, mapping = aes(x = gene_fam, y = Allele_Frequ
   scale_color_manual(values = gene_fams_colors) +
   scale_shape_manual(values = shapes) +
   theme_bw() +
-  guides(color = 'none') + 
+  guides(color = 'none', shape='none') + 
   geom_text(data = num_D_per_gene_fam, aes(x=gene_fam, label=number,  y=(1e-05)/4*3, color=NULL), size=2.4) +
-  labs(x='', y='log10(GMAF) of deleterious variants', 
+  geom_text_repel(aes(label=label), color='black', fontface='bold', size=2, min.segment.length=0.9, force_pull=2) +
+  labs(x='', y='log10(GMAF) of deleterious variants per gene family', 
        subtitle = paste0(length(unique(GMAFs_Dvars_gene_fam$Variant_ID)), 
                          ' deleterious variants in UGT genes of all families'),
        shape='Variant ID (GMAF>0.01)') +
@@ -2064,9 +2067,11 @@ ggplot(data = GMAFs_Dvars_gene_fam, mapping = aes(x = gene_fam, y = Allele_Frequ
         axis.text = element_text(size = (8)),
         axis.text.x = element_text(face='bold'),
         legend.title = element_text(size=8, face='bold'), 
-        legend.text = element_text(size=7.5, face='bold'))
+        legend.text = element_text(size=7.5, face='bold'),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
 
-ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene_fam.png', width = 5, height = 4.5)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene_fam.png', width = 3.8, height = 4)
 save(GMAFs_Dvars_gene_fam, file='processed-data/03_Anno_functional_impact/GMAFs_Dvars_gene_fam.Rdata')
 
 
