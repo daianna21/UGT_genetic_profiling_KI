@@ -1844,7 +1844,9 @@ genes_colors <- c('UGT1A1'='thistle2',
                   'UGT2B28'='chocolate4',
                   'UGT3A1'='thistle3',
                   'UGT3A2'='plum4',
-                  'UGT8'='lightskyblue3')
+                  'UGT8'='lightskyblue3', 
+                  'UGT2A[1-2]'='tan2',
+                  'UGT1A[1-10]'='hotpink2')
 
 ## Shapes for variants with GMAF>0.01
 GMAFs_genes$label <- apply(GMAFs_genes, 1, function(x){if(as.numeric(x['GMAFs'])>0.01){x['Variant_ID']} else{NA}})
@@ -1915,7 +1917,7 @@ for (gene in UGT_genes){
   ## All variants in the gene
   gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
   ## D variants only
-  GMAFs_Dvars <- gene_data[which(gene_data$Functional_impact=='D'), c('Variant_ID', 'Allele_Frequency')]
+  GMAFs_Dvars <- gene_data[which(gene_data$Functional_impact=='D'), c('Variant_ID', 'Allele_Frequency', 'Location_in_txs')]
   
   ## Number of D vars per gene
   num_D <- dim(GMAFs_Dvars)[1]
@@ -1926,55 +1928,100 @@ for (gene in UGT_genes){
 GMAFs_Dvars_genes <- as.data.frame(GMAFs_Dvars_genes)
 GMAFs_Dvars_genes$gene <- factor(GMAFs_Dvars_genes$gene, levels=UGT_genes)
 
-## Number of D variants per gene
-num_D_per_gene <- as.data.frame(table(GMAFs_Dvars_genes$gene))
-colnames(num_D_per_gene) <- c('gene', 'number')
+## New category of UGT1 and UGT2 variants: shared (in Exon 2-5/6) or unique (in Exon 1 or promoter region)
+GMAFs_Dvars_genes$shared_or_unique <- apply(GMAFs_Dvars_genes, 1, function(x){if(x['gene'] %in% UGT1_genes & !x['Location_in_txs'] %in% c('Exon 1', '5\' upstream')){'UGT1A[1-10]'} else{x['gene']}})
+
+GMAFs_Dvars_genes$shared_or_unique <- apply(GMAFs_Dvars_genes, 1, function(x){if(x['gene'] %in% c('UGT2A1', 'UGT2A2') & !x['Location_in_txs'] %in% c('Exon 1')){'UGT2A[1-2]'} else{x['shared_or_unique']}})
+
+## Collapse shared variants 
+GMAFs_Dvars_shared_or_unique <- rbind(unique(subset(GMAFs_Dvars_genes, shared_or_unique %in% c('UGT1A[1-10]', 'UGT2A[1-2]'))[c(1,2,5)]),
+                                      subset(GMAFs_Dvars_genes, !shared_or_unique %in% c('UGT1A[1-10]', 'UGT2A[1-2]'))[c(1,2,5)])
+
+## Number of D variants per gene/gene locus
+num_D_per_gene_or_locus <- as.data.frame(table(GMAFs_Dvars_shared_or_unique$shared_or_unique))
+colnames(num_D_per_gene_or_locus) <- c('gene_or_locus', 'number')
+# UGT1A[1-10]      UGT1A1     UGT1A10      UGT1A3      UGT1A4      UGT1A5      UGT1A6      UGT1A7      UGT1A8      UGT1A9  UGT2A[1-2]      UGT2A1 
+#         78          50          61          51          31          34          35          49          56          50          95          37 
+# UGT2A2      UGT2A3     UGT2B10     UGT2B11     UGT2B15     UGT2B17     UGT2B28      UGT2B4      UGT2B7      UGT3A1      UGT3A2        UGT8 
+#     28          56          46          61          69          40          59          48          58          34          51          29 
+
+## Confirm number of D unique and shared variants per UGT1 and UGT2 gene
+for (gene in c(UGT1_genes, 'UGT2A1', 'UGT2A2')){
+  gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
+  ## Unique variants are in Exon 1 (and 5' upstream for UGT1A1)
+  print(paste0('Unique D vars in ', gene, ': ',  sum(table(subset(gene_data, Functional_impact=='D' &
+                                                              Location_in_txs %in% c('Exon 1', '5\' upstream'))$Location_in_txs))))
+  print(paste0('Shared D vars in ', gene, ': ',  sum(table(subset(gene_data, Functional_impact=='D'  &
+                                                                  ! Location_in_txs %in% c('Exon 1', '5\' upstream'))$Location_in_txs))))
+}
+
+# [1] "Unique D vars in UGT1A1: 50"
+# [1] "Shared D vars in UGT1A1: 78"
+# [1] "Unique D vars in UGT1A3: 51"
+# [1] "Shared D vars in UGT1A3: 78"
+# [1] "Unique D vars in UGT1A4: 31"
+# [1] "Shared D vars in UGT1A4: 78"
+# [1] "Unique D vars in UGT1A5: 34"
+# [1] "Shared D vars in UGT1A5: 78"
+# [1] "Unique D vars in UGT1A6: 35"
+# [1] "Shared D vars in UGT1A6: 78"
+# [1] "Unique D vars in UGT1A7: 49"
+# [1] "Shared D vars in UGT1A7: 78"
+# [1] "Unique D vars in UGT1A8: 56"
+# [1] "Shared D vars in UGT1A8: 78"
+# [1] "Unique D vars in UGT1A9: 50"
+# [1] "Shared D vars in UGT1A9: 78"
+# [1] "Unique D vars in UGT1A10: 61"
+# [1] "Shared D vars in UGT1A10: 78"
+# [1] "Unique D vars in UGT2A1: 37"
+# [1] "Shared D vars in UGT2A1: 95"
+# [1] "Unique D vars in UGT2A2: 28"
+# [1] "Shared D vars in UGT2A2: 95"
+
+## Order 
+GMAFs_Dvars_shared_or_unique$shared_or_unique <- factor(GMAFs_Dvars_shared_or_unique$shared_or_unique, levels=c(UGT1_genes, "UGT1A[1-10]", 'UGT2A1', 'UGT2A2', "UGT2A[1-2]",  UGT2_genes[3:10], UGT3_genes, UGT8_genes))
 
 ## Reduce all GMAF<=1e-05 to '<=1e-05'
-GMAFs_Dvars_genes$Allele_Frequency <- sapply(GMAFs_Dvars_genes$Allele_Frequency, function(x){if(x<=1e-05){1e-05} else{x}})
+GMAFs_Dvars_shared_or_unique$Allele_Frequency <- sapply(GMAFs_Dvars_shared_or_unique$Allele_Frequency, function(x){if(x<=1e-05){1e-05} else{x}})
 
 ## Define shapes for D variants with GMAF>0.01
-GMAFs_Dvars_genes$label <- apply(GMAFs_Dvars_genes, 1, function(x){if(as.numeric(x['Allele_Frequency'])>0.01){x['Variant_ID']} else{NA}})
-GMAFs_Dvars_genes[which(GMAFs_Dvars_genes$Allele_Frequency>0.01),]
-#           Variant_ID    Allele_Frequency    gene               label
-#  2-234668879-C-CATAT          0.01559741  UGT1A1 2-234668879-C-CATAT
-#  2-234668879-C-CAT            0.34657642  UGT1A1   2-234668879-C-CAT
-#  4-70462042-C-T               0.07988111  UGT2A1      4-70462042-C-T
-#  4-70512787-A-T               0.03228072  UGT2A1      4-70512787-A-T
-#  4-70462042-C-T               0.07988111  UGT2A2      4-70462042-C-T
+GMAFs_Dvars_shared_or_unique$label <- apply(GMAFs_Dvars_shared_or_unique, 1, function(x){if(as.numeric(x['Allele_Frequency'])>0.01){x['Variant_ID']} else{NA}})
+GMAFs_Dvars_shared_or_unique[which(GMAFs_Dvars_shared_or_unique$Allele_Frequency>0.01),]
+#            Variant_ID   Allele_Frequency  shared_or_unique
+#        4-70462042-C-T         0.07988111        UGT2A[1-2]
+#   2-234668879-C-CATAT         0.01559741            UGT1A1
+#     2-234668879-C-CAT         0.34657642            UGT1A1
+#        4-70512787-A-T         0.03228072            UGT2A1
 
 shapes <- c('2-234668879-C-CAT'=8,
             '2-234668879-C-CATAT'=11,
             '4-70462042-C-T'=25,
             '4-70512787-A-T'=3)
 
-ggplot(data = GMAFs_Dvars_genes, mapping = aes(x = gene, y = Allele_Frequency, color = gene)) +
-  geom_jitter(data=subset(GMAFs_Dvars_genes, is.na(label)), shape=16, width = 0.3, height = 0, alpha = 0.8, size = 1.2) +
-  geom_point(data=subset(GMAFs_Dvars_genes, !is.na(label)), aes(shape=label), alpha = 0.8, size = 1.2, stroke = 1) +
+ggplot(data = GMAFs_Dvars_shared_or_unique, mapping = aes(x = shared_or_unique, y = Allele_Frequency, color = shared_or_unique)) +
+  geom_jitter(data=subset(GMAFs_Dvars_shared_or_unique, is.na(label)), shape=16, width = 0.3, height = 0, alpha = 0.8, size = 1.2) +
+  geom_point(data=subset(GMAFs_Dvars_shared_or_unique, !is.na(label)), aes(shape=label), alpha = 0.8, size = 1.2, stroke = 1) +
   scale_y_continuous(trans='log10', breaks=c(1e-01, 1e-02, 1e-03, 1e-04, 1e-05),
                      labels=c('-1', '-2', '-3', '-4', '≤-5')) +
   scale_color_manual(values = genes_colors) +
   scale_shape_manual(values = shapes) +
   theme_bw() +
-  guides(color = 'none', fill='none') + 
-  geom_text(data = num_D_per_gene, aes(x=gene, label=number,  y=(1e-05)/4*3, color=NULL), size=2) +
-  labs(x='', y='log10(GMAF) of deleterious variants', 
-       subtitle = paste0(length(unique(GMAFs_Dvars_genes$Variant_ID)), 
-                         ' deleterious variants across all UGT genes'),
+  guides(color = 'none', fill='none', shape='none') + 
+  geom_text(data = num_D_per_gene_or_locus, aes(x=gene_or_locus, label=number,  y=(1e-05)/4*3, color=NULL), size=2.3) +
+  geom_text_repel(aes(label=label), color='black', fontface='bold', size=2, min.segment.length=0.9)+
+  labs(x='', y='log10(GMAF) of unique and shared deleterious variants in UGT genes', 
+       subtitle = paste0(dim(GMAFs_Dvars_shared_or_unique)[1], ' deleterious variants across all UGT genes'),
        shape='Variant ID (GMAF>0.01)') +
   theme(plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
-        legend.position = c(0.85, 0.85),
-        legend.key.size = unit(0.3, units = 'cm'),
-        legend.background=element_blank(), 
-        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
         axis.title = element_text(size = (8.5), face='bold'),
         axis.text = element_text(size = (8)),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
-        legend.title = element_text(size=8, face='bold'), 
-        legend.text = element_text(size=7.5, face='bold'))
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
 
-ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene.png', width = 6, height = 4.5)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene.png', width = 6.2, height = 5)
 save(GMAFs_Dvars_genes, file='processed-data/03_Anno_functional_impact/GMAFs_Dvars_genes.Rdata')
+save(GMAFs_Dvars_shared_or_unique, file='processed-data/03_Anno_functional_impact/GMAFs_Dvars_shared_or_unique.Rdata')
 
 
 ## Plot GMAF of all D variants per gene family
