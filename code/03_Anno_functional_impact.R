@@ -1947,7 +1947,7 @@ colnames(num_D_per_gene_or_locus) <- c('gene_or_locus', 'number')
 # UGT2A2      UGT2A3     UGT2B10     UGT2B11     UGT2B15     UGT2B17     UGT2B28      UGT2B4      UGT2B7      UGT3A1      UGT3A2        UGT8 
 #     28          56          46          61          69          40          59          48          58          34          51          29 
 
-## Confirm number of D unique and shared variants per UGT1 and UGT2 gene
+## Confirm number of D unique and shared variants in UGT1 and UGT2 genes
 for (gene in c(UGT1_genes, 'UGT2A1', 'UGT2A2')){
   gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
   ## Unique variants are in Exon 1 (and 5' upstream for UGT1A1)
