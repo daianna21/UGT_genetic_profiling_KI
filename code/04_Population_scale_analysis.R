@@ -106,9 +106,9 @@ shapes <- c('2-234668879-C-CAT'=8,
             '4-69811110-A-C'=4,
             '4-70078393-C-T'=0)
 
-# -------------------------------------------------------------------------------------
-#          Carrier frequency of deleterious variants in each population       
-# -------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------
+#                           Carrier frequency of deleterious variants in each population       
+# ----------------------------------------------------------------------------------------------------------------
 
 ## Carrier freqs in each population
 carr_freq_pop <- list()
@@ -183,7 +183,7 @@ colnames(carr_freq_pop_in_groups) <- c('genetic_group',  'group', 'carr_freq', '
 Qf_pop <- carr_freq_pop[gene_families, ]
 Qf_pop$gene_fam <- Qf_pop$genetic_group
 Qf_pop <- melt(Qf_pop)
-Qf_pop$value <- signif(Qf_pop$value, digits=2)
+Qf_pop$label <- signif(Qf_pop$value, digits=2)
 
 ## Stacked barplot 
 genes_colors <- c('UGT1A1'='thistle2',
@@ -215,7 +215,7 @@ genes_colors <- c('UGT1A1'='thistle2',
 ggplot(carr_freq_pop_in_groups) +
   geom_bar(aes(x = group, y = carr_freq, fill = genetic_group), 
            position = "stack", stat = "identity") +
-  geom_text(data=Qf_pop, aes(label=value, y=value, x=variable, fill=NULL), 
+  geom_text(data=Qf_pop, aes(label=label, y=value, x=variable, fill=NULL), 
             vjust=-0.25, size=2) +
   facet_wrap(~ gene_fam, scales="free_y", ncol=4) + 
   ## Colors by 2nd variable
@@ -242,20 +242,7 @@ ggplot(carr_freq_pop_in_groups) +
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
 
-
-
-
-
-
-
-# -------------------------------------------------------------------------------------
-aggregated_MAFs_per_pop <- melt(sapply(names(table(allD_vars_MAF_in_pops$Group)), 
-                                       function(x){sum(allD_vars_MAF_in_pops[which(!is.na(allD_vars_MAF_in_pops$MAF) & allD_vars_MAF_in_pops$Group==x), 'MAF'])}))
-aggregated_MAFs_per_pop$Group <- rownames(aggregated_MAFs_per_pop)
-colnames(aggregated_MAFs_per_pop)[1] <- 'aggregated_MAF'
-aggregated_MAFs_per_pop$aggregated_MAF <- signif(aggregated_MAFs_per_pop$aggregated_MAF, digits=3)
-aggregated_MAFs_per_pop$max_MAF <- sapply(names(table(allD_vars_MAF_in_pops$Group)), 
-                                          function(x){max(allD_vars_MAF_in_pops[which(!is.na(allD_vars_MAF_in_pops$MAF) &  allD_vars_MAF_in_pops$Group==x),'MAF'])})+0.01
+# ----------------------------------------------------------------------------------------------------------------
 
 ## Plot
 ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = Group)) +
@@ -269,19 +256,18 @@ ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = G
   scale_x_discrete(breaks=c(paste0('MAF_',populations), 'Allele_Frequency'),
                    labels=c("African/African American",
                             "Latino/Admixed American",
-                            "Ashkenazi Jewish",
                             "East Asian",
-                            "European Finnish",
-                            "European non Finnish",
                             "South Asian",
-                            "Other",
+                            "Finnish",
+                            "European non Finnish",
+                            "Ashkenazi Jewish",
                             "Global")) +
-  labs(title='Deleterious variants in all UGT genes', 
+  labs(title='Deleterious variants in all UGT genes per population', 
        subtitle=paste0(length(unique(allD_vars_MAF_in_pops$Variant_ID)), ' deleterious variants in total'), 
-       x='', y='MAF of deleterious variants in each group', shape=paste0('Variant ID (MAF>0.01) & Gene(s)')) +
+       x='', y='MAF of deleterious UGT variants in each human group', shape=paste0('Variant ID (MAF>0.01) & Gene(s)')) +
   coord_cartesian(ylim = c(0, max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)), clip = 'off') +
   ## Add aggregated frequency of all D variants per population
-  geom_text(data=aggregated_MAFs_per_pop, aes(x=Group, y=max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)+0.03, shape=NULL, label=aggregated_MAF), size=2.4, color='grey20', fontface='bold') +
+  geom_text(data=melt(carr_freq_pop['all_vars',]), aes(x=variable, y=max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)+0.03, shape=NULL, label=signif(value/2, 3)), size=2.4, color='grey20', fontface='bold') +
   
   theme(plot.title = element_text(size = (9), face='bold', vjust = 7.1, hjust=0),
         plot.subtitle = element_text(size = 8.5, color = "gray50", vjust = 7, hjust=0, face='bold'),
@@ -297,10 +283,3 @@ ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = G
 ggsave(filename='plots/03_Anno_functional_impact/MAF_totalDvars_per_population.pdf', width = 8.5, height = 6)   
 
 
-## Aggregated MAF of D variants per gene and gene family in each population
-for (UGTgene in UGT_genes){
-  gene_vars <- subset(GMAFs_Dvars_genes, gene==UGTgene)$Variant_ID
-  vars_freqs <- subset(allD_vars_MAF_in_pops, Variant_ID %in% gene_vars)
-  ## Carrier frequencies: p**2 + 2pq 
-  vars_freqs$carr_freqs <- sapply(vars_freqs$MAF, function(p){(p**2)+(2*p*(1-p))})
-}
