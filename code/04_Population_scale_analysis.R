@@ -47,7 +47,7 @@ for (gene in UGT_genes){
   ## Exonic variants per gene
   exonic_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
   
-  ## Compute MAF of variants within each population 
+  ## Obtain MAF of variants within each population 
   for (p in populations){
     exonic_data[,paste0('MAF_', p)] <- exonic_data[,paste0('Allele_Count_', p)]/exonic_data[,paste0('Allele_Number_', p)]
     ## If no MAF available in the population
@@ -65,16 +65,16 @@ allD_vars_MAF_in_pops <- unique(allD_vars_MAF_in_pops)
 allD_vars_MAF_in_pops$Group <- factor(allD_vars_MAF_in_pops$Group, levels=c(paste0('MAF_',populations), 'Allele_Frequency'))
 
 ## Number of variants with missing MAF per population
-table(allD_vars_MAF_in_pops[which(!is.na(allD_vars_MAF_in_pops$MAF)), 'Group'])
-# MAF_African_or_African_American  MAF_Latino_or_Admixed_American            MAF_Ashkenazi_Jewish                  MAF_East_Asian 
-#                            1206                            1206                            1206                            1206 
-# MAF_European_Finnish        MAF_European_non_Finnish                 MAF_South_Asian                Allele_Frequency 
-#                 1206                            1206                            1131                            1206 
+table(allD_vars_MAF_in_pops[which(is.na(allD_vars_MAF_in_pops$MAF)), 'Group'])
+# MAF_African_or_African_American  MAF_Latino_or_Admixed_American                  MAF_East_Asian                 MAF_South_Asian 
+#                               0                               0                               0                              75 
+# MAF_European_Finnish        MAF_European_non_Finnish            MAF_Ashkenazi_Jewish                Allele_Frequency 
+#                    0                               0                               0                               0 
 
 ## Manually add MAF of 2−234668879−C−CAT (UGT1A1*28) variant in South Asians (just taking Indians from )
-allD_vars_MAF_in_pops[which(allD_vars_MAF_in_pops$Group=='MAF_South_Asian' & allD_vars_MAF_in_pops$Variant_ID=='2-234668879-C-CAT'), 'MAF'] <- 1.00536193029491e-03
+allD_vars_MAF_in_pops[which(allD_vars_MAF_in_pops$Group=='MAF_South_Asian' & allD_vars_MAF_in_pops$Variant_ID=='2-234668879-C-CAT'), 'MAF'] <- 0.4557
 
-## Label variants with MAF>0.01 or if they are UGT1A1*28 variant; ignore missing MAFs
+## Label variants with MAF>0.01 or if they are the UGT1A1*28 allele; ignore missing MAFs
 allD_vars_MAF_in_pops$Label <- apply(allD_vars_MAF_in_pops, 1, function(x){if (is.na(x['MAF'])){NA}
                                                                            else if(as.numeric(x['MAF'])>=0.01){x['Variant_ID']}
                                                                            else if(x['Variant_ID']=='2-234668879-C-CAT'){x['Variant_ID']}
@@ -106,87 +106,88 @@ shapes <- c('2-234668879-C-CAT'=8,
             '4-70078393-C-T'=0)
 
 # ----------------------------------------------------------------------------------------------------------------
-#                           Carrier frequency of deleterious variants in each population       
+#                  Expected number of deleterious UGT variants per individual in each population                 
 # ----------------------------------------------------------------------------------------------------------------
 
-## Carrier freqs in each population
-carr_freq_pop <- list()
+## Number of D variants per individual in each population
+num_pop <- list()
 
 for (group in names(table(allD_vars_MAF_in_pops$Group))){
   
-  ## Aggregated frequency of all D UGT variants (Q)
+  ## Aggregated frequency of all D UGT variants (Qk) = number of D UGT variants per haploid genome 
   allDvars_agg <- c('all_vars'=sum(subset(allD_vars_MAF_in_pops, !is.na(MAF) & Group==group)$MAF))
-  ## Carrier frequency (2Q(1-Q) + Q**2)
-  allDvars_carr_freq <- (2*allDvars_agg*(1-allDvars_agg)) + (allDvars_agg**2) 
+  ## Total D UGT variants per diploid genome (2Qk)
+  allDvars_num <- 2*allDvars_agg
   
-  ## Carrier freq of unique and shared D variants in UGT genes (2Qg(1-Qg) + Qg**2)
-  group_carr_freq <- vector()
+  ## Number of unique and shared D variants in UGT genes in a diploid genome (2Qg)
+  group_agg <- vector()
   for (gene_locus_group in names(table(GMAFs_Dvars_shared_or_unique$shared_or_unique))){
     ## Group variants
     group_vars <- subset(GMAFs_Dvars_shared_or_unique, shared_or_unique==gene_locus_group)$Variant_ID
-    ## Aggregated MAF of variants in genetic group (Qg)
+    ## Aggregated MAF of variants in such genetic group (Qg)
     group_agg <- sum(subset(allD_vars_MAF_in_pops, !is.na(MAF) & Group==group & Variant_ID %in% group_vars)$MAF)
-    ## Carr freq
-    group_carr_freq[gene_locus_group] <- (2*group_agg*(1-group_agg)) + (group_agg**2)
+    ## Variants per individual 
+    group_num[gene_locus_group] <- 2*group_agg
   }
 
-  ## Carrier freq of D UGT variants in each gene family (2Qf(1-Qf) + Qf**2) (UGT8 is the same as the gene) 
-  gene_fam_carr_freq <- vector()
+  ## Number of D UGT variants in each gene family per diploid genome (2Qf) (UGT8 is the same as the gene) 
+  gene_fam_num <- vector()
   for(fam in gene_families[-4]){
     ## Family variants
     fam_vars <- subset(GMAFs_Dvars_shared_or_unique, gene_fam==fam)$Variant_ID
     ## Aggregated frequency of family variants (Qf)
     fam_agg <- sum(subset(allD_vars_MAF_in_pops, !is.na(MAF) & Group==group & Variant_ID %in% fam_vars)$MAF)
-    ## Carr freq
-    gene_fam_carr_freq[fam] <- (2*fam_agg*(1-fam_agg)) + (fam_agg**2)
+    ## Number
+    gene_fam_num[fam] <- (2*fam_agg)
   }
   
   ## Concatenate
-  carr_freq_pop[[group]] <- c(allDvars_carr_freq, gene_fam_carr_freq, group_carr_freq)
+  num_pop[[group]] <- c(allDvars_num, gene_fam_num, group_num)
 
 }
 
-# ## All carr freqs
-# carr_freq_pop <- as.data.frame(carr_freq_pop)
-# carr_freq_pop$genetic_group <- rownames(carr_freq_pop)
-# 
-# ## Confirm 2Q = sum(2Qf's)
-# apply(carr_freq_pop[,-9], 2, function(x){c(signif(x['all_vars']), signif(sum(x[gene_families])))})
-# # MAF_African_or_African_American  MAF_Latino_or_Admixed_American                  MAF_East_Asian                 MAF_South_Asian 
-# #                            TRUE                            TRUE                            TRUE                            TRUE 
-# # MAF_European_Finnish        MAF_European_non_Finnish            MAF_Ashkenazi_Jewish                Allele_Frequency 
-# #                 TRUE                            TRUE                            TRUE                            TRUE 
-# 
-# ## Confirm 2Qf = sum(2Qg) taking unique variants per gene and shared variants only once
-# apply(carr_freq_pop[,-9], 2, function(x){c(signif(x['UGT1'])==signif(sum(x[5:14])),
-#                                          signif(x['UGT2'])==signif(sum(x[15:25])), 
-#                                          signif(x['UGT3'])==signif(sum(x[26:27])), 
-#                                          signif(x['UGT8'])==signif(sum(x[28])))})
-# #      MAF_African_or_African_American MAF_Latino_or_Admixed_American MAF_East_Asian MAF_South_Asian MAF_European_Finnish
-# # UGT1                            TRUE                           TRUE           TRUE            TRUE                 TRUE
-# # UGT2                            TRUE                           TRUE           TRUE            TRUE                 TRUE
-# # UGT3                            TRUE                           TRUE           TRUE            TRUE                 TRUE
-# # UGT8                            TRUE                           TRUE           TRUE            TRUE                 TRUE
-# #      MAF_European_non_Finnish MAF_Ashkenazi_Jewish Allele_Frequency
-# # UGT1                     TRUE                 TRUE             TRUE
-# # UGT2                     TRUE                 TRUE             TRUE
-# # UGT3                     TRUE                 TRUE             TRUE
-# # UGT8                     TRUE                 TRUE             TRUE
+## As data frame
+num_pop <- as.data.frame(num_pop)
+num_pop$genetic_group <- rownames(num_pop)
+
+## Confirm 2Q = sum(2Qf's)
+apply(num_pop[,-9], 2, function(x){c(signif(x['all_vars'])==signif(sum(x[gene_families])))})
+# MAF_African_or_African_American  MAF_Latino_or_Admixed_American                  MAF_East_Asian                 MAF_South_Asian
+#                            TRUE                            TRUE                            TRUE                            TRUE
+#            MAF_European_Finnish        MAF_European_non_Finnish            MAF_Ashkenazi_Jewish                Allele_Frequency
+#                            TRUE                            TRUE                            TRUE                            TRUE
+
+## Confirm 2Qf = sum(2Qg) taking unique variants per gene and shared variants only once
+apply(num_pop[,-9], 2, function(x){c(signif(x['UGT1'])==signif(sum(x[6:15])),
+                                         signif(x['UGT2'])==signif(sum(x[16:26])),
+                                         signif(x['UGT3'])==signif(sum(x[27:28])),
+                                         signif(x['UGT8'])==signif(sum(x[29])))})
+#      MAF_African_or_African_American MAF_Latino_or_Admixed_American MAF_East_Asian MAF_South_Asian MAF_European_Finnish
+# UGT1                            TRUE                           TRUE           TRUE            TRUE                 TRUE
+# UGT2                            TRUE                           TRUE           TRUE            TRUE                 TRUE
+# UGT3                            TRUE                           TRUE           TRUE            TRUE                 TRUE
+# UGT8                            TRUE                           TRUE           TRUE            TRUE                 TRUE
+#      MAF_European_non_Finnish MAF_Ashkenazi_Jewish Allele_Frequency
+# UGT1                     TRUE                 TRUE             TRUE
+# UGT2                     TRUE                 TRUE             TRUE
+# UGT3                     TRUE                 TRUE             TRUE
+# UGT8                     TRUE                 TRUE             TRUE
 
 
 ## Subset to genetic groups
-carr_freq_pop_in_groups <- subset(carr_freq_pop, ! genetic_group %in% carr_freq_pop$genetic_group[1:4])
-carr_freq_pop_in_groups <- melt(carr_freq_pop_in_groups)
-carr_freq_pop_in_groups$genetic_group <- factor(carr_freq_pop_in_groups$genetic_group, 
-                                                levels=carr_freq_pop$genetic_group[-c(1:4)])
-carr_freq_pop_in_groups$gene_fam <- substring(carr_freq_pop_in_groups$genetic_group, 1,4)
-colnames(carr_freq_pop_in_groups) <- c('genetic_group',  'group', 'carr_freq', 'gene_fam')
+num_pop_in_groups <- subset(num_pop, ! genetic_group %in% num_pop$genetic_group[1:5])
+## Number od variants in each genetic and human group
+num_pop_in_groups <- melt(num_pop_in_groups)
+num_pop_in_groups$genetic_group <- factor(num_pop_in_groups$genetic_group, 
+                                                levels=num_pop$genetic_group[-c(1:5)])
+num_pop_in_groups$gene_fam <- substring(num_pop_in_groups$genetic_group, 1,4)
+colnames(num_pop_in_groups) <- c('genetic_group',  'group', 'num', 'gene_fam')
 
-## Qf in each population
-# Qf_pop <- carr_freq_pop[gene_families, ]
-# Qf_pop$gene_fam <- Qf_pop$genetic_group
-# Qf_pop <- melt(Qf_pop)
-# Qf_pop$label <- signif(Qf_pop$value, digits=2)
+# Qf in each population
+Qf_pop <- num_pop[gene_families, ]
+Qf_pop$gene_fam <- Qf_pop$genetic_group
+Qf_pop <- melt(Qf_pop)
+Qf_pop$label <- signif(Qf_pop$value, digits=2)
 
 ## Stacked barplot 
 genes_colors <- c('UGT1A1'='thistle2',
@@ -195,14 +196,16 @@ genes_colors <- c('UGT1A1'='thistle2',
                   'UGT1A5'='pink',
                   'UGT1A6'='lightpink2',
                   'UGT1A7'='lightpink3',
-                  'UGT1A8'='hotpink1',
-                  'UGT1A9'='orchid3',
+                  'UGT1A8'='hotpink3',
+                  'UGT1A9'='orchid2',
                   'UGT1A10'='violetred',
+                  'UGT1A[1-10]'='hotpink1',
                   'UGT2A1'='peachpuff2',
                   'UGT2A2'='sandybrown',
+                  'UGT2A[1-2]'='chocolate2',
                   'UGT2A3'='tan3',
                   'UGT2B4'='lightsalmon1',
-                  'UGT2B7'='salmon',
+                  'UGT2B7'='bisque3',
                   'UGT2B10'='lightsalmon3',
                   'UGT2B11'='coral',
                   'UGT2B15'='sienna3',
@@ -210,21 +213,19 @@ genes_colors <- c('UGT1A1'='thistle2',
                   'UGT2B28'='chocolate4',
                   'UGT3A1'='thistle3',
                   'UGT3A2'='plum4',
-                  'UGT8'='lightskyblue3', 
-                  'UGT2A[1-2]'='tan2',
-                  'UGT1A[1-10]'='hotpink2')
+                  'UGT8'='lightskyblue3')
               
 
-ggplot(carr_freq_pop_in_groups) +
-  geom_bar(aes(x = group, y = carr_freq, fill = genetic_group), 
+ggplot(num_pop_in_groups) +
+  geom_bar(aes(x = group, y = num, fill = genetic_group), 
            position = "stack", stat = "identity") +
-  # geom_text(data=Qf_pop, aes(label=label, y=value, x=variable, fill=NULL), 
-  #           vjust=-0.25, size=2) +
+  geom_text(data=Qf_pop, aes(label=label, y=value, x=variable, fill=NULL),
+            vjust=-0.25, size=2) +
   facet_wrap(~ gene_fam, scales="free_y", ncol=4) + 
   ## Colors by 2nd variable
   scale_fill_manual(values = genes_colors) +
   theme_bw() +
-  labs(x='', y = 'Carrier frequency of deleterious UGT variants', fill='Unique gene region/ Overlapping region') +
+  labs(x='', y = 'Number of deleterious UGT variants', fill='Unique gene region/ Overlapping region') +
   scale_x_discrete(breaks=c(paste0('MAF_',populations), 'Allele_Frequency'),
                    labels=c("African/African American",
                             "Latino/Admixed American",
