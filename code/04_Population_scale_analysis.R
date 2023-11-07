@@ -71,8 +71,9 @@ table(allD_vars_MAF_in_pops[which(is.na(allD_vars_MAF_in_pops$MAF)), 'Group'])
 # MAF_European_Finnish        MAF_European_non_Finnish            MAF_Ashkenazi_Jewish                Allele_Frequency 
 #                    0                               0                               0                               0 
 
-## Manually add MAF of 2−234668879−C−CAT (UGT1A1*28) variant in South Asians (just taking Indians from )
+## Manually add MAF of 2−234668879−C−CAT (UGT1A1*28) and 2-234668879-C-CATAT (UGT1A1*37) variants in South Asians 
 allD_vars_MAF_in_pops[which(allD_vars_MAF_in_pops$Group=='MAF_South_Asian' & allD_vars_MAF_in_pops$Variant_ID=='2-234668879-C-CAT'), 'MAF'] <- 0.4557
+allD_vars_MAF_in_pops[which(allD_vars_MAF_in_pops$Group=='MAF_South_Asian' & allD_vars_MAF_in_pops$Variant_ID=='2-234668879-C-CATAT'), 'MAF'] <- 0
 
 ## Label variants with MAF>0.01 or if they are the UGT1A1*28 allele; ignore missing MAFs
 allD_vars_MAF_in_pops$Label <- apply(allD_vars_MAF_in_pops, 1, function(x){if (is.na(x['MAF'])){NA}
@@ -255,7 +256,7 @@ ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = G
   geom_point(data=subset(allD_vars_MAF_in_pops, is.na(Label)), alpha = 0.65, size = 1.3, 
              position = position_jitter(width = 0.1, height = 0), color="tomato") +
   geom_point(data=subset(allD_vars_MAF_in_pops, !is.na(Label)), aes(shape=Label), size=1.5, 
-             position = position_jitter(width = 0.25, height = 0), color='tomato3', stroke = 0.9) +
+             position = position_jitter(width = 0.3, height = 0), color='tomato3', stroke = 0.9) +
   theme_bw() +
   scale_shape_manual(values=shapes[subset(allD_vars_MAF_in_pops, !is.na(Label))$Variant_ID], 
                      labels = variant_labels_withGene) + 
@@ -271,9 +272,9 @@ ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = G
   labs(title='Deleterious variants in all UGT genes per population', 
        subtitle=paste0(length(unique(allD_vars_MAF_in_pops$Variant_ID)), ' deleterious variants in total'), 
        x='', y='MAF of deleterious UGT variants in each human group', shape=paste0('Variant ID (MAF>0.01) & Gene(s)')) +
-  coord_cartesian(ylim = c(0, max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)), clip = 'off') +
   ## Add aggregated frequency of all D variants per population
-  geom_text(data=melt(carr_freq_pop['all_vars',]), aes(x=variable, y=max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)+0.03, shape=NULL, label=signif(value, 3)), size=2.4, color='grey20', fontface='bold') +
+  coord_cartesian(ylim = c(0, max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)), clip = 'off') +
+  geom_text(data=melt(num_pop['all_vars',]), aes(x=variable, y=max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)+0.035, shape=NULL, label=signif(value, 3)), size=2.4, color='grey20', fontface='bold') +
   
   theme(plot.title = element_text(size = (9), face='bold', vjust = 7.1, hjust=0),
         plot.subtitle = element_text(size = 8.5, color = "gray50", vjust = 7, hjust=0, face='bold'),
@@ -286,6 +287,6 @@ ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = G
         panel.border = element_rect(colour = "black", fill = NA,
                                     size = 0.2))
 
-ggsave(filename='plots/04_Population_scale_analysis/MAF_totalDvars_per_population.pdf', width = 8.5, height = 6)   
+ggsave(filename='plots/04_Population_scale_analysis/MAF_totalDvars_per_population.pdf', width = 8, height = 6)   
 
 
