@@ -225,7 +225,7 @@ ggplot(num_pop_in_groups) +
   ## Colors by 2nd variable
   scale_fill_manual(values = genes_colors) +
   theme_bw() +
-  labs(x='', y = 'Number of deleterious UGT variants', fill='Unique gene region/ Overlapping region') +
+  labs(x='', y = 'Averange number of deleterious UGT variants per individual', fill='Unique gene region/ Overlapping region') +
   scale_x_discrete(breaks=c(paste0('MAF_',populations), 'Allele_Frequency'),
                    labels=c("African/African American",
                             "Latino/Admixed American",
@@ -245,6 +245,8 @@ ggplot(num_pop_in_groups) +
         strip.text = element_text(face="bold"),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
+
+ggsave(filename='plots/04_Population_scale_analysis/Num_Dvars_per_individual.pdf', width = 14, height = 6)   
 
 # ----------------------------------------------------------------------------------------------------------------
 
@@ -284,6 +286,6 @@ ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = G
         panel.border = element_rect(colour = "black", fill = NA,
                                     size = 0.2))
 
-ggsave(filename='plots/03_Anno_functional_impact/MAF_totalDvars_per_population.pdf', width = 8.5, height = 6)   
+ggsave(filename='plots/04_Population_scale_analysis/MAF_totalDvars_per_population.pdf', width = 8.5, height = 6)   
 
 
