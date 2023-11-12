@@ -1,6 +1,7 @@
 
 library(here)
 library(ggplot2)
+library(scales)
 library(sessioninfo)
 
 
@@ -31,8 +32,13 @@ load(here('processed-data/03_Anno_functional_impact/GMAFs_Dvars_shared_or_unique
 ## Add gene family info
 GMAFs_Dvars_shared_or_unique$gene_fam <- substring(GMAFs_Dvars_shared_or_unique$shared_or_unique, 1, 4)
 
-## Plot MAF of all D variants within each population
 
+
+# _______________________________________________________________________________
+#  4.1   Examine MAF of deleterious UGT variants within each population
+# _______________________________________________________________________________
+
+## Plot 
 populations <- c('African_or_African_American',
                  'Latino_or_Admixed_American',
                  'East_Asian',
@@ -106,9 +112,10 @@ shapes <- c('2-234668879-C-CAT'=8,
             '4-69811110-A-C'=4,
             '4-70078393-C-T'=0)
 
+
 # ----------------------------------------------------------------------------------------------------------------
-#                  Expected number of deleterious UGT variants per individual in each population                 
-# ----------------------------------------------------------------------------------------------------------------
+#  4.1.1  Expected number of deleterious UGT variants per individual in each population                 
+
 
 ## Number of D variants per individual in each population
 num_pop <- list()
@@ -290,3 +297,188 @@ ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = G
 ggsave(filename='plots/04_Population_scale_analysis/MAF_totalDvars_per_population.pdf', width = 8, height = 6)   
 
 
+
+# _______________________________________________________________________________
+#  4.2   Compare MAF of the regulatory UGT1A1 variants in each population
+# _______________________________________________________________________________
+
+## Variants are annotated in UGT8 dataset                                                                                           
+var_data <- UGT1A8_data[UGT1A8_data$rsIDs=='rs34983651',]   
+
+MAF_var_data <- data.frame(matrix(ncol=8, nrow=5))
+colnames(MAF_var_data) <- c(paste0('MAF_',populations), 'Allele_Frequency')
+rownames(MAF_var_data) <- rownames(var_data)
+
+## MAF in each population
+for (p in populations){
+  MAF_var_data[,paste0('MAF_', p)] <- var_data[,paste0('Allele_Count_', p)]/var_data[,paste0('Allele_Number_', p)]
+}
+
+MAF_var_data$Allele_Frequency <- var_data$Allele_Frequency
+
+## Add MAF of variants in South Asians 
+MAF_var_data['2-234668879-C-CAT', 'MAF_South_Asian'] <- 0.4557
+MAF_var_data['2-234668879-C-CATAT', 'MAF_South_Asian'] <- 0
+MAF_var_data['2-234668879-CAT-C', 'MAF_South_Asian'] <- 0
+MAF_var_data['2-234668879-C-CATATAT', 'MAF_South_Asian'] <- 0
+MAF_var_data['2-234668879-C-CATATATAT', 'MAF_South_Asian'] <- 0
+
+## Add MAF of reference allele (1 - MAF of all alternate alleles)
+MAF_var_data['2-234668879-C-C', ] <- 1-apply(MAF_var_data, 2, sum)
+MAF_var_data$variant <- factor(rownames(MAF_var_data), levels=c('2-234668879-CAT-C', '2-234668879-C-C', '2-234668879-C-CAT',
+                               '2-234668879-C-CATAT', '2-234668879-C-CATATAT', '2-234668879-C-CATATATAT')) 
+MAF_var_data <- as.data.frame(melt(MAF_var_data))
+MAF_var_data$label <- sapply(MAF_var_data$value, function(x){if(x==0){NA}else{100*signif(x, digits=3)}})
+
+## Pie charts
+ggplot(MAF_var_data, aes(x="", y=value, fill=variant)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  facet_wrap(~ variable, labeller = labeller(variable = c("MAF_African_or_African_American" = "African/African American",
+                                                          "MAF_Latino_or_Admixed_American" = "Latino/Admixed American",
+                                                          "MAF_East_Asian" = "East Asian",
+                                                          "MAF_South_Asian"="South Asian",
+                                                          "MAF_European_Finnish"="Finnish",
+                                                          "MAF_European_non_Finnish"="European non Finnish",
+                                                          "MAF_Ashkenazi_Jewish"="Ashkenazi Jewish",
+                                                          "Allele_Frequency"="Global")), ncol=4) + 
+  labs(fill='UGT1A1 promoter variant')+
+  theme_void() + 
+  geom_label_repel(aes(label = label, fill=variant), position=position_stack(vjust=0.5),
+                   force_pull=3, size=3, label.padding=0.1, show.legend=FALSE) +
+  scale_fill_manual(values = c('2-234668879-C-CATAT'='mediumaquamarine',
+                               '2-234668879-C-CATATATAT'='gold2',
+                               '2-234668879-C-CATATAT'='lightskyblue',
+                               '2-234668879-CAT-C'='pink2',
+                               '2-234668879-C-CAT'='salmon',
+                               '2-234668879-C-C'='peachpuff2'), 
+                    labels=c('2-234668879-C-CATAT'='T8 (UGT1A1*37)',
+                             '2-234668879-C-CATATATAT'='T10',
+                             '2-234668879-C-CATATAT'='T9',
+                             '2-234668879-CAT-C'='T5 (UGT1A1*36)',
+                             '2-234668879-C-CAT'='T7 (UGT1A1*28)',
+                             '2-234668879-C-C'='T6 (UGT1A1*1)')) +
+  theme(legend.title = element_text(size=8.5, face='bold'), 
+        legend.text = element_text(size=8),
+        strip.text = element_text(face="bold"),
+        plot.margin = unit(c(0, 0.5, 0, 0.5), "cm"))
+
+ggsave(filename='plots/04_Population_scale_analysis/UGT1A1_promoter_variants.pdf', width = 12, height = 6)  
+
+
+
+
+
+
+
+## Reproducibility information
+print('Reproducibility information:')
+Sys.time()
+proc.time()
+options(width = 120)
+session_info()
+
+# ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+# setting  value
+# version  R version 4.3.0 (2023-04-21)
+# os       macOS Monterey 12.5.1
+# system   aarch64, darwin20
+# ui       RStudio
+# language (EN)
+# collate  en_US.UTF-8
+# ctype    en_US.UTF-8
+# tz       Europe/Stockholm
+# date     2023-11-12
+# rstudio  2023.06.1+524 Mountain Hydrangea (desktop)
+# pandoc   NA
+# 
+# ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+# ! package        * version date (UTC) lib source
+# bit              4.0.5   2022-11-15 [1] CRAN (R 4.3.0)
+# bit64            4.0.5   2020-08-30 [1] CRAN (R 4.3.0)
+# cachem           1.0.8   2023-05-01 [1] CRAN (R 4.3.0)
+# callr            3.7.3   2022-11-02 [1] CRAN (R 4.3.0)
+# cli              3.6.1   2023-03-23 [1] CRAN (R 4.3.0)
+# colorspace       2.1-0   2023-01-23 [1] CRAN (R 4.3.0)
+# corrplot       * 0.92    2021-11-18 [1] CRAN (R 4.3.0)
+# cowplot        * 1.1.1   2020-12-30 [1] CRAN (R 4.3.0)
+# crayon           1.5.2   2022-09-29 [1] CRAN (R 4.3.0)
+# curl             5.0.1   2023-06-07 [1] CRAN (R 4.3.0)
+# desc             1.4.2   2022-09-08 [1] CRAN (R 4.3.0)
+# devtools       * 2.4.5   2022-10-11 [1] CRAN (R 4.3.0)
+# digest           0.6.33  2023-07-07 [1] CRAN (R 4.3.0)
+# distributional   0.3.2   2023-03-22 [1] CRAN (R 4.3.0)
+# dplyr            1.1.2   2023-04-20 [1] CRAN (R 4.3.0)
+# ellipsis         0.3.2   2021-04-29 [1] CRAN (R 4.3.0)
+# V fansi            1.0.4   2023-10-08 [1] CRAN (R 4.3.1) (on disk 1.0.5)
+# farver           2.1.1   2022-07-06 [1] CRAN (R 4.3.0)
+# fastmap          1.1.1   2023-02-24 [1] CRAN (R 4.3.0)
+# fs               1.6.3   2023-07-20 [1] CRAN (R 4.3.0)
+# generics         0.1.3   2022-07-05 [1] CRAN (R 4.3.0)
+# ggdist         * 3.3.0   2023-05-13 [1] CRAN (R 4.3.0)
+# ggExtra        * 0.10.1  2023-08-21 [1] CRAN (R 4.3.0)
+# V ggplot2        * 3.4.2   2023-10-12 [1] CRAN (R 4.3.1) (on disk 3.4.4)
+# ggrepel        * 0.9.3   2023-02-03 [1] CRAN (R 4.3.0)
+# ggside         * 0.2.2   2023-10-24 [1] Github (jtlandis/ggside@83002b3)
+# glue             1.6.2   2022-02-24 [1] CRAN (R 4.3.0)
+# V gtable           0.3.3   2023-08-21 [1] CRAN (R 4.3.0) (on disk 0.3.4)
+# here           * 1.0.1   2020-12-13 [1] CRAN (R 4.3.0)
+# hms              1.1.3   2023-03-21 [1] CRAN (R 4.3.0)
+# htmltools        0.5.5   2023-03-23 [1] CRAN (R 4.3.0)
+# htmlwidgets      1.6.2   2023-03-17 [1] CRAN (R 4.3.0)
+# httpuv           1.6.11  2023-05-11 [1] CRAN (R 4.3.0)
+# insight          0.19.6  2023-10-12 [1] CRAN (R 4.3.1)
+# V labeling         0.4.2   2023-08-29 [1] CRAN (R 4.3.0) (on disk 0.4.3)
+# later            1.3.1   2023-05-02 [1] CRAN (R 4.3.0)
+# lifecycle        1.0.3   2022-10-07 [1] CRAN (R 4.3.0)
+# magrittr         2.0.3   2022-03-30 [1] CRAN (R 4.3.0)
+# memoise          2.0.1   2021-11-26 [1] CRAN (R 4.3.0)
+# mime             0.12    2021-09-28 [1] CRAN (R 4.3.0)
+# miniUI           0.1.1.1 2018-05-18 [1] CRAN (R 4.3.0)
+# munsell          0.5.0   2018-06-12 [1] CRAN (R 4.3.0)
+# pillar           1.9.0   2023-03-22 [1] CRAN (R 4.3.0)
+# pkgbuild         1.4.2   2023-06-26 [1] CRAN (R 4.3.0)
+# pkgconfig        2.0.3   2019-09-22 [1] CRAN (R 4.3.0)
+# pkgload          1.3.2.1 2023-07-08 [1] CRAN (R 4.3.0)
+# plyr             1.8.8   2022-11-11 [1] CRAN (R 4.3.0)
+# prettyunits      1.1.1   2020-01-24 [1] CRAN (R 4.3.0)
+# pROC           * 1.18.4  2023-07-06 [1] CRAN (R 4.3.0)
+# processx         3.8.2   2023-06-30 [1] CRAN (R 4.3.0)
+# profvis          0.3.8   2023-05-02 [1] CRAN (R 4.3.0)
+# promises         1.2.0.1 2021-02-11 [1] CRAN (R 4.3.0)
+# ps               1.7.5   2023-04-18 [1] CRAN (R 4.3.0)
+# purrr            1.0.1   2023-01-10 [1] CRAN (R 4.3.0)
+# R6               2.5.1   2021-08-19 [1] CRAN (R 4.3.0)
+# ragg             1.2.5   2023-01-12 [1] CRAN (R 4.3.0)
+# RColorBrewer     1.1-3   2022-04-03 [1] CRAN (R 4.3.0)
+# Rcpp             1.0.11  2023-07-06 [1] CRAN (R 4.3.0)
+# readr          * 2.1.4   2023-02-10 [1] CRAN (R 4.3.0)
+# remotes          2.4.2.1 2023-07-18 [1] CRAN (R 4.3.0)
+# reshape2       * 1.4.4   2020-04-09 [1] CRAN (R 4.3.0)
+# rlang          * 1.1.1   2023-04-28 [1] CRAN (R 4.3.0)
+# rprojroot        2.0.3   2022-04-02 [1] CRAN (R 4.3.0)
+# rstudioapi       0.15.0  2023-07-07 [1] CRAN (R 4.3.0)
+# scales         * 1.2.1   2022-08-20 [1] CRAN (R 4.3.0)
+# see            * 0.8.0   2023-06-05 [1] CRAN (R 4.3.0)
+# sessioninfo    * 1.2.2   2021-12-06 [1] CRAN (R 4.3.0)
+# shiny            1.7.4.1 2023-07-06 [1] CRAN (R 4.3.0)
+# stringi          1.7.12  2023-01-11 [1] CRAN (R 4.3.0)
+# stringr          1.5.0   2022-12-02 [1] CRAN (R 4.3.0)
+# systemfonts      1.0.4   2022-02-11 [1] CRAN (R 4.3.0)
+# textshaping      0.3.6   2021-10-13 [1] CRAN (R 4.3.0)
+# tibble           3.2.1   2023-03-20 [1] CRAN (R 4.3.0)
+# tidyselect       1.2.0   2022-10-10 [1] CRAN (R 4.3.0)
+# tzdb             0.4.0   2023-05-12 [1] CRAN (R 4.3.0)
+# urlchecker       1.0.1   2021-11-30 [1] CRAN (R 4.3.0)
+# usethis        * 2.2.2   2023-07-06 [1] CRAN (R 4.3.0)
+# V utf8             1.2.3   2023-10-22 [1] CRAN (R 4.3.1) (on disk 1.2.4)
+# V vctrs            0.6.3   2023-10-12 [1] CRAN (R 4.3.1) (on disk 0.6.4)
+# vroom            1.6.3   2023-04-28 [1] CRAN (R 4.3.0)
+# V withr            2.5.0   2023-09-26 [1] CRAN (R 4.3.1) (on disk 2.5.1)
+# xtable           1.8-4   2019-04-21 [1] CRAN (R 4.3.0)
+# 
+# [1] /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library
+# 
+# V ── Loaded and on-disk version mismatch.
+# 
+# ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
