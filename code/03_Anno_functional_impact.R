@@ -2077,7 +2077,7 @@ save(GMAFs_Dvars_gene_fam, file='processed-data/03_Anno_functional_impact/GMAFs_
 
 
 
-  
+
 
 
 ## Reproducibility information
