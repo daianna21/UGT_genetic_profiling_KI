@@ -352,12 +352,12 @@ ggplot(MAF_var_data, aes(x="", y=value, fill=variant)) +
                                '2-234668879-CAT-C'='pink2',
                                '2-234668879-C-CAT'='salmon',
                                '2-234668879-C-C'='peachpuff2'), 
-                    labels=c('2-234668879-C-CATAT'='T8 (UGT1A1*37)',
-                             '2-234668879-C-CATATATAT'='T10',
-                             '2-234668879-C-CATATAT'='T9',
-                             '2-234668879-CAT-C'='T5 (UGT1A1*36)',
-                             '2-234668879-C-CAT'='T7 (UGT1A1*28)',
-                             '2-234668879-C-C'='T6 (UGT1A1*1)')) +
+                    labels=c('2-234668879-C-CATAT'='(TA)8 (UGT1A1*37)',
+                             '2-234668879-C-CATATATAT'='(TA)10',
+                             '2-234668879-C-CATATAT'='(TA)9',
+                             '2-234668879-CAT-C'='(TA)5 (UGT1A1*36)',
+                             '2-234668879-C-CAT'='(TA)7 (UGT1A1*28)',
+                             '2-234668879-C-C'='(TA)6 (UGT1A1*1)')) +
   theme(legend.title = element_text(size=8.5, face='bold'), 
         legend.text = element_text(size=8),
         strip.text = element_text(face="bold"),
