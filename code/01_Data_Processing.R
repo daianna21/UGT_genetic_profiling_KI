@@ -1237,7 +1237,68 @@ ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf')
 #  1.1.4 Examination of the minor allele frequency of all UGT variants
 # _____________________________________________________________________________
 
+## GMAF of all variants
+all_UGT_vars_MAF <-c(UGT1_exonic_variants$MAF, UGT2_exonic_variants$MAF, UGT3_exonic_variants$MAF, UGT8_exonic_variants$MAF)
 
+## Quantiles
+quantiles <- as.data.frame(quantile(all_UGT_vars_MAF, probs=seq(from=0, to=1, length=7000)))
+quantiles$Quantile <- rownames(quantiles)
+colnames(quantiles) <- c('MAF', 'Quantile')
+quantiles$Quantile <- as.numeric(gsub('%', '', quantiles$Quantile))
+
+## Quantile for MAF≤0.00001 (Singletons)
+singletons_q <- max(subset(quantiles, MAF<=0.00001)$Quantile)
+
+## Quantile for 0.001<MAF≤0.01 (Rare)
+rare_q <- max(subset(quantiles, MAF<=0.001)$Quantile)
+
+## Quantile for MAF>0.01 (Common)
+common_q <- min(subset(quantiles, MAF>0.01)$Quantile)
+
+## Labels for such points
+quantiles$label <- sapply(quantiles$Quantile, function(x){if(x==singletons_q | x==rare_q | x==common_q){signif(x, digits=3)} else{NA}})
+
+## Categorize based on log10MAF
+quantiles$maf_cat <- sapply(log10(quantiles$MAF), function(x){if(x<=(-5)){'Singleton'} 
+                                         else if(x>(-5) & x<=(-3)){'Very rare'}
+                                         else if(x>(-3) & x<=(-2)){'Rare'}
+                                         else {'Common'}})
+quantiles$maf_cat <- factor(quantiles$maf_cat, levels=c('Singleton', 'Very rare', 'Rare', 'Common'))
+
+ggplot(data = quantiles, aes(x = Quantile, ymin = 0, ymax = MAF, fill = maf_cat)) +
+  geom_ribbon(alpha=0.75) +
+  scale_y_continuous(trans='log10', breaks=c(1e+00, 1e-01, 1e-02,  1e-03, 1e-04, 1e-05, 1e-06),
+                     labels=c('0', '-1', '-2', '-3', '-4', '-5', '-6'), expand = c(0, 0)) +
+  scale_x_continuous(breaks=c(0,25,50,75,100),
+                     labels=c('0%', '25%', '50%', '75%', '100%')) +
+  scale_fill_manual(values=c('Singleton'='honeydew2', 'Very rare'='lightcyan3', 'Rare'='lightblue4', 'Common'='midnightblue')) +
+  labs(x='Percentage of variants', y='log10(GMAF) of exonic variants', fill='Variant frequency') +
+  theme_classic() +  
+  geom_line(aes(y = MAF)) +
+  ## Singletons
+  geom_point(aes(x=singletons_q, y=1e-05, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
+  geom_hline(yintercept = 1e-05, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+  ## Rare variants
+  geom_point(aes(x=rare_q, y=1e-03, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
+  geom_hline(yintercept = 1e-03, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+  ## Common variants
+  geom_point(aes(x=common_q, y=1e-02, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
+  geom_hline(yintercept = 1e-02, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+  geom_text_repel(aes(x=label, y=MAF, fill=NULL, label=paste0(label ,'%')), 
+                  size=3, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1.5, 
+                  box.padding = 0.3, lineheight=unit(2, 'lines'), nudge_x=0, nudge_y=0.2, 
+                  fontface='bold') + 
+  geom_text(aes(label='Singleton', x=20, y=(1e-05)/3*2), size=2.9, color='gray30') +
+  geom_text(aes(label='Very rare', x=20, y=1e-04), size=2.9, color='gray30') +
+  geom_text(aes(label='Rare', x=20, y=0.003), size=2.9, color='gray30') +
+  geom_text(aes(label='Common', x=20, y=1e-01), size=2.9, color='gray30') +
+  theme(legend.key.size = unit(0.35, units = 'cm'),
+        axis.text = element_text(size = 9),
+        legend.text = element_text(size=9),
+        legend.title = element_text(size =10, face='bold'),
+        axis.title = element_text(size = (11), face='bold'))
+
+ggsave(filename=paste0('plots/01_Data_Processing/MAF_all_vars.pdf'), width = 6, height = 4.2)
 
 
 
