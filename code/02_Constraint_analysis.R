@@ -4,6 +4,7 @@ library(rlang)
 library(ggplot2)
 library(cowplot)
 library(phylotools)
+library(Biostrings)
 library(sessioninfo)
 
 
@@ -218,11 +219,11 @@ constraint_metrics$Num_miss_exp <- sapply(paste0('table(', UGT_genes, '_expected
 constraint_metrics$Num_syn_exp <-  sapply(paste0('table(', UGT_genes, '_expected_variant_num)[\'synonymous\']'), function(x){eval(parse_expr(x))})
 constraint_metrics$Prop_exp <- sapply(paste0('signif(table(', UGT_genes, '_expected_variant_num)[\'missense\']/table(', UGT_genes,
                                              '_expected_variant_num)[\'synonymous\'], digits=4)'), function(x){eval(parse_expr(x))})
-constraint_metrics$diff_Prop_ob_exp <- constraint_metrics$Prop_ob - constraint_metrics$Prop_exp
 constraint_metrics$Num_miss_ob <- sapply(paste0('table(', UGT_genes, '_exonic_data$VEP_Annotation)[\'missense_variant\']'), function(x){eval(parse_expr(x))})
 constraint_metrics$Num_syn_ob <- sapply(paste0('table(', UGT_genes, '_exonic_data$VEP_Annotation)[\'synonymous_variant\']'), function(x){eval(parse_expr(x))})
 constraint_metrics$Prop_ob <- sapply(paste0('signif(table(', UGT_genes, '_exonic_data$VEP_Annotation)[\'missense_variant\']/table(', UGT_genes,
                                             '_exonic_data$VEP_Annotation)[\'synonymous_variant\'], digits=4)'), function(x){eval(parse_expr(x))})
+constraint_metrics$diff_Prop_ob_exp <- constraint_metrics$Prop_ob - constraint_metrics$Prop_exp
 
 ## Metrics from gnomAD:
 constraint_metrics$Num_miss_ob_gnomAD <- c(309, 360, 378, 314, 294, 314, 360, 346, 366, 340, 358, 354, 331, 338, 397, 459, 313, 238, 373, 290, 277, 210)
@@ -250,23 +251,23 @@ p1 <- ggplot(constraint_metrics, aes(x=Prop_exp, y=Prop_ob, color = Gene_family)
   stat_smooth(geom = "line", alpha = 0.6, size = 0.7, span = 0.25, method = lm, color = "orangered3") +
   ## Colors
   scale_color_manual(values = colors_gene_fam) +
-  theme_bw() +
+  theme_classic() +
   ## Add Pearson correlation coefficient as subtitle
   labs(
     subtitle = paste0("Corr: ", signif(cor(constraint_metrics$Prop_exp, constraint_metrics$Prop_ob, method = "pearson"), digits = 3)),
     ## Add axis labels
-    x = 'Expected proportion of missense/synonymous variants',
-    y = 'Observed proportion of missense/synonymous variants',
+    x = 'Expected proportion of miss/syn variants',
+    y = 'Observed proportion of miss/syn variants',
     color='Gene family'
   ) +
   ## Plot margins and text size
   theme(
     plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-    axis.title = element_text(size = (11)),
     axis.text = element_text(size = (10)),
-    plot.subtitle = element_text(size = 9, color = "gray30"),
+    plot.subtitle = element_text(size = 10, color = "gray30", face='bold'),
     legend.text = element_text(size = 9),
-    legend.title = element_text(size =10))
+    legend.title = element_text(size =10, face='bold'),
+    axis.title = element_text(size = (11), face='bold'))
 
 
 ###############  Correlation between manually computed observed miss/syn proportion and missense oe ratio  ###############  
@@ -275,20 +276,21 @@ p2 <- ggplot(constraint_metrics, aes(x=Prop_ob, y=oe_miss, color = Gene_family))
   geom_point(size=2) +
   stat_smooth(geom = "line", alpha = 0.6, size = 0.7, span = 0.25, method = lm, color = "orangered3") +
   scale_color_manual(values = colors_gene_fam) +
-  theme_bw() +
+  theme_classic() +
   labs(
     subtitle = paste0("Corr: ", signif(cor(constraint_metrics$Prop_ob, constraint_metrics$oe_miss, method = "pearson"), digits = 3)),
-    x = 'Observed proportion of missense/synonymous variants',
+    x = 'Observed proportion of miss/syn variants',
     y = 'oe ratio for number of missense variants (gnomAD)',
     color='Gene family'
   ) +
   theme(
     plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-    axis.title = element_text(size = (11)),
     axis.text = element_text(size = (10)),
-    plot.subtitle = element_text(size = 9, color = "gray30"),
+    plot.subtitle = element_text(size = 10, color = "gray30", face='bold'),
     legend.text = element_text(size = 9),
-    legend.title = element_text(size =10))
+    legend.title = element_text(size =10, face='bold'),
+    axis.title = element_text(size = (11), face='bold'))
+
 
 
 ###############  Correlation between manually computed expected miss/syn proportion and missense oe ratio  ###############  
@@ -297,20 +299,21 @@ p3 <- ggplot(constraint_metrics, aes(x=Prop_exp, y=oe_miss, color = Gene_family)
   geom_point(size=2) +
   stat_smooth(geom = "line", alpha = 0.6, size = 0.7, span = 0.25, method = lm, color = "orangered3") +
   scale_color_manual(values = colors_gene_fam) +
-  theme_bw() +
+  theme_classic() +
   labs(
     subtitle = paste0("Corr: ", signif(cor(constraint_metrics$Prop_exp, constraint_metrics$oe_miss, method = "pearson"), digits = 3)),
-    x = 'Expected proportion of missense/synonymous variants',
+    x = 'Expected proportion of miss/syn variants',
     y = 'oe ratio for number of missense variants (gnomAD)',
     color='Gene family'
   ) +
   theme(
     plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-    axis.title = element_text(size = (11)),
     axis.text = element_text(size = (10)),
-    plot.subtitle = element_text(size = 9, color = "gray30"),
+    plot.subtitle = element_text(size = 10, color = "gray30", face='bold'),
     legend.text = element_text(size = 9),
-    legend.title = element_text(size =10))
+    legend.title = element_text(size =10, face='bold'),
+    axis.title = element_text(size = (11), face='bold'))
+
 
 
 ###############  Correlation between manually computed observed miss/syn proportion and synonymous oe ratio  ###############  
@@ -319,20 +322,21 @@ p4 <- ggplot(constraint_metrics, aes(x=Prop_ob, y=oe_syn, color = Gene_family)) 
   geom_point(size=2) +
   stat_smooth(geom = "line", alpha = 0.6, size = 0.7, span = 0.25, method = lm, color = "orangered3") +
   scale_color_manual(values = colors_gene_fam) +
-  theme_bw() +
+  theme_classic() +
   labs(
     subtitle = paste0("Corr: ", signif(cor(constraint_metrics$Prop_ob, constraint_metrics$oe_syn, method = "pearson"), digits = 3)),
-    x = 'Observed proportion of missense/synonymous variants',
+    x = 'Observed proportion of miss/syn variants',
     y = 'oe ratio for number of synonymous variants (gnomAD)',
     color='Gene family'
   ) +
   theme(
     plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-    axis.title = element_text(size = (11)),
     axis.text = element_text(size = (10)),
-    plot.subtitle = element_text(size = 9, color = "gray30"),
+    plot.subtitle = element_text(size = 10, color = "gray30", face='bold'),
     legend.text = element_text(size = 9),
-    legend.title = element_text(size =10))
+    legend.title = element_text(size =10, face='bold'),
+    axis.title = element_text(size = (11), face='bold'))
+
 
 
 ###############  Correlation between manually computed expected miss/syn proportion and synonymous oe ratio  ###############  
@@ -341,20 +345,21 @@ p5 <- ggplot(constraint_metrics, aes(x=Prop_exp, y=oe_syn, color = Gene_family))
   geom_point(size=2) +
   stat_smooth(geom = "line", alpha = 0.6, size = 0.7, span = 0.25, method = lm, color = "orangered3") +
   scale_color_manual(values = colors_gene_fam) +
-  theme_bw() +
+  theme_classic() +
   labs(
     subtitle = paste0("Corr: ", signif(cor(constraint_metrics$Prop_exp, constraint_metrics$oe_syn, method = "pearson"), digits = 3)),
-    x = 'Expected proportion of missense/synonymous variants',
+    x = 'Expected proportion of miss/syn variants',
     y = 'oe ratio for number of synonymous variants (gnomAD)',
     color='Gene family'
   ) +
   theme(
     plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-    axis.title = element_text(size = (11)),
     axis.text = element_text(size = (10)),
-    plot.subtitle = element_text(size = 9, color = "gray30"),
+    plot.subtitle = element_text(size = 10, color = "gray30", face='bold'),
     legend.text = element_text(size = 9),
-    legend.title = element_text(size =10))
+    legend.title = element_text(size =10, face='bold'),
+    axis.title = element_text(size = (11), face='bold'))
+
 
 
 ###############  Correlation between missense oe ratio and observed - expected miss/syn proportion ###############  
@@ -363,20 +368,21 @@ p6 <- ggplot(constraint_metrics, aes(x=diff_Prop_ob_exp, y=oe_miss, color = Gene
   geom_point(size=2) +
   stat_smooth(geom = "line", alpha = 0.6, size = 0.7, span = 0.25, method = lm, color = "orangered3") +
   scale_color_manual(values = colors_gene_fam) +
-  theme_bw() +
+  theme_classic() +
   labs(
     subtitle = paste0("Corr: ", signif(cor(constraint_metrics$diff_Prop_ob_exp, constraint_metrics$oe_miss, method = "pearson"), digits = 3)),
-    x = 'Observed - Expected proportion of missense/synonymous variants',
+    x = 'Observed - Expected proportion of miss/syn variants',
     y = 'oe ratio for number of missense variants (gnomAD)',
     color='Gene family'
   ) +
   theme(
     plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-    axis.title = element_text(size = (11)),
     axis.text = element_text(size = (10)),
-    plot.subtitle = element_text(size = 9, color = "gray30"),
+    plot.subtitle = element_text(size = 10, color = "gray30", face='bold'),
     legend.text = element_text(size = 9),
-    legend.title = element_text(size =10))
+    legend.title = element_text(size =10, face='bold'),
+    axis.title = element_text(size = (11), face='bold'))
+
 
 
 ###############  Correlation between synonymous oe ratio and observed - expected miss/syn proportion ###############  
@@ -385,24 +391,25 @@ p7 <- ggplot(constraint_metrics, aes(x=diff_Prop_ob_exp, y=oe_syn, color = Gene_
   geom_point(size=2) +
   stat_smooth(geom = "line", alpha = 0.6, size = 0.7, span = 0.25, method = lm, color = "orangered3") +
   scale_color_manual(values = colors_gene_fam) +
-  theme_bw() +
+  theme_classic() +
   labs(
     subtitle = paste0("Corr: ", signif(cor(constraint_metrics$diff_Prop_ob_exp, constraint_metrics$oe_syn, method = "pearson"), digits = 3)),
-    x = 'Observed - Expected proportion of missense/synonymous variants',
+    x = 'Observed - Expected proportion of miss/syn variants',
     y = 'oe ratio for number of synonymous variants (gnomAD)',
     color='Gene family'
   ) +
   theme(
     plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-    axis.title = element_text(size = (11)),
     axis.text = element_text(size = (10)),
-    plot.subtitle = element_text(size = 9, color = "gray30"),
+    plot.subtitle = element_text(size = 10, color = "gray30", face='bold'),
     legend.text = element_text(size = 9),
-    legend.title = element_text(size =10))
+    legend.title = element_text(size =10, face='bold'),
+    axis.title = element_text(size = (11), face='bold'))
+
 
 
 plot_grid(p1, p2, p3, p4, p5, p6, p7, nrow=2, rel_widths = c(1,1,1,1,1,1.5,1.5))
-ggsave('plots/02_Constraint_analysis/Corr_plots.pdf', width = 25, height = 8.5)
+ggsave('plots/02_Constraint_analysis/Corr_plots.pdf', width = 22, height = 8.5)
 
 
 
@@ -427,79 +434,112 @@ session_info()
 # collate  en_US.UTF-8
 # ctype    en_US.UTF-8
 # tz       Europe/Stockholm
-# date     2023-09-22
+# date     2023-11-26
 # rstudio  2023.06.1+524 Mountain Hydrangea (desktop)
 # pandoc   NA
 # 
 # ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
-# package              * version   date (UTC) lib source
-# ape                  * 5.7-1     2023-03-13 [1] CRAN (R 4.3.0)
-# beachmat               2.16.0    2023-05-08 [1] Bioconductor
-# Biobase              * 2.61.0    2023-06-02 [1] Bioconductor
-# BiocGenerics         * 0.47.0    2023-06-02 [1] Bioconductor
-# BiocParallel           1.35.3    2023-07-07 [1] Bioconductor
-# bitops                 1.0-7     2021-04-24 [1] CRAN (R 4.3.0)
-# cli                    3.6.1     2023-03-23 [1] CRAN (R 4.3.0)
-# codetools              0.2-19    2023-02-01 [1] CRAN (R 4.3.0)
-# colorspace             2.1-0     2023-01-23 [1] CRAN (R 4.3.0)
-# cowplot              * 1.1.1     2020-12-30 [1] CRAN (R 4.3.0)
-# crayon                 1.5.2     2022-09-29 [1] CRAN (R 4.3.0)
-# DelayedArray           0.26.6    2023-07-02 [1] Bioconductor
-# DelayedMatrixStats     1.23.0    2023-04-25 [1] Bioconductor
-# digest                 0.6.33    2023-07-07 [1] CRAN (R 4.3.0)
-# dplyr                  1.1.2     2023-04-20 [1] CRAN (R 4.3.0)
-# fansi                  1.0.4     2023-01-22 [1] CRAN (R 4.3.0)
-# farver                 2.1.1     2022-07-06 [1] CRAN (R 4.3.0)
-# generics               0.1.3     2022-07-05 [1] CRAN (R 4.3.0)
-# GenomeInfoDb         * 1.37.2    2023-06-21 [1] Bioconductor
-# GenomeInfoDbData       1.2.10    2023-05-28 [1] Bioconductor
-# GenomicRanges        * 1.53.1    2023-06-02 [1] Bioconductor
-# ggplot2              * 3.4.2     2023-04-03 [1] CRAN (R 4.3.0)
-# glue                   1.6.2     2022-02-24 [1] CRAN (R 4.3.0)
-# gtable                 0.3.3     2023-03-21 [1] CRAN (R 4.3.0)
-# here                 * 1.0.1     2020-12-13 [1] CRAN (R 4.3.0)
-# hms                    1.1.3     2023-03-21 [1] CRAN (R 4.3.0)
-# IRanges              * 2.35.2    2023-06-23 [1] Bioconductor
-# labeling               0.4.2     2020-10-20 [1] CRAN (R 4.3.0)
-# lattice                0.21-8    2023-04-05 [1] CRAN (R 4.3.0)
-# lifecycle              1.0.3     2022-10-07 [1] CRAN (R 4.3.0)
-# magrittr               2.0.3     2022-03-30 [1] CRAN (R 4.3.0)
-# Matrix                 1.6-0     2023-07-08 [1] CRAN (R 4.3.0)
-# MatrixGenerics       * 1.13.0    2023-05-20 [1] Bioconductor
-# matrixStats          * 1.0.0     2023-06-02 [1] CRAN (R 4.3.0)
-# munsell                0.5.0     2018-06-12 [1] CRAN (R 4.3.0)
-# nlme                   3.1-162   2023-01-31 [1] CRAN (R 4.3.0)
-# phylotools           * 0.2.4     2023-08-31 [1] Github (helixcn/phylotools@758d338)
-# pillar                 1.9.0     2023-03-22 [1] CRAN (R 4.3.0)
-# pkgconfig              2.0.3     2019-09-22 [1] CRAN (R 4.3.0)
-# R6                     2.5.1     2021-08-19 [1] CRAN (R 4.3.0)
-# ragg                   1.2.5     2023-01-12 [1] CRAN (R 4.3.0)
-# Rcpp                   1.0.11    2023-07-06 [1] CRAN (R 4.3.0)
-# RCurl                  1.98-1.12 2023-03-27 [1] CRAN (R 4.3.0)
-# readr                * 2.1.4     2023-02-10 [1] CRAN (R 4.3.0)
-# rlang                * 1.1.1     2023-04-28 [1] CRAN (R 4.3.0)
-# rprojroot              2.0.3     2022-04-02 [1] CRAN (R 4.3.0)
-# rstudioapi             0.15.0    2023-07-07 [1] CRAN (R 4.3.0)
-# S4Arrays               1.1.4     2023-06-02 [1] Bioconductor
-# S4Vectors            * 0.39.1    2023-06-02 [1] Bioconductor
-# scales                 1.2.1     2022-08-20 [1] CRAN (R 4.3.0)
-# scuttle              * 1.9.4     2023-01-23 [1] Bioconductor
-# sessioninfo          * 1.2.2     2021-12-06 [1] CRAN (R 4.3.0)
-# SingleCellExperiment * 1.23.0    2023-04-25 [1] Bioconductor
-# sparseMatrixStats      1.13.0    2023-05-20 [1] Bioconductor
-# SummarizedExperiment * 1.30.2    2023-06-06 [1] Bioconductor
-# systemfonts            1.0.4     2022-02-11 [1] CRAN (R 4.3.0)
-# textshaping            0.3.6     2021-10-13 [1] CRAN (R 4.3.0)
-# tibble                 3.2.1     2023-03-20 [1] CRAN (R 4.3.0)
-# tidyselect             1.2.0     2022-10-10 [1] CRAN (R 4.3.0)
-# tzdb                   0.4.0     2023-05-12 [1] CRAN (R 4.3.0)
-# utf8                   1.2.3     2023-01-31 [1] CRAN (R 4.3.0)
-# vctrs                  0.6.3     2023-06-14 [1] CRAN (R 4.3.0)
-# withr                  2.5.0     2022-03-03 [1] CRAN (R 4.3.0)
-# XVector                0.41.1    2023-06-02 [1] Bioconductor
-# zlibbioc               1.47.0    2023-05-20 [1] Bioconductor
+# ! package          * version   date (UTC) lib source
+# ape              * 5.7-1     2023-03-13 [1] CRAN (R 4.3.0)
+# BiocGenerics     * 0.47.0    2023-06-02 [1] Bioconductor
+# Biostrings       * 2.69.2    2023-07-05 [1] Bioconductor
+# bit                4.0.5     2022-11-15 [1] CRAN (R 4.3.0)
+# bit64              4.0.5     2020-08-30 [1] CRAN (R 4.3.0)
+# bitops             1.0-7     2021-04-24 [1] CRAN (R 4.3.0)
+# cachem             1.0.8     2023-05-01 [1] CRAN (R 4.3.0)
+# callr              3.7.3     2022-11-02 [1] CRAN (R 4.3.0)
+# cli                3.6.1     2023-03-23 [1] CRAN (R 4.3.0)
+# colorspace         2.1-0     2023-01-23 [1] CRAN (R 4.3.0)
+# corrplot         * 0.92      2021-11-18 [1] CRAN (R 4.3.0)
+# cowplot          * 1.1.1     2020-12-30 [1] CRAN (R 4.3.0)
+# crayon             1.5.2     2022-09-29 [1] CRAN (R 4.3.0)
+# curl               5.0.1     2023-06-07 [1] CRAN (R 4.3.0)
+# desc               1.4.2     2022-09-08 [1] CRAN (R 4.3.0)
+# devtools         * 2.4.5     2022-10-11 [1] CRAN (R 4.3.0)
+# digest             0.6.33    2023-07-07 [1] CRAN (R 4.3.0)
+# distributional     0.3.2     2023-03-22 [1] CRAN (R 4.3.0)
+# dplyr              1.1.2     2023-04-20 [1] CRAN (R 4.3.0)
+# ellipsis           0.3.2     2021-04-29 [1] CRAN (R 4.3.0)
+# V fansi              1.0.4     2023-10-08 [1] CRAN (R 4.3.1) (on disk 1.0.5)
+# farver             2.1.1     2022-07-06 [1] CRAN (R 4.3.0)
+# fastmap            1.1.1     2023-02-24 [1] CRAN (R 4.3.0)
+# fs                 1.6.3     2023-07-20 [1] CRAN (R 4.3.0)
+# generics           0.1.3     2022-07-05 [1] CRAN (R 4.3.0)
+# GenomeInfoDb     * 1.37.2    2023-06-21 [1] Bioconductor
+# GenomeInfoDbData   1.2.10    2023-05-28 [1] Bioconductor
+# ggdist           * 3.3.0     2023-05-13 [1] CRAN (R 4.3.0)
+# ggExtra          * 0.10.1    2023-08-21 [1] CRAN (R 4.3.0)
+# V ggplot2          * 3.4.2     2023-10-12 [1] CRAN (R 4.3.1) (on disk 3.4.4)
+# ggrepel          * 0.9.3     2023-02-03 [1] CRAN (R 4.3.0)
+# ggside           * 0.2.2     2023-10-24 [1] Github (jtlandis/ggside@83002b3)
+# glue               1.6.2     2022-02-24 [1] CRAN (R 4.3.0)
+# V gtable             0.3.3     2023-08-21 [1] CRAN (R 4.3.0) (on disk 0.3.4)
+# here             * 1.0.1     2020-12-13 [1] CRAN (R 4.3.0)
+# hms                1.1.3     2023-03-21 [1] CRAN (R 4.3.0)
+# htmltools          0.5.5     2023-03-23 [1] CRAN (R 4.3.0)
+# htmlwidgets        1.6.2     2023-03-17 [1] CRAN (R 4.3.0)
+# httpuv             1.6.11    2023-05-11 [1] CRAN (R 4.3.0)
+# insight            0.19.6    2023-10-12 [1] CRAN (R 4.3.1)
+# IRanges          * 2.35.2    2023-06-23 [1] Bioconductor
+# V labeling           0.4.2     2023-08-29 [1] CRAN (R 4.3.0) (on disk 0.4.3)
+# later              1.3.1     2023-05-02 [1] CRAN (R 4.3.0)
+# lattice            0.21-8    2023-04-05 [1] CRAN (R 4.3.0)
+# lifecycle          1.0.3     2022-10-07 [1] CRAN (R 4.3.0)
+# magrittr           2.0.3     2022-03-30 [1] CRAN (R 4.3.0)
+# memoise            2.0.1     2021-11-26 [1] CRAN (R 4.3.0)
+# mime               0.12      2021-09-28 [1] CRAN (R 4.3.0)
+# miniUI             0.1.1.1   2018-05-18 [1] CRAN (R 4.3.0)
+# munsell            0.5.0     2018-06-12 [1] CRAN (R 4.3.0)
+# nlme               3.1-162   2023-01-31 [1] CRAN (R 4.3.0)
+# phylotools       * 0.2.4     2023-08-31 [1] Github (helixcn/phylotools@758d338)
+# pillar             1.9.0     2023-03-22 [1] CRAN (R 4.3.0)
+# pkgbuild           1.4.2     2023-06-26 [1] CRAN (R 4.3.0)
+# pkgconfig          2.0.3     2019-09-22 [1] CRAN (R 4.3.0)
+# pkgload            1.3.2.1   2023-07-08 [1] CRAN (R 4.3.0)
+# plyr               1.8.8     2022-11-11 [1] CRAN (R 4.3.0)
+# prettyunits        1.1.1     2020-01-24 [1] CRAN (R 4.3.0)
+# pROC             * 1.18.4    2023-07-06 [1] CRAN (R 4.3.0)
+# processx           3.8.2     2023-06-30 [1] CRAN (R 4.3.0)
+# profvis            0.3.8     2023-05-02 [1] CRAN (R 4.3.0)
+# promises           1.2.0.1   2021-02-11 [1] CRAN (R 4.3.0)
+# ps                 1.7.5     2023-04-18 [1] CRAN (R 4.3.0)
+# purrr              1.0.1     2023-01-10 [1] CRAN (R 4.3.0)
+# R6                 2.5.1     2021-08-19 [1] CRAN (R 4.3.0)
+# ragg               1.2.5     2023-01-12 [1] CRAN (R 4.3.0)
+# RColorBrewer       1.1-3     2022-04-03 [1] CRAN (R 4.3.0)
+# Rcpp               1.0.11    2023-07-06 [1] CRAN (R 4.3.0)
+# RCurl              1.98-1.12 2023-03-27 [1] CRAN (R 4.3.0)
+# readr            * 2.1.4     2023-02-10 [1] CRAN (R 4.3.0)
+# remotes            2.4.2.1   2023-07-18 [1] CRAN (R 4.3.0)
+# reshape2         * 1.4.4     2020-04-09 [1] CRAN (R 4.3.0)
+# rlang            * 1.1.1     2023-04-28 [1] CRAN (R 4.3.0)
+# rprojroot          2.0.3     2022-04-02 [1] CRAN (R 4.3.0)
+# rstudioapi         0.15.0    2023-07-07 [1] CRAN (R 4.3.0)
+# S4Vectors        * 0.39.1    2023-06-02 [1] Bioconductor
+# scales           * 1.2.1     2022-08-20 [1] CRAN (R 4.3.0)
+# see              * 0.8.0     2023-06-05 [1] CRAN (R 4.3.0)
+# sessioninfo      * 1.2.2     2021-12-06 [1] CRAN (R 4.3.0)
+# shiny              1.7.4.1   2023-07-06 [1] CRAN (R 4.3.0)
+# stringi            1.7.12    2023-01-11 [1] CRAN (R 4.3.0)
+# stringr            1.5.0     2022-12-02 [1] CRAN (R 4.3.0)
+# systemfonts        1.0.4     2022-02-11 [1] CRAN (R 4.3.0)
+# textshaping        0.3.6     2021-10-13 [1] CRAN (R 4.3.0)
+# tibble             3.2.1     2023-03-20 [1] CRAN (R 4.3.0)
+# tidyselect         1.2.0     2022-10-10 [1] CRAN (R 4.3.0)
+# tzdb               0.4.0     2023-05-12 [1] CRAN (R 4.3.0)
+# urlchecker         1.0.1     2021-11-30 [1] CRAN (R 4.3.0)
+# usethis          * 2.2.2     2023-07-06 [1] CRAN (R 4.3.0)
+# V utf8               1.2.3     2023-10-22 [1] CRAN (R 4.3.1) (on disk 1.2.4)
+# V vctrs              0.6.3     2023-10-12 [1] CRAN (R 4.3.1) (on disk 0.6.4)
+# vroom              1.6.3     2023-04-28 [1] CRAN (R 4.3.0)
+# V withr              2.5.0     2023-09-26 [1] CRAN (R 4.3.1) (on disk 2.5.1)
+# xtable             1.8-4     2019-04-21 [1] CRAN (R 4.3.0)
+# XVector          * 0.41.1    2023-06-02 [1] Bioconductor
+# zlibbioc           1.47.0    2023-05-20 [1] Bioconductor
 # 
 # [1] /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library
+# 
+# V ── Loaded and on-disk version mismatch.
 # 
 # ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
