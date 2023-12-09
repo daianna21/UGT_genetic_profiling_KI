@@ -8,7 +8,7 @@ library(sessioninfo)
 
 
 ####################################################################################################
-##                                1. Data Processing and Correction
+##                                1. Data Processing and Filtering
 ####################################################################################################
 
 ## UGT genes
@@ -810,17 +810,17 @@ barplot_gene_fam<- function(gene_family){
   colnames(total_num) <- c('n', 'gene')
   
   p <- ggplot(var_data, aes(fill=factor(location, levels=ordered_locations), y=number, x=gene)) + 
-    geom_bar(position="stack", stat="identity") + 
+    geom_bar(position="stack", stat="identity", width = 0.8) + 
     geom_text(data=total_num, aes(label=n, y=n+2, x=gene, fill=NULL), vjust=-0.25, size=3.2) +
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of reported variants in canonical transcript', fill='Location') +
     theme_classic() +
-    ylim(0, 960) +
     scale_fill_manual(values = var_colors) +
-    theme(axis.text.x = element_text(size = 8, face='italic'),
-          axis.text.y = element_text(size = 8),
-          legend.text = element_text(size=9), 
-          legend.title = element_text(size =10, face='bold'),
-          axis.title = element_text(size = (11), face='bold'))
+    scale_y_continuous(limits = c(0,990), expand = c(0,0)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 10, face='italic'),
+          axis.text.y = element_text(size = 10),
+          legend.text = element_text(size=11), 
+          legend.title = element_text(size =12, face='bold'),
+          axis.title = element_text(size = (11.5), face='bold'))
   
   return(p)
 }
@@ -830,8 +830,8 @@ p2 <- barplot_gene_fam('UGT2')
 p3 <- barplot_gene_fam('UGT3')
 p4 <- barplot_gene_fam('UGT8')
 
-plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1,1.1, 0.46, 0.37))
-ggsave(filename=paste0('plots/01_Data_Processing/All_variants_genes.pdf'), width = 20, height = 6)
+plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1,1.08, 0.52, 0.46))
+ggsave(filename=paste0('plots/01_Data_Processing/All_variants_genes.pdf'), width = 16, height = 5.1)
 
 
 
@@ -918,29 +918,30 @@ barplot_exonic_variants <- function(gene_family){
   
   
   p <- ggplot(var_data, aes(y=number, x=gene)) + 
-    geom_bar(stat="identity", fill=var_colors[['Exon']]) + 
+    geom_bar(stat="identity", fill=var_colors[['Exon']], width = 0.8) + 
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of exonic variants in canonical transcript') +
     geom_text(aes(label=number), vjust=-0.25, size=3.4) +
     theme_classic() + 
-    ylim(0, 730) +
-    theme(axis.text = element_text(size = 10),
+    scale_y_continuous(limits = c(0,740), expand = c(0,0)) +
+    theme(plot.margin = margin(30, 20, 30, 20),
+          axis.text = element_text(size = 10),
           legend.position="none", 
-          axis.text.x = element_text(size = 8, face='italic'),
-          axis.text.y = element_text(size = 8),
-          axis.title = element_text(size = (11), face='bold'))
+          axis.text.x = element_text(angle=90, vjust=0.5, hjust=1, size = 10, face='italic'),
+          axis.text.y = element_text(size = 10),
+          axis.title = element_text(size = (11.5), face='bold'))
   
   ## Plot with exon categories
 
   return(p)
 }
 
-p1 <- barplot_exonic_variants('UGT1') + theme(plot.margin = margin(30, 5, 30, 5))
-p2 <- barplot_exonic_variants('UGT2') + theme(plot.margin = margin(30, 5, 30, 5))
-p3 <- barplot_exonic_variants('UGT3') + theme(plot.margin = margin(30, 5, 30, 5))
-p4 <- barplot_exonic_variants('UGT8') + theme(plot.margin = margin(30, 5, 30, 5))
+p1 <- barplot_exonic_variants('UGT1') 
+p2 <- barplot_exonic_variants('UGT2')
+p3 <- barplot_exonic_variants('UGT3') 
+p4 <- barplot_exonic_variants('UGT8') 
 
-plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1,1.1, 0.3, 0.20), align = "hv")
-ggsave(filename=paste0('plots/01_Data_Processing/Exonic_variants_genes.pdf'), width = 20, height = 7)
+plot_grid(p1, p2, p3, p4, NULL, nrow=1, labels = c("A", "B", "C", "D"), rel_widths = c(1,1.08, 0.41, 0.32, 0.01))
+ggsave(filename=paste0('plots/01_Data_Processing/Exonic_variants_genes.pdf'), width = 13, height = 6)
 
 
 ## Plot number of exonic variants from each anno for each gene
