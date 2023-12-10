@@ -759,7 +759,7 @@ var_colors <- list('Exon 1'= 'mistyrose2',
                    '5\' upstream'= 'thistle3', 
                    '3\' downstream'='khaki1',
                    'Exonic variants'= 'salmon',
-                   'Non-exonic variants'= 'darkslategray3')
+                   'Non-exonic variants'= 'darkseagreen3')
 
 
 ## Function to create barplot for all variants in genes of a certain family
@@ -1054,18 +1054,19 @@ total_num <- as.data.frame(melt(total_num))
 colnames(total_num) <- c('n', 'gene_family')
 
 p1 <- ggplot(var_data, aes(fill=factor(location, levels=locations), y=number, x=gene_family)) + 
-  geom_bar(position="stack", stat="identity") + 
+  geom_bar(position="stack", stat="identity", width=0.8) + 
   labs(x='UGT gene family', y='Number of variants in canonical transcripts of genes', fill='Location') +
   theme_classic() + 
-  geom_text(data=total_num, aes(label=n, y=n, x=gene_family, fill=NULL), vjust=-0.25, size=3.4) +
-  ylim(0, 7200) +
+  geom_text(data=total_num, aes(label=n, y=n+30, x=gene_family, fill=NULL), vjust=-0.25, size=3.4) +
+  scale_y_continuous(limits = c(0,7600), expand = c(0,0)) +
   scale_fill_manual(values = var_colors) +
-  theme(axis.text = element_text(size = 8),
-        plot.margin = margin(10, 2, 10, 2),
-        legend.title = element_text(size =10, face='bold'),
-        legend.text = element_text(size =9),
-        axis.title = element_text(size = (11), face='bold'))
-  
+  theme(plot.margin = margin(10, 2, 10, 2),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.text = element_text(size=11), 
+        legend.title = element_text(size =12, face='bold'),
+        axis.title = element_text(size = (11.5), face='bold'))
+
 
 ####################### Number of total/exonic variants #######################
 
@@ -1087,18 +1088,19 @@ data$number <- as.numeric(data$number)
 data$category <- factor(data$category, levels = c('Exonic variants', 'Non-exonic variants'))
 
 p2 <- ggplot(data, aes(y=number, x=gene_family, fill=category)) + 
-  geom_bar(stat="identity", position = position_stack(reverse = TRUE)) + 
+  geom_bar(stat="identity", position = position_stack(reverse = TRUE), width = 0.8) + 
   labs(x='UGT gene family', y='Number of variants in canonical transcripts of genes', fill='Category') +
   theme_classic() + 
-  geom_text(data=total_num, aes(label=n, x=gene_family, y=n+130, fill=NULL), size=3.4, fontface='bold') +
-  geom_text(data=subset(data, category=='Exonic variants'), aes(label=number, x=gene_family, y=number/2, fill=NULL), size=3.4, color='darkred', fontface='bold') +
+  geom_text(data=total_num, aes(label=n, x=gene_family, y=n+150, fill=NULL), size=3.5) +
+  geom_text(data=subset(data, category=='Exonic variants'), aes(label=number, x=gene_family, y=number/2, fill=NULL), size=3.5) +
+  scale_y_continuous(limits = c(0,7600), expand = c(0,0)) +
   scale_fill_manual(values = var_colors) +
-  ylim(0, 7400) +
-  theme(axis.text = element_text(size = 8),
-        plot.margin = margin(10, 2, 10, 2),
-        legend.title = element_text(size =10, face='bold'),
-        axis.title = element_text(size = (11), face='bold'),
-        legend.text = element_text(size =9))
+  theme(plot.margin = margin(10, 2, 10, 2),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.text = element_text(size=11), 
+        legend.title = element_text(size =12, face='bold'),
+        axis.title = element_text(size = (11.5), face='bold'))
 
 
 ################# Number of exonic variants of each annotation #################
@@ -1178,10 +1180,6 @@ create_exonic_gene_fam_table('UGT8')
 
 
 ## Stacked barplot
-annotations <- c("frameshift_variant", "inframe_deletion", "inframe_insertion", "missense_variant",
-                 "splice_donor_variant", "splice_region_variant", "synonymous_variant", "start_lost",   
-                 "stop_lost", "stop_gained", "stop_retained_variant")
-
 total_num <- list()
 var_data <- data.frame(matrix(ncol = 3))
 colnames(var_data) <- c('gene_family', 'annotation', 'number')
@@ -1189,13 +1187,15 @@ colnames(var_data) <- c('gene_family', 'annotation', 'number')
 for(gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')){
   
   UGT_exonic_variants <- eval(parse_expr(paste0(gene_family, '_exonic_variants')))
+  UGT_exonic_variants$anno <- sapply(UGT_exonic_variants$VEP_Annotation, function(x){if(x %in% ordered_annotations){x}else{'other'}})
+  
   data <- data.frame(matrix(ncol = 3))
   colnames(data) <- c('gene_family', 'annotation', 'number')
   
-  for (i in 1:length(annotations)){
+  for (i in 1:length(ordered_annotations)){
     data[i,'gene_family'] <- gene_family
-    data[i,'annotation'] <- annotations[i]
-    data[i,'number'] <- table(UGT_exonic_variants$VEP_Annotation)[annotations[i]]
+    data[i,'annotation'] <- ordered_annotations[i]
+    data[i,'number'] <- table(UGT_exonic_variants$anno)[ordered_annotations[i]]
   }
   var_data <- rbind(var_data, data)
   total_num[[gene_family]] <- dim(UGT_exonic_variants)[1]
@@ -1203,30 +1203,28 @@ for(gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')){
 
 var_data$number <- replace(var_data$number, which(is.na(var_data$number)), 0)
 var_data$gene_family <- factor(var_data$gene_family, levels = unique(var_data$gene_family))
+var_data$annotation <- factor(var_data$annotation, levels = ordered_annotations)
 var_data <- var_data[-1,]
 total_num <- as.data.frame(melt(total_num))
 colnames(total_num) <- c('n', 'gene')
 
-p3 <- ggplot(var_data, aes(fill=factor(annotation, levels=annotations), y=number, x=gene_family)) + 
-  geom_bar(position="stack", stat="identity") + 
+p3 <- ggplot(var_data, aes(fill=factor(annotation, levels=ordered_annotations), y=number, x=gene_family)) + 
+  geom_bar(position="stack", stat="identity", width=0.8) + 
   labs(x='UGT gene family', y='Number of exonic variants in canonical transcripts of genes', fill='Variant annotation') +
   theme_classic() + 
-  geom_text(data=total_num, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.4, fontface='bold') +
-  ylim(0, 7400) +
-  scale_fill_manual(values = exonic_vars_anno_colors) +
-  guides(fill=guide_legend(ncol=2)) +
-  theme(legend.key.size = unit(0.25, units = 'cm'),
-        legend.direction = "horizontal",
-        legend.position = c(0.5, 0.85),
-        axis.text = element_text(size = 8),
-        legend.text = element_text(size=8),
-        legend.title = element_text(size =9, face='bold'),
-        axis.title = element_text(size = (11), face='bold'))
-
+  geom_text(data=total_num, aes(label=n, y=n+35, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
+  scale_fill_manual(values=exonic_vars_anno_colors, labels=c('Other', 'Stop gained', 'Frameshift', 'Synonymous', 'Missense')) +
+  scale_y_continuous(limits = c(0,7600), expand = c(0,0)) +
+  theme(plot.margin = margin(10, 2, 10, 2),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.text = element_text(size=11), 
+        legend.title = element_text(size =12, face='bold'),
+        axis.title = element_text(size = (11.5), face='bold'))
 
 ## Plots for gene families
-plot_grid(p1, p2, p3, nrow = 1, rel_widths = c(0.9, 1, 0.69))
-ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf'), width = 17, height = 7)
+plot_grid(p1, p2, p3, nrow = 1, rel_widths = c(0.9, 1, 0.89))
+ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf'), width = 17, height = 5.5)
 
 
 
@@ -1270,7 +1268,7 @@ ggplot(data = quantiles, aes(x = Quantile, ymin = 0, ymax = MAF, fill = maf_cat)
   scale_x_continuous(breaks=c(0,25,50,75,100),
                      labels=c('0%', '25%', '50%', '75%', '100%')) +
   scale_fill_manual(values=c('Singleton'='honeydew2', 'Very rare'='lightcyan3', 'Rare'='lightblue4', 'Common'='midnightblue')) +
-  labs(x='Percentage of variants', y='log10(GMAF) of exonic variants', fill='Variant frequency') +
+  labs(x='Percentage of variants', y='log10(MAF) of exonic variants', fill='Variant frequency') +
   theme_classic() +  
   geom_line(aes(y = MAF)) +
   ## Singletons
