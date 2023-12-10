@@ -947,24 +947,16 @@ ggsave(filename=paste0('plots/01_Data_Processing/Exonic_variants_genes.pdf'), wi
 ## Plot number of exonic variants from each anno for each gene
 
 exonic_vars_anno_colors <- list(
-  "frameshift_variant" ='lightsalmon',
-  "inframe_deletion" ='chartreuse2',  
-  "inframe_insertion" = 'red1',
-  "missense_variant" ='lightskyblue',
-  "synonymous_variant" = 'orchid1',
-  "splice_region_variant" ='mediumblue',
-  "splice_donor_variant" = 'yellow',
-  "start_lost" ='deepskyblue',   
-  "stop_lost" = 'magenta3',
-  "stop_gained" ='wheat2',          
-  "stop_retained_variant" ='darkslategray'
+  "frameshift_variant" ='lightsalmon2',
+  "missense_variant" ='deeppink2',
+  "synonymous_variant" = 'darkslategray3',
+  "stop_gained" ='wheat2',
+  "other"='gray60'
 )
 
 barplot_exonic_variants_anno <- function(gene_family){
   
-  ordered_annotations <- c("frameshift_variant", "inframe_deletion", "inframe_insertion", "missense_variant",
-                           "splice_donor_variant", "splice_region_variant", "synonymous_variant", "start_lost",   
-                            "stop_lost", "stop_gained", "stop_retained_variant")
+  ordered_annotations <- c("other", "stop_gained", "frameshift_variant", "synonymous_variant", "missense_variant")
   
   ## Location of variants in each gene of the family
   genes<- eval(parse_expr(paste0(gene_family, '_genes')))
@@ -977,8 +969,10 @@ barplot_exonic_variants_anno <- function(gene_family){
   i=1
   for (gene in genes){
     exonic_gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
+    ## Define 5 categories
+    exonic_gene_data$anno <- sapply(exonic_gene_data$VEP_Annotation, function(x){if(x %in% ordered_annotations){x}else{'other'}})
     for (annotation in ordered_annotations){
-      number <- table(exonic_gene_data$VEP_Annotation)[annotation]
+      number <- table(exonic_gene_data$anno)[annotation]
       annotation <- annotation
       exonic_var_data[i,] <- c(gene, annotation, number)
       i=i+1
@@ -989,22 +983,25 @@ barplot_exonic_variants_anno <- function(gene_family){
   colnames(total_num) <- c('n', 'gene')
   
   exonic_var_data$gene <- factor(exonic_var_data$gene, levels = unique(exonic_var_data$gene))
+  exonic_var_data$annotation <- factor(exonic_var_data$annotation, levels=ordered_annotations)
   exonic_var_data$number <- as.numeric(exonic_var_data$number)
   exonic_var_data$number <- replace(exonic_var_data$number, which(is.na(exonic_var_data$number)), 0)
   
   p <- ggplot(exonic_var_data, aes(y=number, x=gene, fill=factor(annotation, levels = ordered_annotations))) + 
-    geom_bar(position="stack", stat="identity") +
+    geom_bar(position="stack", stat="identity", width=0.8) +
     geom_text(data=total_num, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of exonic variants in canonical transcript',
          fill='Variant annotation') +
     theme_classic() + 
-    scale_fill_manual(values=exonic_vars_anno_colors) +
-    ylim(0, 730) +
-    theme(legend.text = element_text(size = 9),
-          legend.title = element_text(size =10, face='bold'),
-          axis.text.x = element_text(size = 8, face='italic'),
-          axis.text.y = element_text(size = 8),
-          axis.title = element_text(size = (11), face='bold'))
+    scale_fill_manual(values=exonic_vars_anno_colors, labels=c('Other', 'Stop gained', 'Frameshift', 'Synonymous', 'Missense')) +
+    scale_y_continuous(limits = c(0,740), expand = c(0,0)) +
+    theme(legend.text = element_text(size = 11),
+          legend.title = element_text(size =12, face='bold'),
+          axis.text.x = element_text(angle=90, vjust=0.5, hjust=1, size = 10, face='italic'),
+          axis.text.y = element_text(size = 10),
+          axis.title = element_text(size = (11.5), face='bold'))
+  
+ 
   
   return(p)
 }
@@ -1014,8 +1011,8 @@ p2 <- barplot_exonic_variants_anno('UGT2') + theme(legend.position="none")
 p3 <- barplot_exonic_variants_anno('UGT3') + theme(legend.position="none")
 p4 <- barplot_exonic_variants_anno('UGT8')
 
-plot_grid(p1, p2, p3, p4, ncol=4, rel_widths = c(1,1.1, 0.3, 0.43))
-ggsave(filename=paste0('plots/01_Data_Processing/Exonic_variants_genes_anno.pdf'), width = 22, height = 7)
+plot_grid(p1, p2, p3, p4, ncol=4, rel_widths = c(1,1.1, 0.34, 0.6))
+ggsave(filename=paste0('plots/01_Data_Processing/Exonic_variants_genes_anno.pdf'), width = 15, height = 5.5)
 
 
 
