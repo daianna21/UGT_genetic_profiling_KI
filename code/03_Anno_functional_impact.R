@@ -557,6 +557,30 @@ save(variants_predictions, file='processed-data/03_Anno_functional_impact/varian
 
 ####################  3.1.5.1 Compare predictions of different algorithms  ####################
 
+## Real tool names
+tool_names <- c('SIFT'='SIFT',               
+               'Polyphen2_HDIV'='PolyPhen-2 HDIV',     
+               'Polyphen2_HVAR'='PolyPhen-2 HVAR',     
+               'MutationAssessor'='MutationAssessor',     
+               'FATHMM'= 'FATHMM',           
+               'fathmm.MKL'='FATHMM-MKL',   
+               'PROVEAN'= 'PROVEAN',         
+               'MetaSVM'='MetaSVM',               
+               'MetaLR'='MetaLR',             
+               'M.CAP'='M-CAP',            
+               'ClinPred'='ClinPred',               
+               'CADD_phred'='CADD',              
+               'DANN'='DANN', 
+               'REVEL'='REVEL',               
+               'Eigen.PC'='Eigen-PC', 
+               'MVP'= 'MVP',
+               'LRT'='LRT',
+               'MutPred'='MutPred',
+               'PrimateAI'='PrimateAI',
+               'VEST4'='VEST',
+               'ADME'='ADME',
+               'AlphaMissense'='AlphaMissense')
+
 ## Function to create density plot of raw scores for variants in the different functional categories
 
 score_density_plot <- function(algorithm, predicted_cat_type){
@@ -598,22 +622,31 @@ score_density_plot <- function(algorithm, predicted_cat_type){
       hjust = -0.3
     }
     
-    if (algorithm=='CADD_phred'){score_type <- ' scores'}
-    else {score_type <- ' raw scores'}
+    if (algorithm=='CADD_phred'){score_type <- ' phred score'}
+    else {score_type <- ' raw score'}
     
     p1 <- ggplot(data = df, aes(x = x, ymin = 0, ymax = y, fill = pred)) +
       geom_ribbon(alpha=0.7) +
       theme_bw() +
       scale_fill_manual(values=colors[names(table(df$pred))]) +
-      labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), score_type), y= 'Density', fill='Predicted effect',
+      labs(x = paste0(tool_names[algorithm], score_type), y= 'Density', fill='Predicted effect',
            subtitle=paste0('Missingness: ', signif(as.numeric(missingness), digits=3), '%', '\n', 
                            num_vars, ' variants')) +
       geom_line(aes(y = y)) +
       geom_vline(xintercept = numeric_threshold, color = 'indianred3', linetype='dashed', linewidth=0.6) +
       geom_label(aes(x = numeric_threshold, y = max(df$y), color = 'indianred3', label = numeric_threshold), 
-               hjust = hjust, vjust = 3, fontface = 2, fill = "white", show.legend = FALSE) +
-      theme(legend.position='none',
-            plot.subtitle = element_text(size = 10, color = "gray30"))
+               hjust = hjust, vjust = 3, fontface = 2, fill = "white", show.legend = FALSE) 
+    
+    if(algorithm!='AlphaMissense'){
+      p1 <- p1 + theme(legend.position='none',
+                       plot.subtitle = element_text(size = 10, color = "gray30"), 
+                       plot.margin = unit(c(0.2,0.2,0.2,0.2), 'cm'))
+    }
+    else{
+      p1 <- p1 + theme(legend.key = element_rect(fill = "white", colour = "black"),
+                       plot.subtitle = element_text(size = 10, color = "gray30"),
+                       plot.margin = unit(c(0.2,0.2,0.2,0.2), 'cm'))
+    }
     
     return(p1)
   }
@@ -625,14 +658,14 @@ score_density_plot <- function(algorithm, predicted_cat_type){
     p2 <- ggplot(data = data, aes(x = as.numeric(eval(parse_expr(algorithm_score))))) +
       geom_density(alpha=0.6, fill='grey')+
       theme_bw() +
-      labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), ' raw scores'), y= 'Density') 
+      labs(x = paste0(tool_names[algorithm], ' raw score'), y= 'Density') 
     
     p3 <- ggplot(data = data, aes(x = as.numeric(eval(parse_expr(algorithm_score))), 
                                   fill=eval(parse_expr(algorithm_pred))))+
       geom_density(alpha=0.6)+
       scale_fill_manual(values=colors[names(table(eval(parse_expr(paste0('data$', algorithm_pred)))))]) +
       theme_bw() +
-      labs(x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm)), ' raw scores'), y= 'Density', fill='Predicted effect') 
+      labs(x = paste0(tool_names[algorithm], ' raw score'), y= 'Density', fill='Predicted effect') 
     
     return(list(p2, p3))
   }
@@ -713,14 +746,21 @@ for (i in 1:length(names(algorithms_thresholds))){
   plots[[i]] <- score_density_plot(names(algorithms_thresholds)[i], 'new')
 }
 
-plots[[22]] <- plots[[22]] + theme(legend.key = element_rect(fill = "white", colour = "black"))
+## Shared legend
+legend <- get_legend(
+  # create some space to the left of the legend
+  plots[[22]] + theme(legend.box.margin = margin(0, 0, 0, 1))
+)
+
+plots[[22]] <-  plots[[22]] + theme(legend.position = 'none', 
+                                    plot.subtitle = element_text(size = 10, color = "gray30"),
+                                    plot.margin = unit(c(0.2,0.2,0.2,0.2), 'cm'))
 
 plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],
           plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
-          plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], plots[[22]],
-          ncol=5)
+          plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=5, legend)
 
-ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 20, height = 12)
+ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 12.2, height = 13.5)
 
 
 # ------------------------------------------------------------------------------
