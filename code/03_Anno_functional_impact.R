@@ -612,7 +612,7 @@ score_density_plot <- function(algorithm, predicted_cat_type){
       geom_vline(xintercept = numeric_threshold, color = 'indianred3', linetype='dashed', linewidth=0.6) +
       geom_label(aes(x = numeric_threshold, y = max(df$y), color = 'indianred3', label = numeric_threshold), 
                hjust = hjust, vjust = 3, fontface = 2, fill = "white", show.legend = FALSE) +
-      theme(legend.key = element_rect(fill = "white", colour = "black"),
+      theme(legend.position='none',
             plot.subtitle = element_text(size = 10, color = "gray30"))
     
     return(p1)
@@ -712,6 +712,8 @@ plots <- list()
 for (i in 1:length(names(algorithms_thresholds))){
   plots[[i]] <- score_density_plot(names(algorithms_thresholds)[i], 'new')
 }
+
+plots[[22]] <- plots[[22]] + theme(legend.key = element_rect(fill = "white", colour = "black"))
 
 plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],
           plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
