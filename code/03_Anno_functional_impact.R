@@ -639,13 +639,27 @@ score_density_plot <- function(algorithm, predicted_cat_type){
     
     if(algorithm!='AlphaMissense'){
       p1 <- p1 + theme(legend.position='none',
+                       panel.grid.major = element_blank(), 
+                       panel.grid.minor = element_blank(),
                        plot.subtitle = element_text(size = 10, color = "gray30"), 
-                       plot.margin = unit(c(0.2,0.2,0.2,0.2), 'cm'))
+                       plot.margin = unit(c(0.2,0.2,0.2,0.2), 'cm'),
+                       axis.text = element_text(size = (10)),
+                       legend.text = element_text(size = 10),
+                       legend.title = element_text(size =11, face='bold'),
+                       axis.title.x = element_text(size = (11.5), face='bold'),
+                       axis.title.y = element_text(size = (11.5)))
     }
     else{
       p1 <- p1 + theme(legend.key = element_rect(fill = "white", colour = "black"),
                        plot.subtitle = element_text(size = 10, color = "gray30"),
-                       plot.margin = unit(c(0.2,0.2,0.2,0.2), 'cm'))
+                       panel.grid.major = element_blank(), 
+                       panel.grid.minor = element_blank(),
+                       plot.margin = unit(c(0.2,0.2,0.2,0.2), 'cm'),
+                       axis.text = element_text(size = (10)),
+                       legend.text = element_text(size = 10),
+                       legend.title = element_text(size =11, face='bold'),
+                       axis.title.x = element_text(size = (11.5), face='bold'),
+                       axis.title = element_text(size = (11.5), face='bold'))
     }
     
     return(p1)
@@ -748,7 +762,7 @@ for (i in 1:length(names(algorithms_thresholds))){
 
 ## Shared legend
 legend <- get_legend(
-  # create some space to the left of the legend
+  # Create some space to the left of the legend
   plots[[22]] + theme(legend.box.margin = margin(0, 0, 0, 1))
 )
 
@@ -760,7 +774,7 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
           plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
           plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=5, legend)
 
-ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 12.2, height = 13.5)
+ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 14, height = 13)
 
 
 # ------------------------------------------------------------------------------
@@ -778,7 +792,7 @@ for (i in 1:length(colnames(raw_scores))){
 }
 
 whole_corr <- corr
-colnames(corr) <- rownames(corr) <- gsub('phred', '', gsub('\\.','-', gsub('_', ' ', gsub('_score', '', colnames(corr)))))
+colnames(corr) <- rownames(corr) <- tool_names
 ## Half matrix
 corr[lower.tri(corr)] <- NA
 ## Take absolute corr
@@ -800,15 +814,15 @@ unique_half_corr_data[order(unique_half_corr_data$value, decreasing = TRUE), ][1
 #            MetaSVM            REVEL     0.88
 
 
-## Percentage of high coeffs (>0.5)
+## Percentage of high coeffs (|r|>0.5)
 length(which(unique_half_corr_data$value>0.5))/dim(unique_half_corr_data)[1]*100
 # [1] 65.36797
 
-## Percentage of medium coeffs (0.3=<r=<0.5)
+## Percentage of medium coeffs (0.3=<|r|=<0.5)
 length(which(unique_half_corr_data$value>=0.3 & unique_half_corr_data$value<=0.5))/dim(unique_half_corr_data)[1]*100
 # [1] 25.97403
 
-## Percentage of low coeffs (<0.3)
+## Percentage of low coeffs (|r|<0.3)
 length(which(unique_half_corr_data$value<0.3))/dim(unique_half_corr_data)[1]*100
 # [1] 8.658009
 
@@ -831,7 +845,7 @@ for (i in 1:length(colnames(predictions))){
 
 whole_agreement_prop <- agreement_prop
 ## Half matrix
-colnames(agreement_prop) <- rownames(agreement_prop) <- gsub('phred', '', gsub('\\.','-', gsub('_', ' ', gsub('_pred', '', colnames(agreement_prop)))))
+colnames(agreement_prop) <- rownames(agreement_prop) <- tool_names
 agreement_prop[lower.tri(agreement_prop)] <- NA 
 half_agreement_prop <- melt(agreement_prop, na.rm = TRUE)
 half_agreement_prop$value <- signif(as.numeric(half_agreement_prop$value), digits = 3)
@@ -893,8 +907,9 @@ scatterplot_compare_2methods <- function(algorithm1, algorithm2){
   algorithm1_pred <- paste0(algorithm1, '_pred')
   algorithm2_pred <- paste0(algorithm2, '_pred')
   
-  if (algorithm1=='CADD_phred' | algorithm2=='CADD_phred'){score_type <- ' score'}
-  else {score_type <- ' raw score'}
+  score_type1 <- ' raw score'
+  if (algorithm2=='CADD_phred'){score_type2 <- ' phred score'}
+  else {score_type2 <- ' raw score'}
   
   ## Corr
   correlation <- whole_corr[algorithm1_score, algorithm2_score]
@@ -912,72 +927,83 @@ scatterplot_compare_2methods <- function(algorithm1, algorithm2){
                            c(algorithm1_pred, algorithm2_pred)]
   colnames(data_pred) <- colnames(data)
   data$categories <- apply(data_pred, 1, function(x){if(x[1]=='D' & x[2]=='D'){'D in both'}
-                            else if(x[1]=='D' & x[2]=='N'){paste0('D in ', gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[1]))), '; ', 'N in ', 
-                                                                  gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[2]))))}
-                            else if(x[1]=='N' & x[2]=='D'){paste0('D in ', gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[2]))), '; ', 'N in ', 
-                                                                  gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[1]))))}
+                            else if(x[1]=='D' & x[2]=='N'){paste0('D in ', tool_names[colnames(data)[1]], '; ', '\n',
+                                                                  'N in ', tool_names[colnames(data)[2]])}
+                            else if(x[1]=='N' & x[2]=='D'){paste0('D in ', tool_names[colnames(data)[2]], '; ', '\n',
+                                                                  'N in ', tool_names[colnames(data)[1]])}
                             else {'N in both'}
                       })
+  data$categories <- factor(data$categories, levels=c('D in both', 
+                                                      paste0('D in ', tool_names[colnames(data)[1]], '; ', '\n',
+                                                                          'N in ', tool_names[colnames(data)[2]]),
+                                                      paste0('D in ', tool_names[colnames(data)[2]], '; ', '\n',
+                                                             'N in ', tool_names[colnames(data)[1]]),
+                                                      'N in both'))
   colors <- list()
   colors[['D in both']]='indianred'
-  colors[[paste0('D in ', gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[1]))), '; ', 'N in ', 
-                 gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[2]))))]]='thistle2'
-  colors[[paste0('D in ', gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[2]))), '; ', 'N in ', 
-                 gsub(' phred', '', gsub('_',' ',gsub('\\.', '-', colnames(data)[1]))))]]='lightpink1'
+  colors[[paste0('D in ', tool_names[colnames(data)[1]], '; ', '\n',
+                 'N in ', tool_names[colnames(data)[2]])]]='thistle2'
+  colors[[paste0('D in ', tool_names[colnames(data)[2]], '; ', '\n',
+                 'N in ', tool_names[colnames(data)[1]])]]='lightpink1'
   colors[['N in both']]='lightblue3'
   
-  ggplot(data, aes(x=eval(parse_expr(algorithm1)), y=eval(parse_expr(algorithm2)), color = categories)) +
+  p <- ggplot(data, aes(x=eval(parse_expr(algorithm1)), y=eval(parse_expr(algorithm2)), color = categories)) +
     geom_point(size=2) +
     stat_smooth(geom = "line", alpha = 0.9, size = 1, method = lm, color = "orangered3", fullrange = FALSE) +
     scale_color_manual(values = colors) +
     theme_bw() +
     labs(
       subtitle = paste0("Corr: ", correlation, '; Agreement: ', 100*agreement, '%'),
-      x = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm1)), score_type),
-      y = paste0(gsub('_', ' ', gsub('\\.', '-', algorithm2)), score_type),
+      x = paste0(tool_names[algorithm1], score_type1),
+      y = paste0(tool_names[algorithm2], score_type2),
       color='Predicted effect'
     ) +
     theme(
       plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
-      axis.title = element_text(size = (11)),
+      axis.title = element_text(size = (11), face='bold'),
       axis.text = element_text(size = (10)),
       plot.subtitle = element_text(size = 9.6, color = "gray30"),
       legend.text = element_text(size = 9),
-      legend.title = element_text(size =10))
-  ggsave(paste0('plots/03_Anno_functional_impact/Corr_', algorithm1, '_vs_', algorithm2, '.pdf'), height = 4.5, width = 6.5)
+      legend.title = element_text(size =10, face='bold'),
+      legend.key.height = unit(0.95,"cm"), 
+      legend.key.width = unit(0.25,"cm"),
+      legend.key.size = unit(0.25,"cm"))
+  
+  return(p)
+
 }
 
 ## Compare methods of interest
 ## Top; similar algorithms
-scatterplot_compare_2methods('Polyphen2_HDIV', 'Polyphen2_HVAR')
-scatterplot_compare_2methods('MetaSVM', 'MetaLR')
-scatterplot_compare_2methods('FATHMM', 'fathmm.MKL')
-## Top on agreement
-scatterplot_compare_2methods('MetaSVM', 'REVEL')
-## Low corr, high agreement
-scatterplot_compare_2methods('FATHMM', 'VEST4') 
-scatterplot_compare_2methods('FATHMM', 'PrimateAI')
-scatterplot_compare_2methods('Eigen.PC', 'M.CAP') 
+p1 <- scatterplot_compare_2methods('Polyphen2_HDIV', 'Polyphen2_HVAR')
+p2 <- scatterplot_compare_2methods('MetaSVM', 'MetaLR')
+p3 <- scatterplot_compare_2methods('FATHMM', 'fathmm.MKL')
 ## High corr, high agreement
-scatterplot_compare_2methods('Eigen.PC', 'CADD_phred')
+p4 <- scatterplot_compare_2methods('Eigen.PC', 'CADD_phred')
+## Top on agreement
+p5 <- scatterplot_compare_2methods('MetaSVM', 'REVEL')
+## Low corr, high agreement
+p6 <- scatterplot_compare_2methods('FATHMM', 'PrimateAI')
+p7 <- scatterplot_compare_2methods('FATHMM', 'VEST4') 
+p8 <- scatterplot_compare_2methods('Eigen.PC', 'M.CAP') 
 ## ADME
-scatterplot_compare_2methods('ADME', 'CADD_phred')
-scatterplot_compare_2methods('ADME', 'VEST4')
-scatterplot_compare_2methods('ADME', 'LRT')
-scatterplot_compare_2methods('ADME', 'MutationAssessor')
-scatterplot_compare_2methods('ADME', 'PROVEAN')
-scatterplot_compare_2methods('ADME', 'ClinPred')
-scatterplot_compare_2methods('ADME', 'REVEL')
-scatterplot_compare_2methods('ADME', 'MetaLR')
+p9 <- scatterplot_compare_2methods('ADME', 'CADD_phred')
+p10 <- scatterplot_compare_2methods('ADME', 'VEST4')
+p11 <- scatterplot_compare_2methods('ADME', 'LRT')
+p12 <- scatterplot_compare_2methods('ADME', 'MutationAssessor')
+p13 <- scatterplot_compare_2methods('ADME', 'PROVEAN')
+p14 <-scatterplot_compare_2methods('ADME', 'ClinPred')
 ## AlphaMissense
-scatterplot_compare_2methods('AlphaMissense', 'MetaSVM')
-scatterplot_compare_2methods('AlphaMissense', 'MetaLR')
-scatterplot_compare_2methods('AlphaMissense', 'REVEL')
-scatterplot_compare_2methods('AlphaMissense', 'VEST4')
-## FATHMM
-scatterplot_compare_2methods('FATHMM', 'MutPred')
-scatterplot_compare_2methods('FATHMM', 'CADD_phred')
-scatterplot_compare_2methods('FATHMM', 'DANN')
+p15 <- scatterplot_compare_2methods('AlphaMissense', 'MetaSVM')
+p16 <- scatterplot_compare_2methods('AlphaMissense', 'MetaLR')
+p17 <- scatterplot_compare_2methods('AlphaMissense', 'REVEL')
+p18 <- scatterplot_compare_2methods('AlphaMissense', 'VEST4')
+
+plot_grid(p1, p2, p3, p4, p5, p6, p7, p8, p9,
+          p10, p11, p12, p13, p14, p15, p16, p17, p18, ncol=3, align='vh', 
+          labels = LETTERS[1:18])
+ggsave('plots/03_Anno_functional_impact/Corr_agreement_tools.pdf', height = 20, width = 15)
+
 
 
 
@@ -987,11 +1013,11 @@ scatterplot_compare_2methods('FATHMM', 'DANN')
 
 vars_per_method <- melt(sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])}))
 colnames(vars_per_method) <- c('Prediction', 'Method', 'Numbers')
-vars_per_method$Method <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', vars_per_method$Method))))
+vars_per_method$Method <- tool_names[gsub('_pred', '', vars_per_method$Method)]
 # Order methods by number of D variants
 numD<- sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])['D']})
 numD <- numD[order(numD, decreasing = TRUE)]
-names(numD) <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred.D', '', names(numD)))))
+names(numD) <- tool_names[gsub('_pred.D', '', names(numD))]
 vars_per_method$Method <- factor(vars_per_method$Method, levels=names(numD))
 ## Order to have D variants first in each bar
 cat_order <- c('.', 'N', 'D')
@@ -1021,7 +1047,7 @@ ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) +
         plot.margin = unit(c(3, 3, 0.5, 0.5), "cm"),
         axis.title = element_text(size = (11), face='bold'),
         axis.text = element_text(size = (10)),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
         legend.text = element_text(size = 9),
         legend.title = element_text(size =10, face='bold'))
 
@@ -1040,13 +1066,13 @@ DNM_vars_per_method_per_gene <- function(gene){
                                                                            '.'=length(which(gene_vars[,x]=='.'))) })
   vars_per_method <- melt(DNM_numbers)
   colnames(vars_per_method) <- c('Prediction',  'Method', 'Numbers')
-  vars_per_method$Method <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', vars_per_method$Method))))
+  vars_per_method$Method <- tool_names[gsub('_pred', '', vars_per_method$Method)]
   
   # Order methods by number of D variants first, and N variants second
   DNM_numbers <- as.data.frame(t(DNM_numbers))
   DNM_numbers <- DNM_numbers[order(DNM_numbers$D, DNM_numbers$N,  decreasing = TRUE),]
   numD <- rownames(DNM_numbers)
-  numD <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', numD))))
+  numD <- tool_names[gsub('_pred', '', numD)]
   vars_per_method$Method <- factor(vars_per_method$Method, levels=numD)
   
   ## Order to have D variants first in each bar
@@ -1100,7 +1126,7 @@ DNM_vars_per_method_per_gene <- function(gene){
           plot.margin = unit(c(3, 3, 0.5, 0.5), "cm"),
           axis.title = element_text(size = (11), face='bold'),
           axis.text = element_text(size = (10)),
-          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
           legend.text = element_text(size = 9),
           legend.title = element_text(size =10, face='bold'))
   return(p)
@@ -1519,6 +1545,8 @@ ggroc(r) +
   geom_point(data=data, aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
 
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_methods.pdf', width = 8, height = 8)
+
+
 
 
 
