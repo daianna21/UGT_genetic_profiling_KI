@@ -1203,17 +1203,17 @@ for(method in colnames(new_variants_predictions)[2:23]){
 data <- as.data.frame(data)
 colnames(data) <- c('Variant_ID', 'Allele_Frequency', 'Method')
 data$Allele_Frequency<- as.numeric(data$Allele_Frequency)
-data$Method <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', data$Method))))
+data$Method <- tool_names[gsub('_pred', '', data$Method)]
 data$Method <- factor(data$Method, levels=names(numD))
 
 ## Identify variants with allele freq >0.5
 data[which(data$Allele_Frequency>0.5),]
-#       Variant_ID  Allele_Frequency         Method
-#   4-69795626-C-T         0.7568806 Polyphen2 HDIV
-#   4-69795626-C-T         0.7568806 Polyphen2 HVAR
-#   4-69795626-C-T         0.7568806           CADD
-#   4-69795626-C-T         0.7568806           DANN
-#  4-115589302-A-G         0.9953603            LRT
+#       Variant_ID  Allele_Frequency          Method
+#   4-69795626-C-T         0.7568806 PolyPhen-2 HDIV
+#   4-69795626-C-T         0.7568806 PolyPhen-2 HVAR
+#   4-69795626-C-T         0.7568806            CADD
+#   4-69795626-C-T         0.7568806            DANN
+#  4-115589302-A-G         0.9953603             LRT
 
 shapes <- c('4-69795626-C-T'=17,
             '4-115589302-A-G'=15)
@@ -1229,22 +1229,28 @@ ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Meth
   theme_bw() +
   scale_color_manual(values = colors) +
   guides(color = 'none') + 
-  geom_text(data = num_per_method, aes(x=Method, label=n,  y=-0.05, shape=NULL, color=NULL), size=2) +
-  labs(x='', y='GMAF of missense variants predicted as deleterious', shape='Variant ID (GMAF>0.5)', 
+  #geom_text(data = num_per_method, aes(x=Method, label=n,  y=-0.05, shape=NULL, color=NULL), size=1.6) +
+  labs(x='', y='MAF of missense variants predicted as deleterious', shape='Variant ID (MAF>0.5)', 
        subtitle = paste0(dim(new_variants_predictions)[1], ' total missense variants across all UGT genes')) +
   theme(title = element_text(size = (9), face='bold'),
         plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
         axis.title = element_text(size = (8.5), face='bold'),
         axis.text = element_text(size = (8)),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
         legend.title = element_text(size=8), 
-        legend.text = element_text(size=7.5))
+        legend.text = element_text(size=7.5),
+        legend.position = c(0.2,0.87),
+        legend.key = element_blank(),
+        legend.background = element_rect(fill=NA, color='black'),
+        legend.key.size = unit(0.6, 'lines'))
 
-ggsave(filename='plots/03_Anno_functional_impact/GMAF_allDvars_perMethod.pdf', width = 8, height = 5)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_allDvars_perMethod.pdf', width = 4.5, height = 6)
 
 # ----------------------------------------------------------------------------------------------------
 
-## Plot GMAF of variants predicted as D by each methods in each gene
+## Plot GMAF of variants predicted as D by each methods in each gene ## HEREEEEEEE
 i=1
 plots <- list()
 for (gene in UGT_genes){
@@ -1280,7 +1286,7 @@ for (gene in UGT_genes){
           axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
           legend.title = element_text(size=6.5), 
           legend.text = element_text(size=6), 
-          legend.key = element_blank(),,
+          legend.key = element_blank(),
           legend.background=element_blank(),
           legend.key.size = unit(0, 'lines'),
           legend.justification = c(0.9,0.9), legend.position = c(0.9,0.95))
