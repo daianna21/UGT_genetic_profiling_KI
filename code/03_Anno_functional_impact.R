@@ -1277,19 +1277,22 @@ for (gene in UGT_genes){
     scale_color_manual(values = colors) +
     theme_bw() +
     guides(color = 'none') + 
-    labs(x='', y='GMAF of missense variants predicted as deleterious', shape='Variant ID (GMAF>0.5)', 
+    labs(x='', y='MAF of missense variants predicted as deleterious', shape='Variant ID (MAF>0.5)', 
          title=gene, subtitle = paste0(length(unique(gene_D_vars$Variant_ID)), ' missense variants predicted as deleterious by at least one method')) +
     theme(title = element_text(size = (9), face='bold'),
           plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
           axis.title = element_text(size = (8.5), face='bold'),
           axis.text = element_text(size = (8)),
           axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
-          legend.title = element_text(size=6.5), 
-          legend.text = element_text(size=6), 
+          legend.title = element_text(size=8), 
+          legend.text = element_text(size=7.5),
+          legend.position = c(0.9,0.95),
           legend.key = element_blank(),
-          legend.background=element_blank(),
+          legend.background = element_rect(fill=NA, color='black'),
           legend.key.size = unit(0, 'lines'),
-          legend.justification = c(0.9,0.9), legend.position = c(0.9,0.95))
+          legend.justification = c(0.9,0.9))
   i=i+1
 }
 
