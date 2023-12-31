@@ -1598,7 +1598,7 @@ Youden_indices <- function(method){
   
   method_score <- paste0(method, '_score')
   method_pred <- paste0(method, '_pred')
-  method_name <- gsub(' phred', '', gsub('\\.', '-', gsub('_', ' ', gsub('_pred', '', method))))
+  method_name <- tool_names[method]
   
   ## Method scores for benchmark variants
   method_data <- benchmark_scores_preds[which(benchmark_scores_preds[,method_score]!='.'), c(method_score, 'effect')]
@@ -1700,25 +1700,25 @@ Youden_indices <- function(method){
   
   ## Plot scores vs J 
   p <- ggplot(scores_Js, aes(x=score, y=J))+
-    geom_line(color=colors[method_name], size=1) + 
+    geom_line(color=colors[method_name], size=1.2) + 
     
     ## Line for score that yields the max J
-    geom_segment(aes(x = max_J_score, y = 0, xend = max_J_score, yend = max_J), linetype=1, linewidth=0.3, color='grey60') +
+    geom_segment(aes(x = max_J_score, y = 0, xend = max_J_score, yend = max_J), linetype=1, linewidth=0.5, color='grey60') +
     ## Max J with optimized threshold
-    geom_point(x=max_J_score, y=max_J, color='red') + 
+    geom_point(x=max_J_score, y=max_J, color='red', size=2) + 
     geom_text_repel(data = subset(scores_Js, J==max_J & score!=conv_threshold), label=signif(max_J, digits=3), 
-                    size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1, 
+                    size=3.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1, 
                     box.padding = 0.5, lineheight=unit(2, 'lines'), nudge_x = args[[method]]['nudge_x_o'], 
                     nudge_y = args[[method]]['nudge_y_o'], fontface='bold') + 
     
     ## J with conventional threshold
-    geom_point(x=conv_threshold, y=J_conventional, color=colors[method_name]) +
+    geom_point(x=conv_threshold, y=J_conventional, color=colors[method_name], size=2) +
     geom_text_repel(data = subset(scores_Js, score==conv_threshold), label=signif(J, digits=3), 
-                    size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=0, vjust=1, 
+                    size=3.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=0, vjust=1, 
                     box.padding = 0.5, lineheight=unit(1, 'lines'), nudge_x = args[[method]]['nudge_x_c'], 
                     nudge_y = args[[method]]['nudge_y_c'], fontface='bold') + 
     ## Line for conventional score 
-    geom_segment(aes(x = conv_threshold, y = 0, xend = conv_threshold, yend = J_conventional), linetype=3, linewidth=0.6, color='grey60') +
+    geom_segment(aes(x = conv_threshold, y = 0, xend = conv_threshold, yend = J_conventional), linetype=3, linewidth=0.8, color='grey60') +
     
     theme_classic() +
     labs(x='Score', y='Youden index (J)', title=method_name) +
@@ -1731,34 +1731,34 @@ Youden_indices <- function(method){
     ## Label for delta J
     geom_label(x=(max(as.numeric(method_data[,method_score]))+min(as.numeric(method_data[,method_score])))/2, y=0.14, 
                label=paste0('ΔJ = ', signif(delta_J, digits=2)), 
-               size=2.8, color='grey30', label.size = NA, fontface='bold', label.padding = unit(0.1, "lines"))+
+               size=3.8, color='grey30', label.size = NA, fontface='bold', label.padding = unit(0.1, "lines")) +
     
-    theme(title = element_text(size = (9), face='bold'),
+    theme(title = element_text(size = (11), face='bold'),
           plot.title = element_text(hjust = 0.5),
-          axis.title = element_text(size = (8.5), face='bold'),
-          axis.text = element_text(size = (8)), 
-          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5, size=7))
+          axis.title = element_text(size = (11), face='bold'),
+          axis.text = element_text(size = (11)), 
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5, size=10))
   
   
   if(method!='MutationAssessor'){
     ## Text for new score
     p <- p + geom_text_repel(data = subset(scores_Js, score==max_J_score & score!=conv_threshold), label=signif(max_J_score, digits=3), 
-                        aes(x=max_J_score, y=0.05), size=2.5, color='grey40', min.segment.length = unit(0, 'lines'), 
+                        aes(x=max_J_score, y=0.05), size=3.1, color='grey40', min.segment.length = unit(0, 'lines'), 
                         hjust=args[[method]]['hjust'], vjust=args[[method]]['vjust'], 
-                        box.padding = unit(0.5, "lines"), lineheight=unit(1, 'lines'), segment.curvature = args[[method]]['curv']) 
+                        box.padding = unit(0.5, "lines"), lineheight=unit(2, 'lines'), linewidth=unit(2, 'cm'), segment.curvature = args[[method]]['curv']) 
   }
   
   
   if(method=='LRT'){
     p <- ggplot(scores_Js, aes(x=score, y=J))+
-      geom_line(color=colors[method_name], size=1) + 
-      geom_point(x=max_J_score, y=max_J, color='red') + 
+      geom_line(color=colors[method_name], size=1.2) + 
+      geom_point(x=max_J_score, y=max_J, color='red', size=2) + 
       geom_text_repel(data = subset(scores_Js, J==max_J), label=signif(max_J, digits=3), 
-                      size=2.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1, 
+                      size=3.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1, 
                       box.padding = 0.5, lineheight=unit(1, 'lines'), nudge_x = 0.1, nudge_y = 0, fontface='bold') + 
-      geom_segment(aes(x = max_J_score, y = 0, xend = max_J_score, yend = max_J), linetype=1, linewidth=0.3, color='grey60') +
+      geom_segment(aes(x = max_J_score, y = 0, xend = max_J_score, yend = max_J), linetype=1, linewidth=0.5, color='grey60') +
       geom_text_repel(data = subset(scores_Js, score==max_J_score & score!=conv_threshold), label=signif(max_J_score, digits=3), 
-                      aes(x=max_J_score, y=0.05), size=2.5, color='grey40', min.segment.length = unit(0, 'lines'), 
+                      aes(x=max_J_score, y=0.05), size=3.1, color='grey40', min.segment.length = unit(0, 'lines'), 
                       hjust=args[[method]]['hjust'], vjust=args[[method]]['vjust'], 
                       box.padding = unit(0.5, "lines"), lineheight=unit(1, 'lines'), segment.curvature = args[[method]]['curv']) +
       theme_classic() +
@@ -1769,13 +1769,12 @@ Youden_indices <- function(method){
       ## Label for delta J
       geom_label(x=(max(as.numeric(method_data[,method_score]))+min(as.numeric(method_data[,method_score])))/2, y=0.14, 
                  label=paste0('ΔJ = ', signif(delta_J, digits=2)), 
-                 size=2.8, color='grey30', label.size = NA, fontface='bold', label.padding = unit(0.1, "lines"))+
-      theme(title = element_text(size = (9), face='bold'),
+                 size=3.8, color='grey30', label.size = NA, fontface='bold', label.padding = unit(0.1, "lines")) +
+      theme(title = element_text(size = (11), face='bold'),
             plot.title = element_text(hjust = 0.5),
-            axis.title = element_text(size = (8.5), face='bold'),
-            axis.text = element_text(size = (8)), 
-            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5, size=6))
-    
+            axis.title = element_text(size = (11), face='bold'),
+            axis.text = element_text(size = (11)), 
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5, size=10))
   }
   
   return(list(p, max_J_data))
@@ -1797,8 +1796,8 @@ rownames(new_thresholds) <- names(algorithms_thresholds)
 plot_grid(plots[[1]], plots[[2]], plots[[4]], plots[[5]], plots[[6]],
           plots[[7]], plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]],
           plots[[13]], plots[[14]], plots[[15]], plots[[16]], plots[[17]], plots[[18]], 
-          plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=7)
-ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.png', width = 22, height = 8)
+          plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=5)
+ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.png', width = 19, height = 15)
 
 
 ## Add coordinate for new thresholds in ROC curves
