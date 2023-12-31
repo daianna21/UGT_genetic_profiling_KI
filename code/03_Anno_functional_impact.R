@@ -1515,6 +1515,31 @@ names(ADME_sensitivities)[4] <- names(ADME_specificities)[4] <- 'VEST4'
 
 
 ## ROC curves
+
+colors = c('ADME'='mediumpurple2', 
+           'AlphaMissense'='red3',
+           'CADD'='darkorange3', 
+           'ClinPred'='turquoise3',
+           'DANN'='yellow3', 
+           'Eigen-PC'='olivedrab3',
+           'FATHMM'='lightsalmon2', 
+           'FATHMM-MKL'='lightcoral', 
+           'LRT'='lightsteelblue3',
+           'M-CAP'='yellow4', 
+           'MetaLR'='steelblue2', 
+           'MetaSVM'='dodgerblue3', 
+           'MutationAssessor'='goldenrod', 
+           'MutPred'='magenta2',
+           'MVP'='blue2', 
+           'PolyPhen-2 HDIV'='darkseagreen3', 
+           'PolyPhen-2 HVAR'='mediumseagreen', 
+           'PrimateAI'='darkred',
+           'PROVEAN'='darkorchid3', 
+           'REVEL'='cadetblue3', 
+           'SIFT'='peachpuff3', 
+           'VEST'='aquamarine4',
+           'UGT-optimized'='palevioletred2')
+
 r <- list()
 for (algorithm in paste0(names(algorithms_thresholds), '_score')){
   r[[algorithm]] <- roc(response=benchmark_scores_preds$effect, 
@@ -1532,20 +1557,24 @@ data$num_vars <- sapply(colnames(benchmark_pred)[2:23], function(x){
 data$sensitivity <- sensitivities
 data$specificity <- specificities
 
-names(r) <- gsub(' phred', '', gsub('_', ' ', gsub('\\.', '-', gsub('_score', '', names(r)))))
-data$name <- names(r)
+data$name <- gsub(' phred', '', gsub('_', ' ', gsub('\\.', '-', gsub('_score', '', names(r)))))
+names(r) <- tool_names[gsub('_score', '', names(r))]
 
 ## Add coordinates for ADME thresholds
 data$ADME_sensitivity <- as.numeric(sapply(data$name, function(x){if(x %in% names(ADME_sensitivities)){ADME_sensitivities[x]} else {'NA'}}))
 data$ADME_specificity <- as.numeric(sapply(data$name, function(x){if(x %in% names(ADME_specificities)){ADME_specificities[x]} else {'NA'}}))
 
+data$name <- names(r)
+
 ggroc(r) + 
   facet_wrap(~name) +
   theme_bw() + theme(legend.position = "none") + 
   geom_text(data = data, aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
-  theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        strip.background = element_rect(fill="gray95", size=1, color="gray60"),
         strip.text = element_text(face="bold"),
-        axis.text = element_text( size = 6)) +
+        axis.text = element_text( size = 8)) +
   geom_text(data = data, aes(0, 0.05, label= num_vars, hjust = 1), size=2.5, color='black') +
   scale_color_manual(values=colors) +
   ## Point corresponding to used threshold
@@ -1779,16 +1808,18 @@ data$new_threshold_specificity <- unlist(new_thresholds$specificity)
 ggroc(r[-3]) + 
   facet_wrap(~factor(name, levels=names(r[-3])), ncol=7) +
   theme_bw() + theme(legend.position = "none") + 
-  geom_text(data = subset(data, name!='Polyphen2 HVAR'), aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
+  geom_text(data = subset(data, name!='PolyPhen-2 HVAR'), aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
   theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
         strip.text = element_text(face="bold"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
         axis.text = element_text( size = 6)) +
-  geom_text(data = subset(data, name!='Polyphen2 HVAR'), aes(0, 0.05, label= num_vars, hjust = 1), size=2.5, color='black') +
+  geom_text(data = subset(data, name!='PolyPhen-2 HVAR'), aes(0, 0.05, label= num_vars, hjust = 1), size=2.5, color='black') +
   scale_color_manual(values=colors) +
   ## Point corresponding to conventional threshold
-  geom_point(data=subset(data, name!='Polyphen2 HVAR'), aes(x=specificity, y=sensitivity)) +
+  geom_point(data=subset(data, name!='PolyPhen-2 HVAR'), aes(x=specificity, y=sensitivity)) +
   ## Point for UGT optimized thresholds
-  geom_point(data=subset(data, name!='Polyphen2 HVAR'), aes(x=new_threshold_specificity, y=new_threshold_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
+  geom_point(data=subset(data, name!='PolyPhen-2 HVAR'), aes(x=new_threshold_specificity, y=new_threshold_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
 
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_new_thresholds_methods.pdf', width = 11, height = 5)
 
