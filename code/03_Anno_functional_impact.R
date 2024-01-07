@@ -1995,14 +1995,14 @@ ggplot(data = GMAFs_genes, mapping = aes(x = gene, y = GMAFs, color = gene)) +
     theme_bw() +
     guides(color = 'none') + 
     geom_text(data = num_D_per_gene, aes(x=gene, label=number,  y=(1e-05)/4*3, color=NULL), size=2) +
-    labs(x='', y='log10(GMAF) of missense variants predicted as deleterious', 
+    labs(x='', y='log10(MAF) of missense variants predicted as deleterious', 
         subtitle = paste0(table(new_variants_predictions$UGT_optimized_pred)['D'], 
                           ' missense variants predicted as deleterious by this UGT-optimized framework'),
-        shape='Variant ID (GMAF>0.01)') +
+        shape='Variant ID (MAF>0.01)') +
     theme(plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
           axis.title = element_text(size = (8.5), face='bold'),
           axis.text = element_text(size = (8)),
-          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='italic'),
           legend.title = element_text(size=8, face='bold'), 
           legend.text = element_text(size=7.5, face='bold'),
           panel.grid.major = element_blank(), 
@@ -2126,6 +2126,9 @@ shapes <- c('2-234668879-C-CAT'=8,
             '4-70462042-C-T'=25,
             '4-70512787-A-T'=3)
 
+## Face for x axis labels
+italic.labels <- ifelse(levels(GMAFs_Dvars_shared_or_unique$shared_or_unique) %in% c('UGT1A[1-10]' ,'UGT2A[1-2]'), yes = "bold", no = "bold.italic")
+
 ggplot(data = GMAFs_Dvars_shared_or_unique, mapping = aes(x = shared_or_unique, y = Allele_Frequency, color = shared_or_unique)) +
   geom_jitter(data=subset(GMAFs_Dvars_shared_or_unique, is.na(label)), shape=16, width = 0.3, height = 0, alpha = 0.8, size = 1.2) +
   geom_point(data=subset(GMAFs_Dvars_shared_or_unique, !is.na(label)), aes(shape=label), alpha = 0.8, size = 1.2, stroke = 1) +
@@ -2137,13 +2140,13 @@ ggplot(data = GMAFs_Dvars_shared_or_unique, mapping = aes(x = shared_or_unique, 
   guides(color = 'none', fill='none', shape='none') + 
   geom_text(data = num_D_per_gene_or_locus, aes(x=gene_or_locus, label=number,  y=(1e-05)/4*3, color=NULL), size=2.3) +
   geom_text_repel(aes(label=label), color='black', fontface='bold', size=2, min.segment.length=0.9)+
-  labs(x='', y='log10(GMAF) of unique and shared deleterious variants in UGT genes', 
+  labs(x='', y='log10(MAF) of unique and shared deleterious variants in UGT genes', 
        subtitle = paste0(dim(GMAFs_Dvars_shared_or_unique)[1], ' deleterious variants across all UGT genes'),
-       shape='Variant ID (GMAF>0.01)') +
+       shape='Variant ID (MAF>0.01)') +
   theme(plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
         axis.title = element_text(size = (8.5), face='bold'),
         axis.text = element_text(size = (8)),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face=italic.labels),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
 
