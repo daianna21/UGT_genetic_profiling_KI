@@ -1682,7 +1682,7 @@ Youden_indices <- function(method){
   args[['MetaLR']] <- c('nudge_x_c' = -0.15, 'nudge_y_c' = -0.1, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
   args[['M.CAP']] <- c('nudge_x_c' = 0.05, 'nudge_y_c' = -0.17, 'nudge_x_o' = 0.14, 'nudge_y_o' = 0, 'curv'=-0.05, 'hjust'=1, 'vjust'=0.3)
   args[['ClinPred']] <- c('nudge_x_c' = 0.06, 'nudge_y_c' = -0.05, 'nudge_x_o' = 0.15, 'nudge_y_o' = 0.2, 'curv'=-0.3, 'hjust'=0, 'vjust'=0)
-  args[['CADD_phred']] <- c('nudge_x_c' = 0.06, 'nudge_y_c' = -0.05, 'nudge_x_o' = 2, 'nudge_y_o' = 0, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
+  args[['CADD_phred']] <- c('nudge_x_c' = -1, 'nudge_y_c' = 0.5, 'nudge_x_o' = 2, 'nudge_y_o' = 0, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
   args[['Eigen.PC']] <- c('nudge_x_c' = -0.4, 'nudge_y_c' = 0.1, 'nudge_x_o' = 0.8, 'nudge_y_o' = 0.15, 'curv'=-0.35, 'hjust'=0.8, 'vjust'=0)
   args[['MVP']] <- c('nudge_x_c' = 0.1, 'nudge_y_c' = 0, 'nudge_x_o' = -0.18, 'nudge_y_o' = 0, 'curv'=0.35, 'hjust'=0, 'vjust'=0.1)
   args[['DANN']] <- c('nudge_x_c' = -0.1, 'nudge_y_c' = -0.02, 'nudge_x_o' = -0.05, 'nudge_y_o' = 0.1, 'curv'=-0.35, 'hjust'=0, 'vjust'=0)
