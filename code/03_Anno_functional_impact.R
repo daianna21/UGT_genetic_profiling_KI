@@ -630,7 +630,7 @@ score_density_plot <- function(algorithm, predicted_cat_type){
       theme_bw() +
       scale_fill_manual(values=colors[names(table(df$pred))]) +
       labs(x = paste0(tool_names[algorithm], score_type), y= 'Density', fill='Predicted effect',
-           subtitle=paste0('Missingness: ', signif(as.numeric(missingness), digits=3), '%', '\n', 
+           subtitle=paste0('Missingness: ', signif(as.numeric(missingness), digits=3), '%; ',
                            num_vars, ' variants')) +
       geom_line(aes(y = y)) +
       geom_vline(xintercept = numeric_threshold, color = 'indianred3', linetype='dashed', linewidth=0.6) +
@@ -774,7 +774,7 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
           plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
           plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=5, legend)
 
-ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 14, height = 13)
+ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 14.5, height = 13)
 
 
 # ------------------------------------------------------------------------------
@@ -959,6 +959,8 @@ scatterplot_compare_2methods <- function(algorithm1, algorithm2){
       color='Predicted effect'
     ) +
     theme(
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
       plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
       axis.title = element_text(size = (11), face='bold'),
       axis.text = element_text(size = (10)),
@@ -977,15 +979,15 @@ scatterplot_compare_2methods <- function(algorithm1, algorithm2){
 ## Top; similar algorithms
 p1 <- scatterplot_compare_2methods('Polyphen2_HDIV', 'Polyphen2_HVAR')
 p2 <- scatterplot_compare_2methods('MetaSVM', 'MetaLR')
-p3 <- scatterplot_compare_2methods('FATHMM', 'fathmm.MKL')
+#p3 <- scatterplot_compare_2methods('FATHMM', 'fathmm.MKL')
 ## High corr, high agreement
 p4 <- scatterplot_compare_2methods('Eigen.PC', 'CADD_phred')
 ## Top on agreement
 p5 <- scatterplot_compare_2methods('MetaSVM', 'REVEL')
 ## Low corr, high agreement
-p6 <- scatterplot_compare_2methods('FATHMM', 'PrimateAI')
-p7 <- scatterplot_compare_2methods('FATHMM', 'VEST4') 
-p8 <- scatterplot_compare_2methods('Eigen.PC', 'M.CAP') 
+# p6 <- scatterplot_compare_2methods('FATHMM', 'PrimateAI')
+# p7 <- scatterplot_compare_2methods('FATHMM', 'VEST4') 
+# p8 <- scatterplot_compare_2methods('Eigen.PC', 'M.CAP') 
 ## ADME
 p9 <- scatterplot_compare_2methods('ADME', 'CADD_phred')
 p10 <- scatterplot_compare_2methods('ADME', 'VEST4')
@@ -999,10 +1001,10 @@ p16 <- scatterplot_compare_2methods('AlphaMissense', 'MetaLR')
 p17 <- scatterplot_compare_2methods('AlphaMissense', 'REVEL')
 p18 <- scatterplot_compare_2methods('AlphaMissense', 'VEST4')
 
-plot_grid(p1, p2, p3, p4, p5, p6, p7, p8, p9,
+plot_grid(p1, p2, p4, p5, p9,
           p10, p11, p12, p13, p14, p15, p16, p17, p18, ncol=3, align='vh', 
-          labels = LETTERS[1:18])
-ggsave('plots/03_Anno_functional_impact/Corr_agreement_tools.pdf', height = 20, width = 15)
+          labels = LETTERS[1:14])
+ggsave('plots/03_Anno_functional_impact/Corr_agreement_tools.pdf', height = 16, width = 15)
 
 
 
@@ -1246,11 +1248,11 @@ ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Meth
         legend.background = element_rect(fill=NA, color='black'),
         legend.key.size = unit(0.6, 'lines'))
 
-ggsave(filename='plots/03_Anno_functional_impact/GMAF_allDvars_perMethod.pdf', width = 4.5, height = 6)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_allDvars_perMethod.pdf', width = 5.28, height = 4.6)
 
 # ----------------------------------------------------------------------------------------------------
 
-## Plot GMAF of variants predicted as D by each methods in each gene ## HEREEEEEEE
+## Plot GMAF of variants predicted as D by each methods in each gene 
 i=1
 plots <- list()
 for (gene in UGT_genes){
@@ -1568,7 +1570,7 @@ data$name <- names(r)
 
 ggroc(r) + 
   facet_wrap(~name) +
-  theme_bw() + theme(legend.position = "none") + 
+  theme_bw() + 
   geom_text(data = data, aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -1577,10 +1579,12 @@ ggroc(r) +
         axis.text = element_text( size = 8)) +
   geom_text(data = data, aes(0, 0.05, label= num_vars, hjust = 1), size=2.5, color='black') +
   scale_color_manual(values=colors) +
+  guides(color='none') +
   ## Point corresponding to used threshold
   geom_point(data=data, aes(x=specificity, y=sensitivity)) +
   ## Point for ADME optimized thresholds
-  geom_point(data=data, aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
+  geom_point(data=data, aes(x=ADME_specificity, y=ADME_sensitivity), shape=5, color='red', size=1.3, stroke = 1)  
+  
 
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_methods.pdf', width = 8, height = 8)
 
@@ -1806,7 +1810,7 @@ data$new_threshold_specificity <- unlist(new_thresholds$specificity)
 
 ggroc(r[-3]) + 
   facet_wrap(~factor(name, levels=names(r[-3])), ncol=7) +
-  theme_bw() + theme(legend.position = "none") + 
+  theme_bw() + theme(legend.position='none') +
   geom_text(data = subset(data, name!='PolyPhen-2 HVAR'), aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
   theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
         strip.text = element_text(face="bold"),
@@ -1818,9 +1822,20 @@ ggroc(r[-3]) +
   ## Point corresponding to conventional threshold
   geom_point(data=subset(data, name!='PolyPhen-2 HVAR'), aes(x=specificity, y=sensitivity)) +
   ## Point for UGT optimized thresholds
-  geom_point(data=subset(data, name!='PolyPhen-2 HVAR'), aes(x=new_threshold_specificity, y=new_threshold_sensitivity), shape=5, color='red', size=1.3, stroke = 1)
+  geom_point(data=subset(data, name!='PolyPhen-2 HVAR'), aes(x=new_threshold_specificity, y=new_threshold_sensitivity), shape=5, color='red', size=1.3, stroke = 1) 
 
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_new_thresholds_methods.pdf', width = 11, height = 5)
+
+
+## Create table with results
+results <- data.frame(cbind('algorithm'= as.vector(data$name), 'conv_threshold' = as.vector(algorithms_thresholds), 
+                               'conv_threshold_sensitivity'= as.vector(data$sensitivity), 'conv_threshold_specificity'= as.vector(data$specificity),
+                               'conv_threshold_J'= as.vector(data$sensitivity + data$specificity -1), 
+                               'new_threshold'= as.vector(new_thresholds$new_threshold), 'new_threshold_sensitivity'= as.vector(new_thresholds$sensitivity),
+                               'new_threshold_specificity'= as.vector(new_thresholds$specificity), 'new_threshold_J'= as.vector(new_thresholds$J)) ) 
+results <- apply(results, 2, as.character)
+write.table(results, file = 'processed-data/03_Anno_functional_impact/UGT_optimization_results.csv', row.names = FALSE, col.names = TRUE, sep = '\t')
+
 
 # ---------------------------------------------------------------------------------------------------------
 
@@ -1863,9 +1878,11 @@ ggroc(r) +
   facet_wrap(~ name) +
   theme_bw() + theme(legend.position = "none") + 
   geom_text(aes(0, 0.19), label= AUC, hjust = 1, size=3.2, fontface='bold') +
-  theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
-        strip.text = element_text(face="bold"),
-        axis.text = element_text( size = 6)) +
+  theme( panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         strip.background = element_rect(fill="gray95", size=1, color="gray60"),
+         strip.text = element_text(face="bold"),
+         axis.text = element_text( size = 6)) +
   geom_text(x=0, y=0.05, label= num_vars, hjust = 1, size=2.5, color='black') +
   scale_color_manual(values=colors) +
   ## Point corresponding to best threshold
