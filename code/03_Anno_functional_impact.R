@@ -1001,10 +1001,9 @@ p16 <- scatterplot_compare_2methods('AlphaMissense', 'MetaLR')
 p17 <- scatterplot_compare_2methods('AlphaMissense', 'REVEL')
 p18 <- scatterplot_compare_2methods('AlphaMissense', 'VEST4')
 
-plot_grid(p1, p2, p4, p5, p9,
-          p10, p11, p12, p13, p14, p15, p16, p17, p18, ncol=3, align='vh', 
-          labels = LETTERS[1:14])
-ggsave('plots/03_Anno_functional_impact/Corr_agreement_tools.pdf', height = 16, width = 15)
+plot_grid(p1, p2, p4, p5, ncol=2, align='vh', 
+          labels = LETTERS[1:4])
+ggsave('plots/03_Anno_functional_impact/Corr_agreement_tools.pdf', height = 6, width = 9.6)
 
 
 
@@ -1550,6 +1549,7 @@ for (algorithm in paste0(names(algorithms_thresholds), '_score')){
 }
 ## Add AUC per method
 data <- as.data.frame(cbind('AUC'=paste0('AUC = ', signif(as.numeric(lapply(r, function(x){x$auc})), digits=3))))
+data$auc_number <-  signif(as.numeric(lapply(r, function(x){x$auc})), digits=3)
 ## Add number of D and N variants used to evaluate each method
 data$num_vars <- sapply(colnames(benchmark_pred)[2:23], function(x){
                        DN_num <- table(benchmark_scores_preds[which(benchmark_scores_preds[,x]!='.'), 'effect'])
@@ -1568,8 +1568,12 @@ data$ADME_specificity <- as.numeric(sapply(data$name, function(x){if(x %in% name
 
 data$name <- names(r)
 
+## Order by AUC 
+data <- data[order(data$auc_number, decreasing = TRUE),]
+r <- r[data$name]
+
 ggroc(r) + 
-  facet_wrap(~name) +
+  facet_wrap(~factor(name, levels=data$name)) +
   theme_bw() + 
   geom_text(data = data, aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
   theme(panel.grid.major = element_blank(), 
