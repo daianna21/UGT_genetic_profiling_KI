@@ -1848,7 +1848,7 @@ write.table(results, file = 'processed-data/03_Anno_functional_impact/UGT_optimi
 
 ## Don't include PolyPhen2 HVAR
 new_algorithms_thresholds <- new_thresholds[which(rownames(new_thresholds)!='Polyphen2_HVAR'),'new_threshold']
-names(new_algorithms_thresholds) <- names(algorithms_thresholds)[-3]
+names(new_algorithms_thresholds) <- data$method_name[-17]
 
 new_benchmark_pred <- data.frame(matrix(nrow=dim(benchmark_scores)[1], ncol=length(names(new_algorithms_thresholds))+1))
 colnames(new_benchmark_pred) <- c('Variant_ID', paste0(names(new_algorithms_thresholds), '_pred'))
