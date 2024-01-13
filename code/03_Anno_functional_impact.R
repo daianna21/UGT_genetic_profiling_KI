@@ -1560,6 +1560,7 @@ data$sensitivity <- sensitivities
 data$specificity <- specificities
 
 data$name <- gsub(' phred', '', gsub('_', ' ', gsub('\\.', '-', gsub('_score', '', names(r)))))
+data$method_name <-  gsub('_score', '', names(r))
 names(r) <- tool_names[gsub('_score', '', names(r))]
 
 ## Add coordinates for ADME thresholds
@@ -1791,29 +1792,29 @@ Youden_indices <- function(method){
 i=1
 plots <- list()
 new_thresholds <- vector()
-for (method in names(algorithms_thresholds)){
+for (method in data$method_name){
   output <- Youden_indices(method)
   new_thresholds <- rbind(new_thresholds, output[[2]])
   plots[[i]] <- output[[1]]
   i=i+1
 }
 new_thresholds <- as.data.frame(new_thresholds)
-rownames(new_thresholds) <- names(algorithms_thresholds)
+rownames(new_thresholds) <- data$method_name
 
 ## Don't include PolyPhen2 HVAR
-plot_grid(plots[[1]], plots[[2]], plots[[4]], plots[[5]], plots[[6]],
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]],
           plots[[7]], plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]],
-          plots[[13]], plots[[14]], plots[[15]], plots[[16]], plots[[17]], plots[[18]], 
-          plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=5)
-ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.png', width = 19, height = 15)
+          plots[[13]], plots[[14]], plots[[15]], plots[[16]], plots[[18]], 
+          plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=7)
+ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.png', width = 24, height = 9)
 
 
 ## Add coordinate for new thresholds in ROC curves
 data$new_threshold_sensitivity <- unlist(new_thresholds$sensitivity)
 data$new_threshold_specificity <- unlist(new_thresholds$specificity)
 
-ggroc(r[-3]) + 
-  facet_wrap(~factor(name, levels=names(r[-3])), ncol=7) +
+ggroc(r[-17]) + 
+  facet_wrap(~factor(name, levels=names(r[-17])), ncol=7) +
   theme_bw() + theme(legend.position='none') +
   geom_text(data = subset(data, name!='PolyPhen-2 HVAR'), aes(0, 0.19, label= AUC, hjust = 1), size=3.2, fontface='bold') +
   theme(strip.background = element_rect(fill="gray95", size=1, color="gray60"),
