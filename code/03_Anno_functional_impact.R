@@ -1833,7 +1833,7 @@ ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_new_thresholds_methods.
 
 
 ## Create table with results
-results <- data.frame(cbind('algorithm'= as.vector(data$name), 'conv_threshold' = as.vector(algorithms_thresholds), 
+results <- data.frame(cbind('algorithm'= as.vector(data$name), 'conv_threshold' = as.vector(algorithms_thresholds[data$method_name]), 
                                'conv_threshold_sensitivity'= as.vector(data$sensitivity), 'conv_threshold_specificity'= as.vector(data$specificity),
                                'conv_threshold_J'= as.vector(data$sensitivity + data$specificity -1), 
                                'new_threshold'= as.vector(new_thresholds$new_threshold), 'new_threshold_sensitivity'= as.vector(new_thresholds$sensitivity),
