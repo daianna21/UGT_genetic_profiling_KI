@@ -129,6 +129,7 @@ for (group in names(table(allD_vars_MAF_in_pops$Group))){
   
   ## Number of unique and shared D variants in UGT genes in a diploid genome (2Qg)
   group_agg <- vector()
+  group_num <- vector()
   for (gene_locus_group in names(table(GMAFs_Dvars_shared_or_unique$shared_or_unique))){
     ## Group variants
     group_vars <- subset(GMAFs_Dvars_shared_or_unique, shared_or_unique==gene_locus_group)$Variant_ID
@@ -166,10 +167,10 @@ apply(num_pop[,-9], 2, function(x){c(signif(x['all_vars'])==signif(sum(x[gene_fa
 #                            TRUE                            TRUE                            TRUE                            TRUE
 
 ## Confirm 2Qf = sum(2Qg) taking unique variants per gene and shared variants only once
-apply(num_pop[,-9], 2, function(x){c(signif(x['UGT1'])==signif(sum(x[6:15])),
-                                         signif(x['UGT2'])==signif(sum(x[16:26])),
-                                         signif(x['UGT3'])==signif(sum(x[27:28])),
-                                         signif(x['UGT8'])==signif(sum(x[29])))})
+apply(num_pop[,-9], 2, function(x){c(signif(x['UGT1'])==signif(sum(x[5:14])),
+                                         signif(x['UGT2'])==signif(sum(x[15:25])),
+                                         signif(x['UGT3'])==signif(sum(x[26:27])),
+                                         signif(x['UGT8'])==signif(sum(x[28])))})
 #      MAF_African_or_African_American MAF_Latino_or_Admixed_American MAF_East_Asian MAF_South_Asian MAF_European_Finnish
 # UGT1                            TRUE                           TRUE           TRUE            TRUE                 TRUE
 # UGT2                            TRUE                           TRUE           TRUE            TRUE                 TRUE
@@ -183,11 +184,11 @@ apply(num_pop[,-9], 2, function(x){c(signif(x['UGT1'])==signif(sum(x[6:15])),
 
 
 ## Subset to genetic groups
-num_pop_in_groups <- subset(num_pop, ! genetic_group %in% num_pop$genetic_group[1:5])
-## Number od variants in each genetic and human group
+num_pop_in_groups <- subset(num_pop, ! genetic_group %in% num_pop$genetic_group[1:4])
+## Number of variants in each genetic and human group
 num_pop_in_groups <- melt(num_pop_in_groups)
 num_pop_in_groups$genetic_group <- factor(num_pop_in_groups$genetic_group, 
-                                                levels=num_pop$genetic_group[-c(1:5)])
+                                                levels=num_pop$genetic_group[-c(1:4)])
 num_pop_in_groups$gene_fam <- substring(num_pop_in_groups$genetic_group, 1,4)
 colnames(num_pop_in_groups) <- c('genetic_group',  'group', 'num', 'gene_fam')
 
@@ -223,6 +224,7 @@ genes_colors <- c('UGT1A1'='thistle2',
                   'UGT3A2'='plum4',
                   'UGT8'='lightskyblue3')
               
+italic.labels <- ifelse(levels(num_pop_in_groups$genetic_group) %in% c('UGT1A[1-10]' ,'UGT2A[1-2]'), yes = "bold", no = "italic")
 
 ggplot(num_pop_in_groups) +
   geom_bar(aes(x = group, y = num, fill = genetic_group), 
@@ -243,18 +245,17 @@ ggplot(num_pop_in_groups) +
                             "European non Finnish",
                             "Ashkenazi Jewish",
                             "Global")) +
-  theme(axis.title = element_text(size = (7), face='bold'),
-        axis.text = element_text(size = (6)),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
-        plot.subtitle = element_text(size = 7, color = "gray40"),
-        legend.title = element_text(size=9, face='bold'), 
-        legend.text = element_text(size=7.5, face='bold'), 
+  theme(axis.title = element_text(size = (11), face='bold'),
+        axis.text.y = element_text(size=8),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold', size=10),
+        legend.title = element_text(size=11, face='bold'), 
+        legend.text = element_text(size=10, face=italic.labels), 
         strip.background = element_rect(fill="gray95", size=1, color="gray60"),
         strip.text = element_text(face="bold"),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
 
-ggsave(filename='plots/04_Population_scale_analysis/Num_Dvars_per_individual.pdf', width = 14, height = 6)   
+ggsave(filename='plots/04_Population_scale_analysis/Num_Dvars_per_individual.pdf', width = 14, height = 7)   
 
 # ----------------------------------------------------------------------------------------------------------------
 
@@ -277,24 +278,25 @@ ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = G
                             "Ashkenazi Jewish",
                             "Global")) +
   labs(title='Deleterious variants in all UGT genes per population', 
-       subtitle=paste0(length(unique(allD_vars_MAF_in_pops$Variant_ID)), ' deleterious variants in total'), 
+      # subtitle=paste0(length(unique(allD_vars_MAF_in_pops$Variant_ID)), ' deleterious variants in total'), 
        x='', y='MAF of deleterious UGT variants in each human group', shape=paste0('Variant ID (MAF>0.01) & Gene(s)')) +
   ## Add aggregated frequency of all D variants per population
   coord_cartesian(ylim = c(0, max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)), clip = 'off') +
-  geom_text(data=melt(num_pop['all_vars',]), aes(x=variable, y=max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)+0.035, shape=NULL, label=signif(value, 3)), size=2.4, color='grey20', fontface='bold') +
+  geom_text(data=melt(num_pop['all_vars',]), aes(x=variable, y=max(subset(allD_vars_MAF_in_pops, !is.na(MAF))$MAF)+0.035, shape=NULL, label=signif(value, 3)), size=3, color='grey20', fontface='bold') +
   
-  theme(plot.title = element_text(size = (9), face='bold', vjust = 7.1, hjust=0),
-        plot.subtitle = element_text(size = 8.5, color = "gray50", vjust = 7, hjust=0, face='bold'),
+  theme(plot.title = element_text(size = (11), face='bold', vjust = 7.1, hjust=0),
+        #plot.subtitle = element_text(size = 9, color = "gray50", vjust = 7, hjust=0, face='bold'),
         plot.margin = unit(c(2, 0.5, 0.5, 0.5), "cm"),
-        axis.title = element_text(size = (8.5), face='bold'),
-        axis.text = element_text(size = (8)),
+        axis.title = element_text(size = (11), face='bold'),
+        axis.text = element_text(size = (10)),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
-        legend.title = element_text(size=8.5, face='bold'), 
-        legend.text = element_text(size=8),
-        panel.border = element_rect(colour = "black", fill = NA,
-                                    size = 0.2))
+        legend.title = element_text(size=11, face='bold'), 
+        legend.text = element_text(size=10),
+        panel.border = element_rect(colour = "black", fill = NA, size = 0.2))
+        # panel.grid.minor = element_blank(), 
+        # panel.grid.major = element_blank())
 
-ggsave(filename='plots/04_Population_scale_analysis/MAF_totalDvars_per_population.pdf', width = 8, height = 6)   
+ggsave(filename='plots/04_Population_scale_analysis/MAF_totalDvars_per_population.pdf', width = 9, height = 6.5)   
 
 
 
@@ -302,7 +304,7 @@ ggsave(filename='plots/04_Population_scale_analysis/MAF_totalDvars_per_populatio
 #  4.2   Compare MAF of the regulatory UGT1A1 variants in each population
 # _______________________________________________________________________________
 
-## Variants are annotated in UGT8 dataset                                                                                           
+## Variants are annotated in UGT1A8 dataset                                                                                           
 var_data <- UGT1A8_data[UGT1A8_data$rsIDs=='rs34983651',]   
 
 MAF_var_data <- data.frame(matrix(ncol=8, nrow=5))
@@ -341,7 +343,7 @@ ggplot(MAF_var_data, aes(x="", y=value, fill=variant)) +
                                                           "MAF_European_Finnish"="Finnish",
                                                           "MAF_European_non_Finnish"="European non Finnish",
                                                           "MAF_Ashkenazi_Jewish"="Ashkenazi Jewish",
-                                                          "Allele_Frequency"="Global")), ncol=4) + 
+                                                          "Allele_Frequency"="Global")), ncol=3) + 
   labs(fill='UGT1A1 promoter variant')+
   theme_void() + 
   geom_label_repel(aes(label = label, fill=variant), position=position_stack(vjust=0.5),
@@ -363,7 +365,7 @@ ggplot(MAF_var_data, aes(x="", y=value, fill=variant)) +
         strip.text = element_text(face="bold"),
         plot.margin = unit(c(0, 0.5, 0, 0.5), "cm"))
 
-ggsave(filename='plots/04_Population_scale_analysis/UGT1A1_promoter_variants.pdf', width = 12, height = 6)  
+ggsave(filename='plots/04_Population_scale_analysis/UGT1A1_promoter_variants.pdf', width = 8, height = 8)  
 
 
 
