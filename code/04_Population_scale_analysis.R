@@ -2,6 +2,8 @@
 library(here)
 library(ggplot2)
 library(scales)
+library(rlang)
+library(reshape2)
 library(sessioninfo)
 
 
@@ -68,7 +70,7 @@ for (gene in UGT_genes){
 }
 
 allD_vars_MAF_in_pops <- unique(allD_vars_MAF_in_pops)
-allD_vars_MAF_in_pops$Group <- factor(allD_vars_MAF_in_pops$Group, levels=c(paste0('MAF_',populations), 'Allele_Frequency'))
+#allD_vars_MAF_in_pops$Group <- factor(allD_vars_MAF_in_pops$Group, levels=c(paste0('MAF_',populations), 'Allele_Frequency'))
 
 ## Number of variants with missing MAF per population
 table(allD_vars_MAF_in_pops[which(is.na(allD_vars_MAF_in_pops$MAF)), 'Group'])
@@ -223,7 +225,11 @@ genes_colors <- c('UGT1A1'='thistle2',
                   'UGT3A1'='thistle3',
                   'UGT3A2'='plum4',
                   'UGT8'='lightskyblue3')
-              
+
+## Order populations by Qf of UGT1s, global at the end
+pop_Qf_UGT1_order <- c(as.vector(subset(Qf_pop, gene_fam=="UGT1" & variable!='Allele_Frequency')[order(subset(Qf_pop, gene_fam=="UGT1" & variable!='Allele_Frequency')$label,
+                                                                                           decreasing = TRUE), 'variable']), 'Allele_Frequency')
+num_pop_in_groups$group <- factor(num_pop_in_groups$group, levels=pop_Qf_UGT1_order)
 italic.labels <- ifelse(levels(num_pop_in_groups$genetic_group) %in% c('UGT1A[1-10]' ,'UGT2A[1-2]'), yes = "bold", no = "italic")
 
 ggplot(num_pop_in_groups) +
@@ -260,6 +266,8 @@ ggsave(filename='plots/04_Population_scale_analysis/Num_Dvars_per_individual.pdf
 # ----------------------------------------------------------------------------------------------------------------
 
 ## Plot
+allD_vars_MAF_in_pops$Group <- factor(allD_vars_MAF_in_pops$Group, levels=pop_Qf_UGT1_order)
+
 ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = Group)) +
   geom_point(data=subset(allD_vars_MAF_in_pops, is.na(Label)), alpha = 0.65, size = 1.3, 
              position = position_jitter(width = 0.1, height = 0), color="tomato") +
