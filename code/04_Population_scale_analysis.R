@@ -380,7 +380,7 @@ ggplot(MAF_var_data, aes(x="", y=value, fill=variant)) +
         strip.text = element_text(face="bold"),
         plot.margin = unit(c(0, 0.5, 0, 0.5), "cm"))
 
-ggsave(filename='plots/04_Population_scale_analysis/UGT1A1_promoter_variants.pdf', width = 12, height = 6)  
+ggsave(filename='plots/04_Population_scale_analysis/UGT1A1_promoter_variants.pdf', width = 11, height = 5)  
 
 
 
