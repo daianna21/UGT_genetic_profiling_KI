@@ -269,6 +269,7 @@ ggsave(filename='plots/04_Population_scale_analysis/Num_Dvars_per_individual.pdf
 ## Plot
 allD_vars_MAF_in_pops$Group <- factor(allD_vars_MAF_in_pops$Group, levels=pop_Qf_UGT1_order)
 
+set.seed(4429)
 ggplot(data = allD_vars_MAF_in_pops, mapping = aes(x = Group, y = MAF, color = Group)) +
   geom_point(data=subset(allD_vars_MAF_in_pops, is.na(Label)), alpha = 0.65, size = 1.3, 
              position = position_jitter(width = 0.1, height = 0), color="tomato") +
