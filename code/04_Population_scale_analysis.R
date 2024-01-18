@@ -4,6 +4,7 @@ library(ggplot2)
 library(scales)
 library(rlang)
 library(reshape2)
+library(ggrepel)
 library(sessioninfo)
 
 
@@ -312,7 +313,7 @@ ggsave(filename='plots/04_Population_scale_analysis/MAF_totalDvars_per_populatio
 #  4.2   Compare MAF of the regulatory UGT1A1 variants in each population
 # _______________________________________________________________________________
 
-## Variants are annotated in UGT1A8 dataset                                                                                           
+## Variants are annotated in UGT1A8 dataset                                                                   
 var_data <- UGT1A8_data[UGT1A8_data$rsIDs=='rs34983651',]   
 
 MAF_var_data <- data.frame(matrix(ncol=8, nrow=5))
@@ -340,6 +341,11 @@ MAF_var_data$variant <- factor(rownames(MAF_var_data), levels=c('2-234668879-CAT
 MAF_var_data <- as.data.frame(melt(MAF_var_data))
 MAF_var_data$label <- sapply(MAF_var_data$value, function(x){if(x==0){NA}else{100*signif(x, digits=3)}})
 
+## Order populations by increasing proportion of T6 allele
+pop_order_by_T6_prop <- c(as.vector(subset(MAF_var_data, variant=='2-234668879-C-C' & variable!='Allele_Frequency')
+                                    [order(subset(MAF_var_data, variant=='2-234668879-C-C' & variable!='Allele_Frequency')$label),'variable']), 'Allele_Frequency')
+MAF_var_data$variable <- factor(MAF_var_data$variable, levels=pop_order_by_T6_prop)
+
 ## Pie charts
 ggplot(MAF_var_data, aes(x="", y=value, fill=variant)) +
   geom_bar(stat="identity", width=1, color="white") +
@@ -351,7 +357,7 @@ ggplot(MAF_var_data, aes(x="", y=value, fill=variant)) +
                                                           "MAF_European_Finnish"="Finnish",
                                                           "MAF_European_non_Finnish"="European non Finnish",
                                                           "MAF_Ashkenazi_Jewish"="Ashkenazi Jewish",
-                                                          "Allele_Frequency"="Global")), ncol=3) + 
+                                                          "Allele_Frequency"="Global")), ncol=4) + 
   labs(fill='UGT1A1 promoter variant')+
   theme_void() + 
   geom_label_repel(aes(label = label, fill=variant), position=position_stack(vjust=0.5),
@@ -373,7 +379,7 @@ ggplot(MAF_var_data, aes(x="", y=value, fill=variant)) +
         strip.text = element_text(face="bold"),
         plot.margin = unit(c(0, 0.5, 0, 0.5), "cm"))
 
-ggsave(filename='plots/04_Population_scale_analysis/UGT1A1_promoter_variants.pdf', width = 8, height = 8)  
+ggsave(filename='plots/04_Population_scale_analysis/UGT1A1_promoter_variants.pdf', width = 12, height = 6)  
 
 
 
