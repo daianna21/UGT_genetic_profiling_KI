@@ -50,7 +50,10 @@ populations <- c('African_or_African_American',
                  'European_non_Finnish',
                  'Ashkenazi_Jewish')
 
+## Obtain data of all D vars
 allD_vars_MAF_in_pops <- vector()
+D_vars_results <- vector()
+
 for (gene in UGT_genes){
   
   ## Exonic variants per gene
@@ -64,14 +67,21 @@ for (gene in UGT_genes){
   }
   ## Subset to D vars 
   data <- exonic_data[which(exonic_data$Functional_impact=='D'),c('Variant_ID', 'Allele_Frequency', paste0('MAF_', populations))]
+  results <- exonic_data[which(exonic_data$Functional_impact=='D'),c('Variant_ID', 'rsIDs', 'Transcript', 'Location_in_txs', 'Protein_Consequence', 
+                                                                     'Transcript_Consequence', 'VEP_Annotation', 'Functional_impact', 
+                                                                     'Allele_Frequency', paste0('MAF_', populations))]
+  results$gene <- rep(gene, dim(results)[1])
+  results$gene_family <- rep(substr(gene, 1, 4), dim(results)[1])
+    
   data <- melt(data, id.vars = c('Variant_ID'))
   colnames(data) <- c('Variant_ID', 'Group', 'MAF')
   allD_vars_MAF_in_pops <- rbind(allD_vars_MAF_in_pops, data)
+  D_vars_results <- rbind(D_vars_results, results)
   
 }
 
 allD_vars_MAF_in_pops <- unique(allD_vars_MAF_in_pops)
-#allD_vars_MAF_in_pops$Group <- factor(allD_vars_MAF_in_pops$Group, levels=c(paste0('MAF_',populations), 'Allele_Frequency'))
+
 
 ## Number of variants with missing MAF per population
 table(allD_vars_MAF_in_pops[which(is.na(allD_vars_MAF_in_pops$MAF)), 'Group'])
@@ -83,6 +93,14 @@ table(allD_vars_MAF_in_pops[which(is.na(allD_vars_MAF_in_pops$MAF)), 'Group'])
 ## Manually add MAF of 2−234668879−C−CAT (UGT1A1*28) and 2-234668879-C-CATAT (UGT1A1*37) variants in South Asians 
 allD_vars_MAF_in_pops[which(allD_vars_MAF_in_pops$Group=='MAF_South_Asian' & allD_vars_MAF_in_pops$Variant_ID=='2-234668879-C-CAT'), 'MAF'] <- 0.4557
 allD_vars_MAF_in_pops[which(allD_vars_MAF_in_pops$Group=='MAF_South_Asian' & allD_vars_MAF_in_pops$Variant_ID=='2-234668879-C-CATAT'), 'MAF'] <- 0
+
+## Csv with data of all D vars
+D_vars_results[which(D_vars_results$Variant_ID=='2-234668879-C-CAT'), 'MAF_South_Asian'] <- 0.4557
+D_vars_results[which(D_vars_results$Variant_ID=='2-234668879-C-CATAT'), 'MAF_South_Asian'] <- 0
+D_vars_results[which(D_vars_results$Variant_ID=='2-234668879-C-CAT'), 'Protein_Consequence'] <- NA
+D_vars_results[which(D_vars_results$Variant_ID=='2-234668879-C-CATAT'), 'Protein_Consequence'] <- NA
+write.table(D_vars_results, file = "processed-data/04_Population_scale_analysis/D_vars_results.csv", row.names = FALSE, col.names = TRUE, sep = '\t')
+
 
 ## Label variants with MAF>0.01 or if they are the UGT1A1*28 allele; ignore missing MAFs
 allD_vars_MAF_in_pops$Label <- apply(allD_vars_MAF_in_pops, 1, function(x){if (is.na(x['MAF'])){NA}
