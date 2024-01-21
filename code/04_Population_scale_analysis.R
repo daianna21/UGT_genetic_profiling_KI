@@ -99,6 +99,8 @@ D_vars_results[which(D_vars_results$Variant_ID=='2-234668879-C-CAT'), 'MAF_South
 D_vars_results[which(D_vars_results$Variant_ID=='2-234668879-C-CATAT'), 'MAF_South_Asian'] <- 0
 D_vars_results[which(D_vars_results$Variant_ID=='2-234668879-C-CAT'), 'Protein_Consequence'] <- NA
 D_vars_results[which(D_vars_results$Variant_ID=='2-234668879-C-CATAT'), 'Protein_Consequence'] <- NA
+D_vars_results[which(D_vars_results$rsIDs==''), 'rsIDs'] <- NA
+D_vars_results[which(D_vars_results$Protein_Consequence==''), 'Protein_Consequence'] <- NA
 write.table(D_vars_results, file = "processed-data/04_Population_scale_analysis/D_vars_results.csv", row.names = FALSE, col.names = TRUE, sep = '\t')
 
 
