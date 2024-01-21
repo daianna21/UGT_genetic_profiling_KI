@@ -18,7 +18,7 @@ UGT_genes <- c('UGT1A1', 'UGT1A3', 'UGT1A4', 'UGT1A5', 'UGT1A6', 'UGT1A7', 'UGT1
                'UGT8')
 
 
-## Process and build variables for each gene 
+## Process and vaild variables for each gene 
 for (gene in UGT_genes){
   
   ## Read data
@@ -583,6 +583,7 @@ length(which(sapply(intron2to3_vars, function(x){length(which(!is.na(UGT1_varian
 ## Add the shared variants from exon 2 to 3' UTR to UGT1A8 
 UGT1A8_canonical_data <- rbind(UGT1A8_canonical_data, UGT1A1_canonical_data[UGT1_shared_variants_8Genes,])
 UGT1A8_canonical_data$Transcript <- canonical_UGT1_txs[['UGT1A8']]
+save(UGT1A8_canonical_data, file = 'processed-data/01_Data_Processing/UGT1A8_canonical_data.Rdata')   
 UGT1_variants[UGT1_shared_variants_8Genes, 'UGT1A8'] <- canonical_UGT1_txs[['UGT1A8']]
 
 
