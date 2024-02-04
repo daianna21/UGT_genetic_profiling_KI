@@ -101,7 +101,41 @@ D_vars_results[which(D_vars_results$Variant_ID=='2-234668879-C-CAT'), 'Protein_C
 D_vars_results[which(D_vars_results$Variant_ID=='2-234668879-C-CATAT'), 'Protein_Consequence'] <- NA
 D_vars_results[which(D_vars_results$rsIDs==''), 'rsIDs'] <- NA
 D_vars_results[which(D_vars_results$Protein_Consequence==''), 'Protein_Consequence'] <- NA
-write.table(D_vars_results, file = "processed-data/04_Population_scale_analysis/D_vars_results.csv", row.names = FALSE, col.names = TRUE, sep = '\t')
+
+## Collapse shared variants in a single table row
+Deleterious_UGT_variants <- vector()
+for (variant in D_vars_results$Variant_ID){
+  ## If shared variant:
+  if (length(which(D_vars_results$Variant_ID==variant))>1){
+    var_data <- subset(D_vars_results, Variant_ID==variant)
+    
+    ## For each column: 
+    variant_row <- vector()
+    for (variable in colnames(D_vars_results)){
+      if(length(unique(var_data[,variable]))==1){
+        variant_row <- append(variant_row, unique(var_data[,variable]))
+      }
+      else{
+        if(variable!='gene') { variant_row <- append(variant_row, paste(paste(var_data$gene, var_data[,variable], sep=': '), collapse='; '))}
+        else {variant_row <- append(variant_row, paste(var_data[,variable], collapse='; '))}
+      }
+    }
+    
+    Deleterious_UGT_variants <- rbind(Deleterious_UGT_variants, variant_row)
+  }
+  else {
+    Deleterious_UGT_variants <- rbind(Deleterious_UGT_variants, subset(D_vars_results, Variant_ID==variant))
+  }
+}
+
+## Delete duplicated variants
+Deleterious_UGT_variants <- unique(Deleterious_UGT_variants)
+## Reorder columns
+Deleterious_UGT_variants <- Deleterious_UGT_variants[ ,c(1,2,17,18, 3:16)]
+## Signif digits
+Deleterious_UGT_variants[,11:18] <- signif(apply(Deleterious_UGT_variants[,11:18], 2, as.numeric), digits=5)
+## Save as .csv file
+write.table(Deleterious_UGT_variants, file = "processed-data/04_Population_scale_analysis/Deleterious_UGT_variants.csv", row.names = FALSE, col.names = TRUE, sep = '\t')
 
 
 ## Label variants with MAF>0.01 or if they are the UGT1A1*28 allele; ignore missing MAFs
