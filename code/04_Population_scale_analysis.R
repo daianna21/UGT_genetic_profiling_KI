@@ -137,6 +137,11 @@ Deleterious_UGT_variants[,11:18] <- signif(apply(Deleterious_UGT_variants[,11:18
 ## Save as .csv file
 write.table(Deleterious_UGT_variants, file = "processed-data/04_Population_scale_analysis/Deleterious_UGT_variants.csv", row.names = FALSE, col.names = TRUE, sep = '\t')
 
+## Subset to D missense UGT1A1 variants with MAF<0.01
+UGT1A1_delet_missense_variants <- subset(Deleterious_UGT_variants, gene=='UGT1A1' & VEP_Annotation=='missense_variant' 
+                                         & Allele_Frequency<0.01)
+write.table(UGT1A1_delet_missense_variants, file = "processed-data/04_Population_scale_analysis/UGT1A1_delet_missense_variants.csv", row.names = FALSE, col.names = TRUE, sep = '\t')
+
 
 ## Label variants with MAF>0.01 or if they are the UGT1A1*28 allele; ignore missing MAFs
 allD_vars_MAF_in_pops$Label <- apply(allD_vars_MAF_in_pops, 1, function(x){if (is.na(x['MAF'])){NA}
