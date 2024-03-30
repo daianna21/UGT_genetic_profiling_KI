@@ -4,6 +4,8 @@ library(readr)
 library(rlang)
 library(ggplot2)
 library(cowplot)
+library(reshape2)
+library(ggrepel)
 library(sessioninfo)
 
 
@@ -18,7 +20,7 @@ UGT_genes <- c('UGT1A1', 'UGT1A3', 'UGT1A4', 'UGT1A5', 'UGT1A6', 'UGT1A7', 'UGT1
                'UGT8')
 
 
-## Process and vaild variables for each gene 
+## Process and valid variables for each gene 
 for (gene in UGT_genes){
   
   ## Read data
@@ -1187,6 +1189,7 @@ colnames(var_data) <- c('gene_family', 'annotation', 'number')
 
 for(gene_family in c('UGT1', 'UGT2', 'UGT3', 'UGT8')){
   
+  ordered_annotations <- c("other", "stop_gained", "frameshift_variant", "synonymous_variant", "missense_variant")
   UGT_exonic_variants <- eval(parse_expr(paste0(gene_family, '_exonic_variants')))
   UGT_exonic_variants$anno <- sapply(UGT_exonic_variants$VEP_Annotation, function(x){if(x %in% ordered_annotations){x}else{'other'}})
   
@@ -1231,11 +1234,30 @@ ggsave(filename=paste0('plots/01_Data_Processing/Num_variants_per_gene_fam.pdf')
 
 
 # _____________________________________________________________________________
-#  1.1.4 Examination of the minor allele frequency of all UGT variants
+#  1.1.4 Examination of the minor allele frequency of all UGT exonic variants
 # _____________________________________________________________________________
 
-## GMAF of all variants
-all_UGT_vars_MAF <-c(UGT1_exonic_variants$MAF, UGT2_exonic_variants$MAF, UGT3_exonic_variants$MAF, UGT8_exonic_variants$MAF)
+## GMAF of all exonic variants
+all_exonic_vars <- rbind(UGT1_exonic_variants[c("VEP_Annotation", "MAF")], UGT2_exonic_variants[c("VEP_Annotation", "MAF")], UGT3_exonic_variants[c("VEP_Annotation", "MAF")], UGT8_exonic_variants[c("VEP_Annotation", "MAF")])
+all_UGT_vars_MAF <- all_exonic_vars$MAF
+
+## Number of total exonic variants
+dim(all_exonic_vars)[1]
+# [1] 9666
+
+## Number of exonic variants that are rare (MAF≤0.01)
+rare_exonic_vars <- subset(all_exonic_vars, MAF<=0.01)
+dim(rare_exonic_vars)[1]
+# [1] 9557
+
+## % of rare exonic variants that are missense 
+table(rare_exonic_vars$VEP_Annotation)['missense_variant'] / dim(rare_exonic_vars)[1] *100
+#  missense_variant 
+#          65.85749 
+
+## Number of exonic variants that are singletons (MAF≤0.00001)
+dim(subset(all_exonic_vars, MAF<=0.00001))[1] 
+# [1] 5777
 
 ## Quantiles
 quantiles <- as.data.frame(quantile(all_UGT_vars_MAF, probs=seq(from=0, to=1, length=7000)))
