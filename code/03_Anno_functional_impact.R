@@ -1216,6 +1216,18 @@ data[which(data$Allele_Frequency>0.5),]
 #   4-69795626-C-T         0.7568806            DANN
 #  4-115589302-A-G         0.9953603             LRT
 
+## % of D variants with MAF>0.01 per method
+sapply(levels(data$Method), function(x){dim(subset(data, Method==x & Allele_Frequency>0.01))[1] / dim(subset(data, Method==x))[1]*100})
+#    MutPred             CADD          PROVEAN             DANN MutationAssessor             SIFT 
+#  0.0000000        0.4688362        0.4182934        0.5136986        0.4184100        0.5382775 
+#  PolyPhen-2 HDIV         ClinPred  PolyPhen-2 HVAR       FATHMM-MKL             ADME              LRT 
+#        0.3984064        0.0000000        0.3942652        0.4063539        0.4219409        0.8574491 
+#   Eigen-PC             VEST            M-CAP    AlphaMissense           MetaLR          MetaSVM 
+#  0.3351955        0.2347418        0.0000000        0.4629630        0.0000000        0.1041667 
+#       MVP            REVEL           FATHMM        PrimateAI 
+# 0.0000000        0.1455604        2.1052632        0.0000000 
+
+
 shapes <- c('4-69795626-C-T'=17,
             '4-115589302-A-G'=15)
 data$label <- apply(data, 1, function(x){if (as.numeric(x['Allele_Frequency'])>0.5){x['Variant_ID']} else {NA}})
