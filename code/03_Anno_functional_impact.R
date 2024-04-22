@@ -63,6 +63,8 @@ for (gene in UGT_genes){
   UGT_exonic_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
   missense_vars <- UGT_exonic_data[which(UGT_exonic_data$VEP_Annotation=='missense_variant'),]
   assign(paste0(gene, '_missense_vars'), missense_vars)
+  write.table(missense_vars, file = paste0('processed-data/03_Anno_functional_impact/', 
+                                                          gene, '_missense_variants.csv'), row.names = FALSE, col.names = TRUE, sep = '\t')
 }
 
 # _______________________________________________________________________________
