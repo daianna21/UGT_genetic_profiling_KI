@@ -35,6 +35,19 @@ canonical_txs <- list('UGT1A1'= 'ENST00000305208.5', 'UGT1A3'='ENST00000482026.1
                            'UGT2B11'= 'ENST00000446444.1', 'UGT2B15'= 'ENST00000338206.5', 'UGT2B17'='ENST00000317746.2', 
                            'UGT2B28'='ENST00000335568.5', 'UGT3A1'= 'ENST00000274278.3', 'UGT3A2'='ENST00000282507.3',
                            'UGT8'= 'ENST00000310836.6')
+canonical_UGT1_txs <- list('UGT1A1'= 'ENST00000305208.5', 'UGT1A3'='ENST00000482026.1', 'UGT1A4'='ENST00000373409.3', 
+                           'UGT1A5'='ENST00000373414.3', 'UGT1A6'='ENST00000305139.6', 'UGT1A7'='ENST00000373426.3', 
+                           'UGT1A8'= 'ENST00000373450.4','UGT1A9'= 'ENST00000354728.4', 'UGT1A10'='ENST00000344644.5')
+
+canonical_UGT2_txs <- list('UGT2A1'= 'ENST00000503640.1', 'UGT2A2'='ENST00000457664.2', 'UGT2A3'='ENST00000251566.4', 
+                           'UGT2B4'='ENST00000305107.6', 'UGT2B7'='ENST00000305231.7', 'UGT2B10'='ENST00000265403.7', 
+                           'UGT2B11'= 'ENST00000446444.1', 'UGT2B15'= 'ENST00000338206.5', 'UGT2B17'='ENST00000317746.2', 
+                           'UGT2B28'='ENST00000335568.5')
+
+canonical_UGT3_txs <- list('UGT3A1'= 'ENST00000274278.3', 'UGT3A2'='ENST00000282507.3')
+
+canonical_UGT8_txs <- list('UGT8'= 'ENST00000310836.6')
+
 
 
 ## Load exonic data for each gene 
@@ -1724,6 +1737,7 @@ Youden_indices <- function(method){
   ## Plot scores vs J 
   p <- ggplot(scores_Js, aes(x=score, y=J))+
     geom_line(color=colors[method_name], size=1.2) + 
+    coord_cartesian(ylim=c(0, NA), expand = FALSE) +
     
     ## Line for score that yields the max J
     geom_segment(aes(x = max_J_score, y = 0, xend = max_J_score, yend = max_J), linetype=1, linewidth=0.5, color='grey60') +
@@ -1731,7 +1745,7 @@ Youden_indices <- function(method){
     geom_point(x=max_J_score, y=max_J, color='red', size=2) + 
     geom_text_repel(data = subset(scores_Js, J==max_J & score!=conv_threshold), label=signif(max_J, digits=3), 
                     size=3.7, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1, 
-                    box.padding = 0.5, lineheight=unit(2, 'lines'), nudge_x = args[[method]]['nudge_x_o'], 
+                    box.padding = 0.5, lineheight=unit(1, 'lines'), nudge_x = args[[method]]['nudge_x_o'], 
                     nudge_y = args[[method]]['nudge_y_o'], fontface='bold') + 
     
     ## J with conventional threshold
@@ -1745,7 +1759,6 @@ Youden_indices <- function(method){
     
     theme_classic() +
     labs(x='Score', y='Youden index (J)', title=method_name) +
-    coord_cartesian(ylim=c(0, 1), expand = FALSE) +
     scale_x_continuous(breaks = sort(c(min(as.numeric(scores_Js$score)), max(as.numeric(scores_Js$score)),
                                        signif(c(seq(from=min(as.numeric(scores_Js$score)),
                                                   to=max(as.numeric(scores_Js$score)),
@@ -1821,6 +1834,7 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
           plots[[13]], plots[[14]], plots[[15]], plots[[16]], plots[[18]], 
           plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=7)
 ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.png', width = 24, height = 9)
+ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.pdf', width = 24, height = 9)
 
 
 ## Add coordinate for new thresholds in ROC curves
