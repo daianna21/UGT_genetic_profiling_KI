@@ -2042,6 +2042,7 @@ ggplot(data = GMAFs_genes, mapping = aes(x = gene, y = GMAFs, color = gene)) +
           panel.grid.minor = element_blank())
 
 ggsave(filename='plots/03_Anno_functional_impact/GMAF_Dvars_byUGTopMethod.png', width = 8, height = 4.5)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_Dvars_byUGTopMethod.pdf', width = 8, height = 4.5)
 
 
 
@@ -2184,6 +2185,7 @@ ggplot(data = GMAFs_Dvars_shared_or_unique, mapping = aes(x = shared_or_unique, 
         panel.grid.minor = element_blank())
 
 ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene.png', width = 6.2, height = 5)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene.pdf', width = 6.2, height = 5)
 save(GMAFs_Dvars_genes, file='processed-data/03_Anno_functional_impact/GMAFs_Dvars_genes.Rdata')
 save(GMAFs_Dvars_shared_or_unique, file='processed-data/03_Anno_functional_impact/GMAFs_Dvars_shared_or_unique.Rdata')
 
@@ -2196,13 +2198,17 @@ for (fam in gene_families){
   ## Genes 
   UGT_genes <- eval(parse_expr(paste0(fam, '_genes')))
   ## Subset to unique gene family variants
-  fam_vars <- unique(subset(GMAFs_Dvars_genes, gene %in% UGT_genes)[,-3])
+  fam_vars <- unique(subset(GMAFs_Dvars_genes, gene %in% UGT_genes)[,-4])
   ## Add gene fam info
   fam_vars <- cbind(fam_vars, 'gene_fam'=rep(fam, dim(fam_vars)[1]))
   
   GMAFs_Dvars_gene_fam <- rbind(GMAFs_Dvars_gene_fam, fam_vars)
   
 }
+GMAFs_Dvars_gene_fam$label <- apply(GMAFs_Dvars_gene_fam, 1, function(x){if(as.numeric(x['Allele_Frequency'])>0.01){x['Variant_ID']} else{NA}})
+
+GMAFs_Dvars_gene_fam$Allele_Frequency <- sapply(GMAFs_Dvars_gene_fam$Allele_Frequency, function(x){if(x<=1e-05){1e-05} else{x}})
+
 ## Number of D vars per family
 num_D_per_gene_fam <- as.data.frame(table(GMAFs_Dvars_gene_fam$gene_fam))
 colnames(num_D_per_gene_fam) <- c('gene_fam', 'number')
@@ -2234,6 +2240,7 @@ ggplot(data = GMAFs_Dvars_gene_fam, mapping = aes(x = gene_fam, y = Allele_Frequ
         panel.grid.minor = element_blank())
 
 ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene_fam.png', width = 3.8, height = 4)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_totalDvars_per_gene_fam.pdf', width = 3.8, height = 4)
 save(GMAFs_Dvars_gene_fam, file='processed-data/03_Anno_functional_impact/GMAFs_Dvars_gene_fam.Rdata')
 
 
