@@ -568,7 +568,7 @@ max(pos) < location_determination(max(pos), canonical_UGT1_txs[['UGT1A1']], 'Exo
 exon2to5_vars <- rownames(UGT1_variants[which(UGT1_variants$Location_in_txs %in% c('Exon 2', 'Exon 3', 'Exon 4', 'Exon 5', '3\'UTR')), ])
 which(sapply(exon2to5_vars, function(x){length(which(!is.na(UGT1_variants[x,1:9]))) })!=8)
 # named integer(0)
-
+  
 ## Check if variants in shared introns (Intron 4-5, Intron 3-4 and Intron 2-3) are shared by all 8 UGT1 genes
 intron4to5_vars <- rownames(UGT1_variants[which(UGT1_variants$Location_in_txs == 'Intron 4-5'), ])
 length(which(sapply(intron4to5_vars, function(x){length(which(!is.na(UGT1_variants[x,1:9]))) })!=8))
@@ -774,9 +774,17 @@ barplot_gene_fam<- function(gene_family){
   var_data <- data.frame(matrix(ncol = 3))
   colnames(var_data) <- c('gene', 'location', 'number')
   total_num <- list()
+  num_per_kb <- list()
   
   for (gene in genes){
     gene_data <- eval(parse_expr(paste0(gene, '_canonical_data')))
+    
+    ## Kbs spanned by all gene variants (from 5' upstream to 3' downstream region) 
+    kbs_spanned <- (gene_data[which.max(gene_data$Position), 'Position'] - gene_data[which.min(gene_data$Position), 'Position'] + 1) / 1000 
+      
+    ## Number of variants per kb per gene: number of total gene variants normalized by the kbs they comprise)
+    num_per_kb[[gene]] <- dim(gene_data)[1]/kbs_spanned
+    
     data <- data.frame(matrix(ncol = 3))
     colnames(data) <- c('gene', 'location', 'number')
     
@@ -810,15 +818,21 @@ barplot_gene_fam<- function(gene_family){
   var_data$gene <- factor(var_data$gene, levels = unique(var_data$gene))
   var_data <- var_data[-1,]
   total_num <- melt(total_num)
-  colnames(total_num) <- c('n', 'gene')
+  total_num$label <- paste0("(n=", total_num$value, ")")
+  num_per_kb <- melt(num_per_kb)
+  num_per_kb$label <- as.character(signif(num_per_kb$value, digits=2))
+  colnames(total_num) <- colnames(num_per_kb) <- c('n', 'gene', 'label')
+  ## Add total number of variants per gene in num_per_kb
+  num_per_kb$n_total <- total_num$n
   
   p <- ggplot(var_data, aes(fill=factor(location, levels=ordered_locations), y=number, x=gene)) + 
     geom_bar(position="stack", stat="identity", width = 0.8) + 
-    geom_text(data=total_num, aes(label=n, y=n+2, x=gene, fill=NULL), vjust=-0.25, size=3.2) +
+    geom_text(data=total_num, aes(label=label, y=n+2, x=gene, fill=NULL), vjust=-0.25, size=2.8) +
+    geom_text(data=num_per_kb, aes(label=label, y=n_total+26, x=gene, fill=NULL), vjust=-0.25, size=3.2) +
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of reported variants in canonical transcript', fill='Location') +
     theme_classic() +
     scale_fill_manual(values = var_colors) +
-    scale_y_continuous(limits = c(0,990), expand = c(0,0)) +
+    scale_y_continuous(limits = c(0,999), expand = c(0,0)) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 10, face='italic'),
           axis.text.y = element_text(size = 10),
           legend.text = element_text(size=11), 
@@ -833,8 +847,8 @@ p2 <- barplot_gene_fam('UGT2')
 p3 <- barplot_gene_fam('UGT3')
 p4 <- barplot_gene_fam('UGT8')
 
-plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1,1.08, 0.52, 0.46))
-ggsave(filename=paste0('plots/01_Data_Processing/All_variants_genes.pdf'), width = 16, height = 5.1)
+plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1.02,1.08, 0.51, 0.45))
+ggsave(filename=paste0('plots/01_Data_Processing/All_variants_genes.pdf'), width = 16.5, height = 6)
 
 
 
