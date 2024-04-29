@@ -6,6 +6,7 @@ library(ggplot2)
 library(cowplot)
 library(reshape2)
 library(ggrepel)
+library(seqinr)
 library(sessioninfo)
 
 
@@ -408,6 +409,13 @@ location_determination <- function(variant_pos, tx, feature){
   if(!length(which(first_exon %in% fiveUTR))==0){
     first_exon <- first_exon[-which(first_exon %in% fiveUTR)]
   }
+  
+  ## Delimit real boundaries of 2nd exon (in UGT8)
+  if(gene=='UGT8'){
+    tx_seq_data[2, 'End'] <- 115544036
+    tx_seq_data[3, 'Start'] <- 115544037
+  }
+  
   ## Delimit real boundaries of last exon
   last_exon <- tx_seq_data[nrow(tx_seq_data), 'Start']:tx_seq_data[nrow(tx_seq_data), 'End']
   ## Remove 3'-UTR region
@@ -770,20 +778,37 @@ barplot_gene_fam<- function(gene_family){
   
   ## Location of variants in each gene of the family
   genes<- eval(parse_expr(paste0(gene_family, '_genes')))
+  gene_txs<- eval(parse_expr(paste0('canonical_', gene_family, '_txs')))
   
   var_data <- data.frame(matrix(ncol = 3))
   colnames(var_data) <- c('gene', 'location', 'number')
   total_num <- list()
-  num_per_kb <- list()
+  num_per_kb_gene <- vector()
   
   for (gene in genes){
     gene_data <- eval(parse_expr(paste0(gene, '_canonical_data')))
     
-    ## Kbs spanned by all gene variants (from 5' upstream to 3' downstream region) 
-    kbs_spanned <- (gene_data[which.max(gene_data$Position), 'Position'] - gene_data[which.min(gene_data$Position), 'Position'] + 1) / 1000 
+    ## Number of variants in each feature per kb
+    num_per_kb <- vector()
+    ## Exclude 5' upstream variants
+    for (feature in unique(gene_data$Location_in_txs)[!unique(gene_data$Location_in_txs)=='5\' upstream']){
+      ## Variants in feature
+      variants_feature <- subset(gene_data, Location_in_txs==feature)
+      ## Length of each tx feature
+      nts_spanned <- (abs(strtoi(location_determination(1, gene_txs[[gene]], feature)[[2]]['End']) - 
+                              strtoi(location_determination(1, gene_txs[[gene]], feature)[[2]]['Start']) ) +1)
       
-    ## Number of variants per kb per gene: number of total gene variants normalized by the kbs they comprise)
-    num_per_kb[[gene]] <- dim(gene_data)[1]/kbs_spanned
+      print(c(gene, feature, dim(variants_feature)[1], nts_spanned))
+      kbs_spanned <- nts_spanned/1000
+      
+      num_per_kb[feature] <- dim(variants_feature)[1]/kbs_spanned
+    }
+    
+    num_per_kb <- as.data.frame(cbind(num_per_kb, gene))
+    num_per_kb$location <- rownames(num_per_kb)
+    
+    ## Number of variants per kb per gene feature
+    num_per_kb_gene <- rbind(num_per_kb_gene, num_per_kb)
     
     data <- data.frame(matrix(ncol = 3))
     colnames(data) <- c('gene', 'location', 'number')
@@ -814,21 +839,22 @@ barplot_gene_fam<- function(gene_family){
     total_num[[gene]] <- sum(data[!is.na(data$number), 'number'])
   }
   
+  num_per_kb_gene <- as.data.frame(num_per_kb_gene)
+  num_per_kb_gene$num_per_kb <- as.numeric(num_per_kb_gene$num_per_kb)
+  num_per_kb_gene$gene <- factor(num_per_kb_gene$gene, levels = unique(num_per_kb_gene$gene))
+  num_per_kb_gene$location <- factor(num_per_kb_gene$location, levels=ordered_locations)
+  
   var_data$number <- replace(var_data$number, which(is.na(var_data$number)), 0)
   var_data$gene <- factor(var_data$gene, levels = unique(var_data$gene))
   var_data <- var_data[-1,]
   total_num <- melt(total_num)
-  total_num$label <- paste0("(n=", total_num$value, ")")
-  num_per_kb <- melt(num_per_kb)
-  num_per_kb$label <- as.character(signif(num_per_kb$value, digits=2))
-  colnames(total_num) <- colnames(num_per_kb) <- c('n', 'gene', 'label')
-  ## Add total number of variants per gene in num_per_kb
-  num_per_kb$n_total <- total_num$n
+  total_num$label <- paste0("n=", total_num$value)
+  colnames(total_num) <- c('n', 'gene', 'label')
   
-  p <- ggplot(var_data, aes(fill=factor(location, levels=ordered_locations), y=number, x=gene)) + 
+  p1 <- ggplot(var_data, aes(fill=factor(location, levels=ordered_locations), y=number, x=gene)) + 
     geom_bar(position="stack", stat="identity", width = 0.8) + 
     geom_text(data=total_num, aes(label=label, y=n+2, x=gene, fill=NULL), vjust=-0.25, size=2.8) +
-    geom_text(data=num_per_kb, aes(label=label, y=n_total+26, x=gene, fill=NULL), vjust=-0.25, size=3.2) +
+   # geom_text(data=num_per_kb, aes(label=label, y=n_total+26, x=gene, fill=NULL), vjust=-0.25, size=3.2) +
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of reported variants in canonical transcript', fill='Location') +
     theme_classic() +
     scale_fill_manual(values = var_colors) +
@@ -839,16 +865,33 @@ barplot_gene_fam<- function(gene_family){
           legend.title = element_text(size =12, face='bold'),
           axis.title = element_text(size = (11.5), face='bold'))
   
-  return(p)
+  ## Barplots for number of variants per kb per feature
+  p2 <- ggplot(num_per_kb_gene, aes(y=num_per_kb, x=gene, fill=factor(location, levels=ordered_locations))) + 
+          geom_bar(stat="identity", position="stack") + 
+          labs(x=paste(gene_family, 'genes', sep=' '), y='Variants per feature kb', fill='Location') +
+          theme_classic() +
+          scale_fill_manual(values = var_colors) +
+          scale_y_continuous(limits = c(0,NA), expand = c(0,0)) +
+          theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 10, face='italic'),
+                axis.text.y = element_text(size = 10),
+                legend.text = element_text(size=11), 
+                legend.title = element_text(size =12, face='bold'),
+                axis.title = element_text(size = (11.5), face='bold'))
+  
+  return(list(p1, p2))
 }
 
-p1 <- barplot_gene_fam('UGT1')
-p2 <- barplot_gene_fam('UGT2')
-p3 <- barplot_gene_fam('UGT3')
-p4 <- barplot_gene_fam('UGT8')
+p1 <- barplot_gene_fam('UGT1')[[1]]
+p2 <- barplot_gene_fam('UGT2')[[1]]
+p3 <- barplot_gene_fam('UGT3')[[1]]
+p4 <- barplot_gene_fam('UGT8')[[1]]
+p5 <- barplot_gene_fam('UGT1')[[2]]
+p6 <- barplot_gene_fam('UGT2')[[2]]
+p7 <- barplot_gene_fam('UGT3')[[2]]
+p8 <- barplot_gene_fam('UGT8')[[2]]
 
-plot_grid(p1, p2, p3, p4, nrow=1, rel_widths = c(1.02,1.08, 0.51, 0.45))
-ggsave(filename=paste0('plots/01_Data_Processing/All_variants_genes.pdf'), width = 16.5, height = 6)
+plot_grid(p1, p2, p3, p4, p5, p6, p7, p8, ncol=4, rel_widths = c(1.02,1.08, 0.51, 0.45), rel_heights = c(1,0.5), align = 'vh')
+ggsave(filename=paste0('plots/01_Data_Processing/All_variants_genes.pdf'), width = 18, height = 12)
 
 
 
@@ -918,6 +961,7 @@ barplot_exonic_variants <- function(gene_family){
   
   ## Location of variants in each gene of the family
   genes<- eval(parse_expr(paste0(gene_family, '_genes')))
+  gene_txs<- eval(parse_expr(paste0('canonical_', gene_family, '_txs')))
   
   var_data <- data.frame(matrix(ncol = 2))
   colnames(var_data) <- c('gene', 'number')
@@ -925,11 +969,13 @@ barplot_exonic_variants <- function(gene_family){
   ## Number of exonic variants per gene
   i=1
   for (gene in genes){
+    ## Variants per gene
     exonic_gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
     number <- dim(exonic_gene_data)[1]
     var_data[i,] <- c(gene, number)
     i=i+1
   }
+  
   var_data$gene <- factor(var_data$gene, levels = unique(var_data$gene))
   var_data$number <- as.numeric(var_data$number)
   
@@ -947,8 +993,6 @@ barplot_exonic_variants <- function(gene_family){
           axis.text.y = element_text(size = 10),
           axis.title = element_text(size = (11.5), face='bold'))
   
-  ## Plot with exon categories
-
   return(p)
 }
 
@@ -983,9 +1027,13 @@ barplot_exonic_variants_anno <- function(gene_family){
   
   ## Number of exonic variants from each annotation per gene
   total_num <- list()
+  exonic_vars_per_kb <- list()
   i=1
+  
   for (gene in genes){
+    
     exonic_gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
+    
     ## Define 5 categories
     exonic_gene_data$anno <- sapply(exonic_gene_data$VEP_Annotation, function(x){if(x %in% ordered_annotations){x}else{'other'}})
     for (annotation in ordered_annotations){
@@ -995,16 +1043,43 @@ barplot_exonic_variants_anno <- function(gene_family){
       i=i+1
     }
     total_num[[gene]] <- dim(exonic_gene_data)[1]
+    
+    
+    ## Length of region comprised by exons of the gene
+    exon_limits_sum <- 0
+    for (exon in unique(exonic_gene_data$Location_in_txs)){
+      ## Exon boundaries
+      limits <- location_determination(1, gene_txs[[gene]], exon)[[2]]
+      limits <- abs(strtoi(limits['End']) - strtoi(limits['Start'])) + 1
+      print(c(exon, limits))
+      exon_limits_sum <- exon_limits_sum + limits
+    } 
+    
+    ## Confirm length of CDS
+    ## Extract CDS 
+    fastaFile =  phylotools::read.fasta(paste0("raw-data/CDS_seq_data/Homo_sapiens_", gene_txs[[gene]], "_sequence.fasta"))
+    cds_sequence = strsplit(fastaFile$seq.text[1], '')[[1]]
+    
+    if(length(cds_sequence)==exon_limits_sum){
+      exons_kbs <- exon_limits_sum/1000
+      ## Number of exonic variants per kb
+      exonic_vars_per_kb[[gene]] <- dim(exonic_gene_data)[1]/exons_kbs
+    }
+    else {
+      print('CDS lenght and sum of exons is not the same!!!')
+    }
   }
+  
   total_num <- melt(total_num)
-  colnames(total_num) <- c('n', 'gene')
+  exonic_vars_per_kb <- melt(exonic_vars_per_kb)
+  colnames(total_num) <- colnames(exonic_vars_per_kb) <- c('n', 'gene')
   
   exonic_var_data$gene <- factor(exonic_var_data$gene, levels = unique(exonic_var_data$gene))
   exonic_var_data$annotation <- factor(exonic_var_data$annotation, levels=ordered_annotations)
   exonic_var_data$number <- as.numeric(exonic_var_data$number)
   exonic_var_data$number <- replace(exonic_var_data$number, which(is.na(exonic_var_data$number)), 0)
   
-  p <- ggplot(exonic_var_data, aes(y=number, x=gene, fill=factor(annotation, levels = ordered_annotations))) + 
+  p1 <- ggplot(exonic_var_data, aes(y=number, x=gene, fill=factor(annotation, levels = ordered_annotations))) + 
     geom_bar(position="stack", stat="identity", width=0.8) +
     geom_text(data=total_num, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of exonic variants in canonical transcript',
@@ -1018,6 +1093,19 @@ barplot_exonic_variants_anno <- function(gene_family){
           axis.text.y = element_text(size = 10),
           axis.title = element_text(size = (11.5), face='bold'))
   
+  p2 <- ggplot(exonic_vars_per_kb, aes(y=number, x=gene, fill=factor(annotation, levels = ordered_annotations))) + 
+    geom_bar(position="stack", stat="identity", width=0.8) +
+    geom_text(data=total_num, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
+    labs(x=paste(gene_family, 'genes', sep=' '), y='Number of exonic variants in canonical transcript',
+         fill='Variant annotation') +
+    theme_classic() + 
+    scale_fill_manual(values=exonic_vars_anno_colors, labels=c('Other', 'Stop gained', 'Frameshift', 'Synonymous', 'Missense')) +
+    scale_y_continuous(limits = c(0,740), expand = c(0,0)) +
+    theme(legend.text = element_text(size = 11),
+          legend.title = element_text(size =12, face='bold'),
+          axis.text.x = element_text(angle=90, vjust=0.5, hjust=1, size = 10, face='italic'),
+          axis.text.y = element_text(size = 10),
+          axis.title = element_text(size = (11.5), face='bold'))
  
   
   return(p)
