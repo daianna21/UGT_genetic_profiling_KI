@@ -1,11 +1,22 @@
 # 1. Data processing and filtering
-  * **1.1  Obtain variants within each gene feature**: 
-  * 
+  * **1\.1  Obtain variants within each gene feature**: total and exonic variants reported in [gnomAD](https://gnomad.broadinstitute.org/) per gene and gene familiy were obtained. 
+  
+    * *1\.1\.1 Detect overlapping variants between different genes of the same family*: the shared variants between all *UGT1*s and in *UGT2A*[1-2] were identified, confirmed, and counted. 
+      *  1\.1\.1\.1 Subset to variants present in the canonical transcripts of UGT genes: only variants present in the canonical transcripts of the genes were considered. The % of the initial variants captured in canonical gene transcripts were obtained for each gene.  
+      *  1\.1\.1\.2 Find variants shared in canonical txs of the genes in a family: we obtained which variants are common in multiple UGT transcripts and verified no variants were shared between genes from different families. The % and number of variants kept in canonical gene transcripts were computed for each gene family and for the whole UGT superfamily. 
 
-
+    * *1\.1\.2 Manual annotation of variants based on boundaries of canonical txs*: we annotated the location of all given variants based on the boundaries of the canonical transcripts of UGT genes. 
+      *  1\.1\.2\.1  Check manual annotation of all and shared variants in each gene family: we first examined the manually obtained transcript boundaries-based locations of all and shared UGT variants in each gene family. We confirmed the position of shared variants in overlapping regions between transcript features of different genes and corroborated the presence of the shared exonic variants in all overlapping genes encompassing such variants. Total variants were quantified per gene transcriptomic feature (and per feature kb).
+      * 1\.1\.2\.2 Evaluate [VEP](https://www.ensembl.org/info/docs/tools/vep/index.html) annotation of exonic variants in each gene: exonic variants were extracted per gene and their exonic transcript location was validated comparing against VEP annotation; numbers of exonic variants per gene canonical transcript (and per CDS kb) were calculated. 
+      
+    * *1\.1\.3 Variant quantification in each gene family*: total and exonic variants were quantified per gene family. 
+    * *1\.1\.4 Examination of the minor allele frequency of all UGT exonic variants*: the global minor allele frequency (GMAF) of all variants was examined to study the prevalence of rare variation in UGTs.
+    
+  * **1\.2  Integration of punctual variants of pharmacogenomic relevance**: append in gene variant datasets or confirm the presence of missing regulatory and exonic variants of interest that have been suggested/demonstrated to be deleterious in the literature. 
 
 
 # 2. Gene constraint analysis
+  * **2\.1 Compare expected vs observed ratios of missense to synonymous variants**: the observed ratios of missense to synonymous variants per gene were computed based on the gnomAD reported variants. The expected ratios were calculated 
 
 
 

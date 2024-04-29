@@ -1482,7 +1482,6 @@ ggsave(filename=paste0('plots/01_Data_Processing/MAF_all_vars.pdf'), width = 6, 
 
 
 
-
 ################################################################################
 ##    1.2  Integration of punctual variants of pharmacogenomic relevance
 ################################################################################
