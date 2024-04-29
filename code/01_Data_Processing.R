@@ -848,12 +848,11 @@ barplot_gene_fam<- function(gene_family){
   var_data$gene <- factor(var_data$gene, levels = unique(var_data$gene))
   var_data <- var_data[-1,]
   total_num <- melt(total_num)
-  total_num$label <- paste0("n=", total_num$value)
-  colnames(total_num) <- c('n', 'gene', 'label')
+  colnames(total_num) <- c('n', 'gene')
   
   p1 <- ggplot(var_data, aes(fill=factor(location, levels=ordered_locations), y=number, x=gene)) + 
     geom_bar(position="stack", stat="identity", width = 0.8) + 
-    geom_text(data=total_num, aes(label=label, y=n+2, x=gene, fill=NULL), vjust=-0.25, size=2.8) +
+    geom_text(data=total_num, aes(label=n, y=n+2, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
    # geom_text(data=num_per_kb, aes(label=label, y=n_total+26, x=gene, fill=NULL), vjust=-0.25, size=3.2) +
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of reported variants in canonical transcript', fill='Location') +
     theme_classic() +
@@ -867,7 +866,7 @@ barplot_gene_fam<- function(gene_family){
   
   ## Barplots for number of variants per kb per feature
   p2 <- ggplot(num_per_kb_gene, aes(y=num_per_kb, x=gene, fill=factor(location, levels=ordered_locations))) + 
-          geom_bar(stat="identity", position="stack") + 
+          geom_bar(stat="identity", position="stack", width = 0.79) + 
           labs(x=paste(gene_family, 'genes', sep=' '), y='Variants per feature kb', fill='Location') +
           theme_classic() +
           scale_fill_manual(values = var_colors) +
@@ -1021,21 +1020,25 @@ barplot_exonic_variants_anno <- function(gene_family){
   
   ## Location of variants in each gene of the family
   genes<- eval(parse_expr(paste0(gene_family, '_genes')))
-  
-  exonic_var_data <- data.frame(matrix(ncol = 3))
-  colnames(exonic_var_data) <- c('gene', 'annotation', 'number')
+  gene_txs<- eval(parse_expr(paste0('canonical_', gene_family, '_txs')))
+  exonic_var_data_genes <- data.frame(matrix(ncol = 4))
+  colnames(exonic_var_data_genes) <- c('gene', 'annotation', 'number', 'num_per_CDS_kb')
   
   ## Number of exonic variants from each annotation per gene
   total_num <- list()
-  exonic_vars_per_kb <- list()
-  i=1
+  total_num_per_kb <- list()
   
   for (gene in genes){
     
+    exonic_var_data <- data.frame(matrix(ncol = 3))
+    colnames(exonic_var_data) <- c('gene', 'annotation', 'number')
+    
+    ## Exonic variants per gene
     exonic_gene_data <- eval(parse_expr(paste0(gene, '_exonic_data')))
     
     ## Define 5 categories
     exonic_gene_data$anno <- sapply(exonic_gene_data$VEP_Annotation, function(x){if(x %in% ordered_annotations){x}else{'other'}})
+    i=1
     for (annotation in ordered_annotations){
       number <- table(exonic_gene_data$anno)[annotation]
       annotation <- annotation
@@ -1050,36 +1053,43 @@ barplot_exonic_variants_anno <- function(gene_family){
     for (exon in unique(exonic_gene_data$Location_in_txs)){
       ## Exon boundaries
       limits <- location_determination(1, gene_txs[[gene]], exon)[[2]]
+      ## Exon length
       limits <- abs(strtoi(limits['End']) - strtoi(limits['Start'])) + 1
-      print(c(exon, limits))
+      print(c(gene, exon, limits))
       exon_limits_sum <- exon_limits_sum + limits
     } 
     
     ## Confirm length of CDS
-    ## Extract CDS 
+    ## Extract CDS of canonical gene tx
     fastaFile =  phylotools::read.fasta(paste0("raw-data/CDS_seq_data/Homo_sapiens_", gene_txs[[gene]], "_sequence.fasta"))
     cds_sequence = strsplit(fastaFile$seq.text[1], '')[[1]]
     
     if(length(cds_sequence)==exon_limits_sum){
+      ## CDS kbs
       exons_kbs <- exon_limits_sum/1000
-      ## Number of exonic variants per kb
-      exonic_vars_per_kb[[gene]] <- dim(exonic_gene_data)[1]/exons_kbs
+      ## Number of exonic variants from each category per CDS kb
+      exonic_var_data$num_per_CDS_kb <- as.numeric(exonic_var_data$number)/exons_kbs
+      total_num_per_kb[[gene]] <- sum(exonic_var_data$num_per_CDS_kb)
+      
     }
     else {
       print('CDS lenght and sum of exons is not the same!!!')
     }
+    
+    exonic_var_data_genes <- rbind(exonic_var_data_genes, exonic_var_data)
   }
   
   total_num <- melt(total_num)
-  exonic_vars_per_kb <- melt(exonic_vars_per_kb)
-  colnames(total_num) <- colnames(exonic_vars_per_kb) <- c('n', 'gene')
+  total_num_per_kb <- melt(total_num_per_kb)
+  colnames(total_num) <-  colnames(total_num_per_kb) <- c('n', 'gene')
+  total_num_per_kb$n <- signif(total_num_per_kb$n, digits = 3)
   
-  exonic_var_data$gene <- factor(exonic_var_data$gene, levels = unique(exonic_var_data$gene))
-  exonic_var_data$annotation <- factor(exonic_var_data$annotation, levels=ordered_annotations)
-  exonic_var_data$number <- as.numeric(exonic_var_data$number)
-  exonic_var_data$number <- replace(exonic_var_data$number, which(is.na(exonic_var_data$number)), 0)
+  exonic_var_data_genes$gene <- factor(exonic_var_data_genes$gene, levels = unique(exonic_var_data_genes$gene))
+  exonic_var_data_genes$annotation <- factor(exonic_var_data_genes$annotation, levels=ordered_annotations)
+  exonic_var_data_genes$number <- as.numeric(exonic_var_data_genes$number)
+  exonic_var_data_genes <- exonic_var_data_genes[-1, ]
   
-  p1 <- ggplot(exonic_var_data, aes(y=number, x=gene, fill=factor(annotation, levels = ordered_annotations))) + 
+  p1 <- ggplot(exonic_var_data_genes, aes(y=number, x=gene, fill=factor(annotation, levels = ordered_annotations))) + 
     geom_bar(position="stack", stat="identity", width=0.8) +
     geom_text(data=total_num, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
     labs(x=paste(gene_family, 'genes', sep=' '), y='Number of exonic variants in canonical transcript',
@@ -1093,14 +1103,14 @@ barplot_exonic_variants_anno <- function(gene_family){
           axis.text.y = element_text(size = 10),
           axis.title = element_text(size = (11.5), face='bold'))
   
-  p2 <- ggplot(exonic_vars_per_kb, aes(y=number, x=gene, fill=factor(annotation, levels = ordered_annotations))) + 
+  p2 <- ggplot(exonic_var_data_genes, aes(y=num_per_CDS_kb, x=gene, fill=factor(annotation, levels = ordered_annotations))) + 
     geom_bar(position="stack", stat="identity", width=0.8) +
-    geom_text(data=total_num, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
-    labs(x=paste(gene_family, 'genes', sep=' '), y='Number of exonic variants in canonical transcript',
+    geom_text(data=total_num_per_kb, aes(label=n, y=n, x=gene, fill=NULL), vjust=-0.25, size=3.5) +
+    labs(x=paste(gene_family, 'genes', sep=' '), y='Exonic variants per kb',
          fill='Variant annotation') +
     theme_classic() + 
     scale_fill_manual(values=exonic_vars_anno_colors, labels=c('Other', 'Stop gained', 'Frameshift', 'Synonymous', 'Missense')) +
-    scale_y_continuous(limits = c(0,740), expand = c(0,0)) +
+    scale_y_continuous(limits = c(0,max(total_num_per_kb$n)+25), expand = c(0,0)) +
     theme(legend.text = element_text(size = 11),
           legend.title = element_text(size =12, face='bold'),
           axis.text.x = element_text(angle=90, vjust=0.5, hjust=1, size = 10, face='italic'),
@@ -1108,16 +1118,29 @@ barplot_exonic_variants_anno <- function(gene_family){
           axis.title = element_text(size = (11.5), face='bold'))
  
   
-  return(p)
+  return(list(p1, p2))
 }
 
-p1 <- barplot_exonic_variants_anno('UGT1') + theme(legend.position="none")
-p2 <- barplot_exonic_variants_anno('UGT2') + theme(legend.position="none")
-p3 <- barplot_exonic_variants_anno('UGT3') + theme(legend.position="none")
-p4 <- barplot_exonic_variants_anno('UGT8')
+pUGT1 <- barplot_exonic_variants_anno('UGT1')
+pUGT2 <- barplot_exonic_variants_anno('UGT2')
+pUGT3 <- barplot_exonic_variants_anno('UGT3')
+pUGT8 <- barplot_exonic_variants_anno('UGT8')
 
-plot_grid(p1, p2, p3, p4, ncol=4, rel_widths = c(1,1.1, 0.34, 0.6))
-ggsave(filename=paste0('plots/01_Data_Processing/Exonic_variants_genes_anno.pdf'), width = 15, height = 5.5)
+## Barplots for total exonic variants per gene
+pUGT1A <- pUGT1[[1]] + theme(legend.position="none")
+pUGT2A <- pUGT2[[1]] + theme(legend.position="none")
+pUGT3A <- pUGT3[[1]] + theme(legend.position="none")
+pUGT8A <- pUGT8[[1]]
+
+## Barplots for number of exonic variants per gene CDS kb
+pUGT1B <- pUGT1[[2]] + theme(legend.position="none")
+pUGT2B <- pUGT2[[2]] + theme(legend.position="none")
+pUGT3B <- pUGT3[[2]] + theme(legend.position="none")
+pUGT8B <- pUGT8[[2]]
+
+plot_grid(pUGT1A, pUGT2A, pUGT3A, pUGT8A, pUGT1B, pUGT2B, pUGT3B, pUGT8B, ncol=4, 
+          rel_widths = c(1, 1.05, 0.56, 0.49), rel_heights = c(1, 0.6), align = 'vh')
+ggsave(filename=paste0('plots/01_Data_Processing/Exonic_variants_genes_anno.pdf'), width = 18, height = 9)
 
 
 
@@ -1362,57 +1385,58 @@ dim(subset(all_exonic_vars, MAF<=0.00001))[1]
 # [1] 5777
 
 ## Quantiles
-quantiles <- as.data.frame(quantile(all_UGT_vars_MAF, probs=seq(from=0, to=1, length=7000)))
+quantiles <- as.data.frame(quantile(log10(all_UGT_vars_MAF), probs=seq(from=0, to=1, length=7000)))
 quantiles$Quantile <- rownames(quantiles)
-colnames(quantiles) <- c('MAF', 'Quantile')
+colnames(quantiles) <- c('log10MAF', 'Quantile')
 quantiles$Quantile <- as.numeric(gsub('%', '', quantiles$Quantile))
 
 ## Quantile for MAF≤0.00001 (Singletons)
-singletons_q <- max(subset(quantiles, MAF<=0.00001)$Quantile)
+singletons_q <- max(subset(quantiles, log10MAF<=(-5))$Quantile)
 
 ## Quantile for 0.001<MAF≤0.01 (Rare)
-rare_q <- max(subset(quantiles, MAF<=0.001)$Quantile)
+rare_q <- max(subset(quantiles, log10MAF<=(-3))$Quantile)
 
 ## Quantile for MAF>0.01 (Common)
-common_q <- min(subset(quantiles, MAF>0.01)$Quantile)
+common_q <- min(subset(quantiles, log10MAF>(-2))$Quantile)
 
 ## Labels for such points
 quantiles$label <- sapply(quantiles$Quantile, function(x){if(x==singletons_q | x==rare_q | x==common_q){signif(x, digits=3)} else{NA}})
 
 ## Categorize based on log10MAF
-quantiles$maf_cat <- sapply(log10(quantiles$MAF), function(x){if(x<=(-5)){'Singleton'} 
+quantiles$maf_cat <- sapply(quantiles$log10MAF, function(x){if(x<=(-5)){'Singleton'} 
                                          else if(x>(-5) & x<=(-3)){'Very rare'}
                                          else if(x>(-3) & x<=(-2)){'Rare'}
                                          else {'Common'}})
 quantiles$maf_cat <- factor(quantiles$maf_cat, levels=c('Singleton', 'Very rare', 'Rare', 'Common'))
+quantiles[which(quantiles$label=='98.9'), 'log10MAF'] <- -2
 
-ggplot(data = quantiles, aes(x = Quantile, ymin = 0, ymax = MAF, fill = maf_cat)) +
+ggplot(data = quantiles, aes(x = Quantile, ymin = min(log10MAF), ymax = log10MAF, fill = maf_cat)) +
   geom_ribbon(alpha=0.75) +
-  scale_y_continuous(trans='log10', breaks=c(1e+00, 1e-01, 1e-02,  1e-03, 1e-04, 1e-05, 1e-06),
+  scale_y_continuous(breaks=c(0, -1, -2,  -3, -4, -5, -6),
                      labels=c('0', '-1', '-2', '-3', '-4', '-5', '-6'), expand = c(0, 0)) +
   scale_x_continuous(breaks=c(0,25,50,75,100),
                      labels=c('0%', '25%', '50%', '75%', '100%')) +
   scale_fill_manual(values=c('Singleton'='honeydew2', 'Very rare'='lightcyan3', 'Rare'='lightblue4', 'Common'='midnightblue')) +
   labs(x='Percentage of variants', y='log10(MAF) of exonic variants', fill='Variant frequency') +
   theme_classic() +  
-  geom_line(aes(y = MAF)) +
+  geom_line(aes(y = log10MAF, x=Quantile)) +
   ## Singletons
-  geom_point(aes(x=singletons_q, y=1e-05, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
-  geom_hline(yintercept = 1e-05, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+  geom_point(aes(x=singletons_q, y=-5, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
+  geom_hline(yintercept = -5, color = 'indianred3', linetype='dashed', linewidth=0.6) +
   ## Rare variants
-  geom_point(aes(x=rare_q, y=1e-03, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
-  geom_hline(yintercept = 1e-03, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+  geom_point(aes(x=rare_q, y=-3, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
+  geom_hline(yintercept = -3, color = 'indianred3', linetype='dashed', linewidth=0.6) +
   ## Common variants
-  geom_point(aes(x=common_q, y=1e-02, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
-  geom_hline(yintercept = 1e-02, color = 'indianred3', linetype='dashed', linewidth=0.6) +
-  geom_text_repel(aes(x=label, y=MAF, fill=NULL, label=paste0(label ,'%')), 
+  geom_point(aes(x=common_q, y=-2, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
+  geom_hline(yintercept = -2, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+  geom_text_repel(aes(x=label, y=log10MAF, fill=NULL, label=paste0(label ,'%')), 
                   size=3, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1.5, 
                   box.padding = 0.3, lineheight=unit(2, 'lines'), nudge_x=0, nudge_y=0.2, 
                   fontface='bold') + 
-  geom_text(aes(label='Singleton', x=20, y=(1e-05)/3*2), size=2.9, color='gray30') +
-  geom_text(aes(label='Very rare', x=20, y=1e-04), size=2.9, color='gray30') +
-  geom_text(aes(label='Rare', x=20, y=0.003), size=2.9, color='gray30') +
-  geom_text(aes(label='Common', x=20, y=1e-01), size=2.9, color='gray30') +
+  geom_text(aes(label='Singleton', x=20, y=-5.2), size=2.9, color='gray30') +
+  geom_text(aes(label='Very rare', x=20, y=-4), size=2.9, color='gray30') +
+  geom_text(aes(label='Rare', x=20, y=-2.5), size=2.9, color='gray30') +
+  geom_text(aes(label='Common', x=20, y=-1.5), size=2.9, color='gray30') +
   theme(legend.key.size = unit(0.35, units = 'cm'),
         axis.text = element_text(size = 9),
         legend.text = element_text(size=9),
@@ -1420,38 +1444,38 @@ ggplot(data = quantiles, aes(x = Quantile, ymin = 0, ymax = MAF, fill = maf_cat)
         axis.title = element_text(size = (11), face='bold'))
 
 
-ggplot(data = quantiles, aes(x = Quantile, y= MAF, color = maf_cat)) +
-  geom_line() +
-  scale_y_continuous(trans='log10', breaks=c(1e+00, 1e-01, 1e-02,  1e-03, 1e-04, 1e-05, 1e-06),
+ggplot(data = quantiles, aes(x = Quantile, y= log10MAF, color = maf_cat)) +
+  geom_line(aes(color = maf_cat)) +
+  scale_y_continuous(breaks=c(0, -1, -2,  -3, -4, -5, -6),
                      labels=c('0', '-1', '-2', '-3', '-4', '-5', '-6'), expand = c(0, 0)) +
   scale_x_continuous(breaks=c(0,25,50,75,100),
                      labels=c('0%', '25%', '50%', '75%', '100%')) +
   scale_color_manual(values=c('Singleton'='honeydew2', 'Very rare'='lightcyan3', 'Rare'='lightblue4', 'Common'='midnightblue')) +
-  labs(x='Percentage of variants', y='log10(MAF) of exonic variants', fill='Variant frequency') +
+  labs(x='Percentage of variants', y='log10(MAF) of exonic variants', color='Variant frequency') +
   theme_classic() +  
-  geom_line(aes(y = MAF)) +
   ## Singletons
-  geom_point(aes(x=singletons_q, y=1e-05, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
-  geom_hline(yintercept = 1e-05, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+  geom_point(aes(x=singletons_q, y=-5, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
+  geom_hline(yintercept = -5, color = 'indianred3', linetype='dashed', linewidth=0.6) +
   ## Rare variants
-  geom_point(aes(x=rare_q, y=1e-03, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
-  geom_hline(yintercept = 1e-03, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+  geom_point(aes(x=rare_q, y=-3, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
+  geom_hline(yintercept = -3, color = 'indianred3', linetype='dashed', linewidth=0.6) +
   ## Common variants
-  geom_point(aes(x=common_q, y=1e-02, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
-  geom_hline(yintercept = 1e-02, color = 'indianred3', linetype='dashed', linewidth=0.6) +
-  geom_text_repel(aes(x=label, y=MAF, fill=NULL, label=paste0(label ,'%')), 
+  geom_point(aes(x=common_q, y=-2, fill=NULL), color='tomato4', size=1, show.legend = FALSE) + 
+  geom_hline(yintercept = -2, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+  geom_text_repel(aes(x=label, y=log10MAF, fill=NULL, label=paste0(label ,'%')), 
                   size=3, color='grey40', min.segment.length = unit(0, 'lines'), hjust=1.5, 
                   box.padding = 0.3, lineheight=unit(2, 'lines'), nudge_x=0, nudge_y=0.2, 
                   fontface='bold') + 
-  geom_text(aes(label='Singleton', x=20, y=(1e-05)/3*2), size=2.9, color='gray30') +
-  geom_text(aes(label='Very rare', x=20, y=1e-04), size=2.9, color='gray30') +
-  geom_text(aes(label='Rare', x=20, y=0.003), size=2.9, color='gray30') +
-  geom_text(aes(label='Common', x=20, y=1e-01), size=2.9, color='gray30') +
+  geom_text(aes(label='Singleton', x=20, y=-5.2), size=2.9, color='gray30') +
+  geom_text(aes(label='Very rare', x=20, y=-4), size=2.9, color='gray30') +
+  geom_text(aes(label='Rare', x=20, y=-2.5), size=2.9, color='gray30') +
+  geom_text(aes(label='Common', x=20, y=-1.5), size=2.9, color='gray30') +
   theme(legend.key.size = unit(0.35, units = 'cm'),
         axis.text = element_text(size = 9),
         legend.text = element_text(size=9),
         legend.title = element_text(size =10, face='bold'),
         axis.title = element_text(size = (11), face='bold'))
+
 ggsave(filename=paste0('plots/01_Data_Processing/MAF_all_vars.pdf'), width = 6, height = 4.2)
 
 
