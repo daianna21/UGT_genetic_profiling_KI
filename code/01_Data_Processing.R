@@ -412,7 +412,7 @@ location_determination <- function(variant_pos, tx, feature){
   }
   
   ## Delimit real boundaries of 2nd exon (in UGT8)
-  if(gene=='UGT8'){
+  if(tx=='ENST00000310836.6'){
     tx_seq_data[2, 'End'] <- 115544036
     tx_seq_data[3, 'Start'] <- 115544037
   }
@@ -789,28 +789,12 @@ barplot_gene_fam<- function(gene_family){
   for (gene in genes){
     gene_data <- eval(parse_expr(paste0(gene, '_canonical_data')))
     
-    ## Number of variants in each feature per kb
-    num_per_kb <- vector()
-    ## Exclude 5' upstream variants
-    for (feature in unique(gene_data$Location_in_txs)[!unique(gene_data$Location_in_txs)=='5\' upstream']){
-      ## Variants in feature
-      variants_feature <- subset(gene_data, Location_in_txs==feature)
-      ## Length of each tx feature
-      nts_spanned <- (abs(strtoi(location_determination(1, gene_txs[[gene]], feature)[[2]]['End']) - 
-                              strtoi(location_determination(1, gene_txs[[gene]], feature)[[2]]['Start']) ) +1)
-      
-      print(c(gene, feature, dim(variants_feature)[1], nts_spanned))
-      kbs_spanned <- nts_spanned/1000
-      
-      num_per_kb[feature] <- dim(variants_feature)[1]/kbs_spanned
-    }
+    ## Kbs spanned by all gene variants (from 5' upstream to 3' downstream region) 
+    kbs_spanned <- (gene_data[which.max(gene_data$Position), 'Position'] - gene_data[which.min(gene_data$Position), 'Position'] + 1) / 1000 
     
-    num_per_kb <- as.data.frame(cbind(num_per_kb, gene))
-    num_per_kb$location <- rownames(num_per_kb)
-    
-    ## Number of variants per kb per gene feature
-    num_per_kb_gene <- rbind(num_per_kb_gene, num_per_kb)
-    
+    ## Number of variants per kb per gene: number of total gene variants normalized by the kbs they comprise
+    num_per_kb_gene[gene] <- dim(gene_data)[1]/kbs_spanned
+
     data <- data.frame(matrix(ncol = 3))
     colnames(data) <- c('gene', 'location', 'number')
     
@@ -840,16 +824,18 @@ barplot_gene_fam<- function(gene_family){
     total_num[[gene]] <- sum(data[!is.na(data$number), 'number'])
   }
   
-  num_per_kb_gene <- as.data.frame(num_per_kb_gene)
-  num_per_kb_gene$num_per_kb <- as.numeric(num_per_kb_gene$num_per_kb)
-  num_per_kb_gene$gene <- factor(num_per_kb_gene$gene, levels = unique(num_per_kb_gene$gene))
-  num_per_kb_gene$location <- factor(num_per_kb_gene$location, levels=ordered_locations)
-  
   var_data$number <- replace(var_data$number, which(is.na(var_data$number)), 0)
   var_data$gene <- factor(var_data$gene, levels = unique(var_data$gene))
   var_data <- var_data[-1,]
   total_num <- melt(total_num)
   colnames(total_num) <- c('n', 'gene')
+  num_per_kb_gene <- melt(num_per_kb_gene)
+  num_per_kb_gene$gene <- rownames(num_per_kb_gene)
+  num_per_kb_gene$label <- as.character(signif(num_per_kb_gene$value, digits=3))
+  colnames(num_per_kb_gene) <- c('n', 'gene', 'label')
+  
+  ## Add total number of variants per gene in num_per_kb_gene
+  num_per_kb_gene$n_total <- total_num$n
   
   p1 <- ggplot(var_data, aes(fill=factor(location, levels=ordered_locations), y=number, x=gene)) + 
     geom_bar(position="stack", stat="identity", width = 0.8) + 
@@ -865,13 +851,13 @@ barplot_gene_fam<- function(gene_family){
           legend.title = element_text(size =12, face='bold'),
           axis.title = element_text(size = (11.5), face='bold'))
   
-  ## Barplots for number of variants per kb per feature
-  p2 <- ggplot(num_per_kb_gene, aes(y=num_per_kb, x=gene, fill=factor(location, levels=ordered_locations))) + 
-          geom_bar(stat="identity", position="stack", width = 0.79) + 
-          labs(x=paste(gene_family, 'genes', sep=' '), y='Variants per feature kb', fill='Location') +
+  ## Barplots for number of variants per kb 
+  p2 <- ggplot(num_per_kb_gene, aes(y=n, x=gene)) + 
+          geom_bar(stat="identity", width = 0.79, fill='gray70', color='black') + 
+          geom_text(data=num_per_kb_gene, aes(label=label, y=n+0.5, x=gene), vjust=-0.25, size=3.5) +
+          labs(x=paste(gene_family, 'genes', sep=' '), y='Variants per kb') +
           theme_classic() +
-          scale_fill_manual(values = var_colors) +
-          scale_y_continuous(limits = c(0,NA), expand = c(0,0)) +
+          scale_y_continuous(limits = c(0,max(num_per_kb_gene$n)+4), expand = c(0,0)) +
           theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 10, face='italic'),
                 axis.text.y = element_text(size = 10),
                 legend.text = element_text(size=11), 
