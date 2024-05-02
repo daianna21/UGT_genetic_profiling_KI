@@ -1250,6 +1250,10 @@ data$label <- apply(data, 1, function(x){if (as.numeric(x['Allele_Frequency'])>0
 num_per_method <- as.data.frame(table(data$Method))
 colnames(num_per_method) <- c('Method', 'n')
 
+## Save data
+write.table(data, file ='processed-data/03_Anno_functional_impact/GMAF_allDvars_perMethod.csv', row.names = FALSE, col.names = FALSE, sep = '\t')
+
+
 ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Method, shape=label)) +
   geom_jitter(data=subset(data, is.na(label)), shape=16, width = 0.1, height = 0, alpha = 0.7, size = 1.5) +
   geom_point(data=subset(data, !is.na(label)), aes(shape=label), alpha = 0.7, size = 1.3, stroke = 1) +
