@@ -831,6 +831,7 @@ barplot_gene_fam<- function(gene_family){
   colnames(total_num) <- c('n', 'gene')
   num_per_kb_gene <- melt(num_per_kb_gene)
   num_per_kb_gene$gene <- rownames(num_per_kb_gene)
+  num_per_kb_gene$gene <- factor(num_per_kb_gene$gene, levels = unique(var_data$gene))
   num_per_kb_gene$label <- as.character(signif(num_per_kb_gene$value, digits=3))
   colnames(num_per_kb_gene) <- c('n', 'gene', 'label')
   
