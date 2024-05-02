@@ -1251,7 +1251,7 @@ num_per_method <- as.data.frame(table(data$Method))
 colnames(num_per_method) <- c('Method', 'n')
 
 ## Save data
-write.table(data, file ='processed-data/03_Anno_functional_impact/GMAF_allDvars_perMethod.csv', row.names = FALSE, col.names = FALSE, sep = '\t')
+write.table(data, file ='processed-data/03_Anno_functional_impact/GMAF_allDvars_perMethod.csv', row.names = FALSE, col.names = TRUE, sep = '\t')
 
 
 ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Method, shape=label)) +
