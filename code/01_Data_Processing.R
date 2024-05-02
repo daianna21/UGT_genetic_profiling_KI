@@ -6,7 +6,6 @@ library(ggplot2)
 library(cowplot)
 library(reshape2)
 library(ggrepel)
-library(seqinr)
 library(sessioninfo)
 
 
@@ -109,6 +108,8 @@ canonical_UGT2_txs <- list('UGT2A1'= 'ENST00000503640.1', 'UGT2A2'='ENST00000457
 canonical_UGT3_txs <- list('UGT3A1'= 'ENST00000274278.3', 'UGT3A2'='ENST00000282507.3')
 
 canonical_UGT8_txs <- list('UGT8'= 'ENST00000310836.6')
+
+txs <- c(canonical_UGT1_txs, canonical_UGT2_txs, canonical_UGT3_txs, canonical_UGT8_txs)
 
 save(canonical_UGT1_txs, file = paste0('processed-data/01_Data_Processing/canonical_UGT1_txs.Rdata'))
 save(canonical_UGT2_txs, file = paste0('processed-data/01_Data_Processing/canonical_UGT2_txs.Rdata'))

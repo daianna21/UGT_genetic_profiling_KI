@@ -37,12 +37,12 @@ for (gene_family in gene_families){
 
 
 #####################################################################################
-##  2.1 Compare expected vs observed proportions of missense and synonymous variants
+##  2.1 Compare expected vs observed ratios of missense to synonymous variants
 #####################################################################################
 
-################# Observed proportions in each gene #################
+################# Observed ratios in each gene #################
 
-## Proportions given by # missense variants / # synonymous variants
+## Ratios given by # missense variants / # synonymous variants
 for (gene_family in gene_families){
   
   genes<- eval(parse_expr(paste0(gene_family, '_genes')))
@@ -98,7 +98,7 @@ for (gene_family in gene_families){
 # [1] "UGT8: 1.606"
 
 
-################# Expected proportions in each gene #################
+################# Expected ratios in each gene #################
 
 for (gene_family in gene_families){
   
@@ -158,7 +158,7 @@ for (gene_family in gene_families){
         j=j+1
       }
       
-      ## Proportion 
+      ## Ratio 
       assign(paste0(gene, '_expected_variant_num'), effects)
       print(paste0(gene, ': ', signif(table(effects)['missense']/table(effects)['synonymous'], digits=4)))
       
@@ -242,7 +242,7 @@ save(constraint_metrics, file = paste0('processed-data/02_Constraint_analysis/co
 
 colors_gene_fam <- list('UGT1'='hotpink', 'UGT2'='tan1', 'UGT3'='purple1', 'UGT8'='steelblue2')
 
-###############  Correlation between manually computed observed and expected miss/syn proportions  ###############
+###############  Correlation between manually computed observed and expected miss/syn ratios  ###############
 
 p1 <- ggplot(constraint_metrics, aes(x=Prop_exp, y=Prop_ob, color = Gene_family)) +
   ## Add scatterplot
