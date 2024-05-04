@@ -16,8 +16,7 @@
 
 
 # 2. Gene constraint analysis
-  * **2\.1 Compare expected vs observed ratios of missense to synonymous variants**: the observed ratios of missense to synonymous variants per gene were computed based on the gnomAD reported variants. The expected ratios were calculated 
-
+  * **2\.1 Compare expected vs observed ratios of missense to synonymous variants**: the observed ratios of missense to synonymous variants per gene were computed based on the gnomAD reported variants. The expected ratios were calculated interrogating the consequence of all potential single nucleotide variants in the CDS of each gene canonical tx. These and additional gene constraint estimates from gnomAD were compared. 
 
 
 

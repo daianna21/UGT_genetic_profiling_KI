@@ -386,7 +386,7 @@ family. We confirmed the position of shared variants in overlapping
 regions between transcript features of different genes and corroborated
 the presence of the shared exonic variants in all overlapping genes
 encompassing such variants. Total variants were quantified per gene
-transcriptomic feature (and per feature kb).</li>
+transcriptomic feature (and per kbs comprised by such variants).</li>
 <li>1.1.2.2 Evaluate <a href="https://www.ensembl.org/info/docs/tools/vep/index.html">VEP</a>
 annotation of exonic variants in each gene: exonic variants were
 extracted per gene and their exonic transcript location was validated
@@ -413,7 +413,10 @@ literature.</p></li>
 <li><strong>2.1 Compare expected vs observed ratios of missense to
 synonymous variants</strong>: the observed ratios of missense to
 synonymous variants per gene were computed based on the gnomAD reported
-variants. The expected ratios were calculated</li>
+variants. The expected ratios were calculated interrogating the
+consequence of all potential single nucleotide variants in the CDS of
+each gene canonical tx. These and additional gene constraint estimates
+from gnomAD were compared.</li>
 </ul>
 </div>
 <div id="annotation-of-the-functional-impact-of-variants" class="section level1">
