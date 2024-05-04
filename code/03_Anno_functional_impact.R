@@ -566,6 +566,7 @@ variants_predictions$AlphaMissense_pred <- replace(replace(replace(variants_pred
 save(variants_predictions, file='processed-data/03_Anno_functional_impact/variants_scores_and_predictions.Rdata')
 
 
+
 # ____________________________________________________________________________________________
 #  3.1.5  Comparison and evaluation of predictive algorithms 
 # ____________________________________________________________________________________________
@@ -674,11 +675,82 @@ score_density_plot <- function(algorithm, predicted_cat_type){
                        legend.text = element_text(size = 10),
                        legend.title = element_text(size =11, face='bold'),
                        axis.title.x = element_text(size = (11.5), face='bold'),
-                       axis.title = element_text(size = (11.5), face='bold'))
+                       axis.title.y = element_text(size = (11.5)))
     }
     
     return(p1)
   }
+  
+  
+  
+  else if(predicted_cat_type=='without_Polyphen2_HVAR'){
+    ## HEREE
+    
+    threshold <- algorithms_thresholds[[algorithm]]
+    numeric_threshold <- as.numeric(gsub('[<, =, >]', '', threshold))
+    
+    data <- new_variants_predictions[which(eval(parse_expr(paste0('new_variants_predictions$',algorithm_score)))!='.'),]
+    
+    missingness <- apply(new_variants_predictions, 2, function(x){100*length(which(x=='.'))/dim(new_variants_predictions)[1]})[[algorithm_score]]
+    num_vars <- apply(new_variants_predictions, 2, function(x){length(which(x!='.'))})[[algorithm_score]]
+    
+    ## Density function 
+    density <- density(as.numeric(data[,algorithm_score]), 
+                       from = min(as.numeric(data[,algorithm_score])), 
+                       to = max(as.numeric(data[,algorithm_score]))) 
+    df <- data.frame(x = density$x, y = density$y, pred = replace(replace(density$x, which(eval(parse_expr(paste0('density$x', threshold)))), 'D'), 
+                                                                  which(!eval(parse_expr(paste0('density$x', threshold)))), 'N')) 
+    if (algorithm=='FATHMM'){
+      hjust = 0.3
+    }
+    else if(algorithm=='VEST4' | algorithm=='DANN' | algorithm=='PrimateAI' | algorithm=='CADD'){
+      hjust = 1.5
+    }
+    else {
+      hjust = -0.3
+    }
+    
+    p1 <- ggplot(data = df, aes(x = x, ymin = 0, ymax = y, fill = pred)) +
+      geom_ribbon(alpha=0.7) +
+      theme_bw() +
+      scale_fill_manual(values=colors[names(table(df$pred))]) +
+      labs(x = tool_names[algorithm], y= 'Density', fill='Predicted effect',
+           subtitle=paste0(signif(as.numeric(missingness), digits=3), '% (n=',
+                           num_vars, ')')) +
+      geom_line(aes(y = y)) +
+      geom_vline(xintercept = numeric_threshold, color = 'indianred3', linetype='dashed', linewidth=0.6) +
+      geom_label(aes(x = numeric_threshold, y = max(df$y), color = 'indianred3', label = numeric_threshold), 
+                 hjust = hjust, vjust = 3, fontface = 2, fill = "white", show.legend = FALSE) 
+    
+    if(algorithm!='AlphaMissense'){
+      p1 <- p1 + theme(legend.position='none',
+                       panel.grid.major = element_blank(), 
+                       panel.grid.minor = element_blank(),
+                       plot.subtitle = element_text(size = 10, color = "gray30"), 
+                       plot.margin = unit(c(0.2,0.2,0.2,0.2), 'cm'),
+                       axis.text = element_text(size = (8)),
+                       legend.text = element_text(size = 10),
+                       legend.title = element_text(size =11, face='bold'),
+                       axis.title.x = element_text(size = (11.5), face='bold'),
+                       axis.title.y = element_text(size = (11.5)))
+    }
+    else{
+      p1 <- p1 + theme(legend.key = element_rect(fill = "white", colour = "black"),
+                       plot.subtitle = element_text(size = 10, color = "gray30"),
+                       panel.grid.major = element_blank(), 
+                       panel.grid.minor = element_blank(),
+                       plot.margin = unit(c(0.2,0.2,0.2,0.2), 'cm'),
+                       axis.text = element_text(size = (8)),
+                       legend.text = element_text(size = 10),
+                       legend.title = element_text(size =11, face='bold'),
+                       axis.title.x = element_text(size = (11.5), face='bold'),
+                       axis.title.y = element_text(size = (11.5)))
+    }
+    
+    return(p1)
+  }
+  
+  
   
   else{
     
@@ -792,10 +864,39 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
 ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots.pdf', width = 14.5, height = 13)
 
 
+## Exclude Polyphen2-HVAR
+no_Polyphen2_HVAR <- names(algorithms_thresholds)[names(algorithms_thresholds)!='Polyphen2_HVAR']
+plots <- list()
+
+for (i in 1:length(no_Polyphen2_HVAR)){
+  plots[[i]] <- score_density_plot(no_Polyphen2_HVAR[i], 'without_Polyphen2_HVAR')
+}
+
+legend <- get_legend(
+  plots[[21]] + theme(legend.position = 'right',
+                      legend.box.margin = margin(0, 0, 0, 1))
+)
+
+plots[[21]] <-  plots[[21]] + theme(legend.position = 'none', 
+                                    plot.subtitle = element_text(size = 10, color = "gray30"),
+                                    plot.margin = unit(c(0.2,0.2,0.2,0.2), 'cm'))
+
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],
+          plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
+          plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], 
+          ncol=7, legend)
+ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots_without_Polyphen2_HVAR.pdf', width = 11.8, height = 7.9)
+
+
 # ------------------------------------------------------------------------------
 ## Correlation between raw scores from each pair of methods
-raw_scores <- as.data.frame(apply(new_variants_predictions[,paste0(names(algorithms_thresholds), '_score')], 2, as.numeric))
-corr <- matrix(nrow=22, ncol = 22)
+
+## Exclude Polyphen2_HVAR
+new_variants_predictions_wP <- new_variants_predictions[,-4]
+algorithms_thresholds_wP <- algorithms_thresholds[-3]
+  
+raw_scores <- as.data.frame(apply(new_variants_predictions_wP[,paste0(names(algorithms_thresholds_wP), '_score')], 2, as.numeric))
+corr <- matrix(nrow=21, ncol = 21)
 colnames(corr) <- rownames(corr) <- colnames(raw_scores)
 
 for (i in 1:length(colnames(raw_scores))){
@@ -807,7 +908,7 @@ for (i in 1:length(colnames(raw_scores))){
 }
 
 whole_corr <- corr
-colnames(corr) <- rownames(corr) <- tool_names
+colnames(corr) <- rownames(corr) <- tool_names[-3]
 ## Half matrix
 corr[lower.tri(corr)] <- NA
 ## Take absolute corr
@@ -818,34 +919,33 @@ half_corr_data$value <- signif(as.numeric(half_corr_data$value), digits = 3)
 ## Mean corr coeff
 unique_half_corr_data <- half_corr_data[which(half_corr_data$value!=1), ]
 mean(unique_half_corr_data$value)
-# [1] 0.5680519
+# [1] 0.5612857
 
 ## Highest corr coeffs
 unique_half_corr_data[order(unique_half_corr_data$value, decreasing = TRUE), ][1:4,]
 #               Var1             Var2    value
-#     Polyphen2 HDIV   Polyphen2 HVAR     0.97
 #            MetaSVM           MetaLR     0.93
 #         CADD phred         Eigen-PC     0.93
 #            MetaSVM            REVEL     0.88
-
+#           ClinPred             ADME     0.85
 
 ## Percentage of high coeffs (|r|>0.5)
 length(which(unique_half_corr_data$value>0.5))/dim(unique_half_corr_data)[1]*100
-# [1] 65.36797
+# [1] 63.80952
 
 ## Percentage of medium coeffs (0.3=<|r|=<0.5)
 length(which(unique_half_corr_data$value>=0.3 & unique_half_corr_data$value<=0.5))/dim(unique_half_corr_data)[1]*100
-# [1] 25.97403
+# [1] 27.14286
 
 ## Percentage of low coeffs (|r|<0.3)
 length(which(unique_half_corr_data$value<0.3))/dim(unique_half_corr_data)[1]*100
-# [1] 8.658009
+# [1] 9.047619
 
 
 # ------------------------------------------------------------------------------
 ## Agreement proportion between predictions from each pair of methods
-predictions <- as.data.frame(new_variants_predictions[,paste0(names(algorithms_thresholds), '_pred')])
-agreement_prop <- matrix(ncol=22, nrow=22)
+predictions <- as.data.frame(new_variants_predictions_wP[,paste0(names(algorithms_thresholds_wP), '_pred')])
+agreement_prop <- matrix(ncol=21, nrow=21)
 colnames(agreement_prop) <- rownames(agreement_prop) <- colnames(predictions)
 
 for (i in 1:length(colnames(predictions))){
@@ -860,7 +960,7 @@ for (i in 1:length(colnames(predictions))){
 
 whole_agreement_prop <- agreement_prop
 ## Half matrix
-colnames(agreement_prop) <- rownames(agreement_prop) <- tool_names
+colnames(agreement_prop) <- rownames(agreement_prop) <- tool_names[-3]
 agreement_prop[lower.tri(agreement_prop)] <- NA 
 half_agreement_prop <- melt(agreement_prop, na.rm = TRUE)
 half_agreement_prop$value <- signif(as.numeric(half_agreement_prop$value), digits = 3)
@@ -874,7 +974,7 @@ corrplot(corr, method="color",
          addCoef.col = "black",
          tl.cex = 0.4,
          tl.col = 'black',
-         number.cex = 0.3,
+         number.cex = 0.4,
          cl.cex = 0.4,
          col.lim = c(0,1),
          col=colorRampPalette(c("white","white","white", 'mistyrose2',"tomato2", 'firebrick4'))(100)
@@ -885,7 +985,7 @@ corrplot(agreement_prop, method="color",
          addCoef.col = "black",
          tl.cex = 0.4,
          tl.col = 'black',
-         number.cex = 0.3,
+         number.cex = 0.4,
          cl.cex = 0.4,
          col.lim = c(0,1),
          col=colorRampPalette(c("white","white", 'darkseagreen2', "darkgreen"))(100)
@@ -897,19 +997,19 @@ dev.off()
 ## Mean prop
 unique_half_agreement_prop <- half_agreement_prop[which(half_agreement_prop$value!=1), ]
 mean(unique_half_agreement_prop$value)
-# [1] 0.6372771
+# [1] 0.6356
 
 ## Highest corr coeffs
 unique_half_agreement_prop[order(unique_half_agreement_prop$value, decreasing = TRUE), ][1:4,]
 #             Var1             Var2   value
-#   Polyphen2 HDIV   Polyphen2 HVAR   0.949
 #           MetaSVM          MetaLR   0.930
 #           MetaSVM           REVEL   0.926
 #            MetaLR           REVEL   0.905
+#            FATHMM           REVEL   0.899
 
 ## Percentage of high prop (>0.5)
 length(which(unique_half_agreement_prop$value>0.5))/dim(unique_half_agreement_prop)[1]*100
-# [1] 82.25108
+# [1] 81.42857
 
 
 # ------------------------------------------------------------------------------

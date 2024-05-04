@@ -16,7 +16,7 @@
 
 
 # 2. Gene constraint analysis
-  * **2\.1 Compare expected vs observed ratios of missense to synonymous variants**: the observed ratios of missense to synonymous variants per gene were computed based on the gnomAD reported variants. The expected ratios were calculated interrogating the consequence of all potential single nucleotide variants in the CDS of each gene canonical tx. These and additional gene constraint estimates from gnomAD were compared. 
+  * **2\.1 Compare expected vs observed ratios of missense to synonymous variants**: the observed ratios of missense to synonymous variants per gene were computed based on the gnomAD reported variants. The expected ratios were calculated interrogating the consequence of all potential single nucleotide variants in the CDS of each gene canonical tx. These and additional gene constraint estimates from [gnomAD](https://gnomad.broadinstitute.org/) were compared. 
 
 
 
@@ -32,7 +32,7 @@ The functional effect (deleterious/neutral) of the exonic variants across all 22
     
     * *3\.1\.4  Extract AlphaMissense (AM) predictions for all UGT variants*: the AM scores and predictions for UGT missense variants were retrieved from the AM catalog. 
     
-    * *3\.1\.5  Comparison and evaluation of predictive algorithms*: the predictive outputs of all methods were contrasted and their predictive performance evaluated using ClinVar variants as benchmark data.
+    * *3\.1\.5  Comparison and evaluation of predictive algorithms*: the predictive outputs of all methods were contrasted and their predictive performance evaluated using [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/) variants as benchmark data.
     
     * *3\.1\.6  Development of a UGT-optimized prediction framework*: a new method was developed integrating the predictions of all the previous algorithms by optimizing their score thresholds to define deleteriousness for UGT missense variation. 
 
