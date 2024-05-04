@@ -1127,20 +1127,20 @@ ggsave('plots/03_Anno_functional_impact/Corr_agreement_tools.pdf', height = 6, w
 
 ## Plot the number of predicted D, N and missing variants per algorithm
 
-vars_per_method <- melt(sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])}))
+vars_per_method <- melt(sapply(colnames(new_variants_predictions_wP)[2:22], function(x){table(new_variants_predictions_wP[, x])}))
 colnames(vars_per_method) <- c('Prediction', 'Method', 'Numbers')
-vars_per_method$Method <- tool_names[gsub('_pred', '', vars_per_method$Method)]
+vars_per_method$Method <- tool_names[-3][gsub('_pred', '', vars_per_method$Method)]
 # Order methods by number of D variants
-numD<- sapply(colnames(new_variants_predictions)[2:23], function(x){table(new_variants_predictions[, x])['D']})
+numD<- sapply(colnames(new_variants_predictions_wP)[2:22], function(x){table(new_variants_predictions_wP[, x])['D']})
 numD <- numD[order(numD, decreasing = TRUE)]
-names(numD) <- tool_names[gsub('_pred.D', '', names(numD))]
+names(numD) <- tool_names[-3][gsub('_pred.D', '', names(numD))]
 vars_per_method$Method <- factor(vars_per_method$Method, levels=names(numD))
 ## Order to have D variants first in each bar
 cat_order <- c('.', 'N', 'D')
 vars_per_method$Prediction <- factor(vars_per_method$Prediction, levels=cat_order)
 
 ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) + 
-  geom_bar(position="stack", stat="identity", colour = 'black', width=.7) + 
+  geom_bar(position="stack", stat="identity", colour = 'black', width=.65) + 
   theme_classic() +
   labs(
     y = 'Number of predicted missense variants',
@@ -1150,24 +1150,24 @@ ggplot(vars_per_method, aes(x=Method, y=Numbers, fill=Prediction)) +
   scale_fill_manual(values = c("grey80", "skyblue2", "tomato"), labels = c("Missing", "Neutral", "Deleterious")) + 
   #scale_y_discrete(limits= c(0, 1500, 3000, 4500, dim(new_variants_predictions)[1])) +
   coord_cartesian(ylim = c(0, dim(new_variants_predictions)[1]),clip = 'off') +
-  geom_text(data=subset(vars_per_method, Prediction=='.'), aes(label=Numbers, y=dim(new_variants_predictions)[1]+730, 
-                                                               fill=NULL), hjust = 0.5, size = 2.2) +
-  geom_text(data=subset(vars_per_method, Prediction=='N'), aes(label=Numbers, y=dim(new_variants_predictions)[1]+460, 
-                                                               fill=NULL), hjust = 0.5, size = 2.2) +
-  geom_text(data=subset(vars_per_method, Prediction=='D'), aes(label=Numbers, y=dim(new_variants_predictions)[1]+190, 
-                                                               fill=NULL), hjust = 0.5, size = 2.2) +
+  geom_text(data=subset(vars_per_method, Prediction=='.'), aes(label=Numbers, y=dim(new_variants_predictions)[1]+810, 
+                                                               fill=NULL), hjust = 0.5, size = 2) +
+  geom_text(data=subset(vars_per_method, Prediction=='N'), aes(label=Numbers, y=dim(new_variants_predictions)[1]+540, 
+                                                               fill=NULL), hjust = 0.5, size = 2) +
+  geom_text(data=subset(vars_per_method, Prediction=='D'), aes(label=Numbers, y=dim(new_variants_predictions)[1]+270, 
+                                                               fill=NULL), hjust = 0.5, size = 2) +
   theme(plot.subtitle = element_text(size = (10), vjust = 9.8, hjust=0, color="gray50", face='bold'), 
         legend.direction = "vertical",
-        legend.position = c(1.07, 1.05),
-        legend.key.size = unit(0.3, units = 'cm'),
+        legend.position = c(1.10, 1.07),
+        legend.key.size = unit(0.17, units = 'cm'),
         plot.margin = unit(c(3, 3, 0.5, 0.5), "cm"),
         axis.title = element_text(size = (11), face='bold'),
         axis.text = element_text(size = (10)),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
-        legend.text = element_text(size = 9),
-        legend.title = element_text(size =10, face='bold'))
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size =9, face='bold'))
 
-ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', width = 8, height = 6)
+ggsave(filename='plots/03_Anno_functional_impact/D_N_M_vars_per_method.pdf', width = 6.5, height = 5)
 
 # -------------------------------------------------------------------------------------------------
 
@@ -1278,7 +1278,7 @@ colors = c('ADME'='mediumpurple2',
            'DANN'='yellow3', 
            'Eigen-PC'='olivedrab3',
            'FATHMM'='lightsalmon2', 
-           'fathmm-MKL'='lightcoral', 
+           'FATHMM-MKL'='lightcoral', 
            'LRT'='lightsteelblue3',
            'M-CAP'='yellow4', 
            'MetaLR'='steelblue2', 
@@ -1286,16 +1286,16 @@ colors = c('ADME'='mediumpurple2',
            'MutationAssessor'='goldenrod', 
            'MutPred'='magenta2',
            'MVP'='blue2', 
-           'Polyphen2 HDIV'='darkseagreen3', 
-           'Polyphen2 HVAR'='mediumseagreen', 
+           'PolyPhen-2 HDIV'='darkseagreen3', 
+           'PolyPhen-2 HVAR'='mediumseagreen', 
            'PrimateAI'='darkred',
            'PROVEAN'='darkorchid3', 
            'REVEL'='cadetblue3', 
            'SIFT'='peachpuff3', 
-           'VEST4'='aquamarine4',
+           'VEST'='aquamarine4',
            'UGT-optimized'='palevioletred2')
 
-for (variant in new_variants_predictions$Variant_ID){
+for (variant in new_variants_predictions_wP$Variant_ID){
   allele_freq <- vector()
   ## Allele freq of variant in each gene dataset
   for (gene in UGT_genes){
@@ -1305,13 +1305,13 @@ for (variant in new_variants_predictions$Variant_ID){
     }
   }
   if (length(unique(allele_freq))==1) {allele_freq <- unique(allele_freq)}
-  new_variants_predictions[which(new_variants_predictions$Variant_ID==variant), 'Allele_Frequency'] <- allele_freq
+  new_variants_predictions_wP[which(new_variants_predictions_wP$Variant_ID==variant), 'Allele_Frequency'] <- allele_freq
 }
 
 ## Allele frequencies of D variants per method
 data <- vector()
-for(method in colnames(new_variants_predictions)[2:23]){
-  allele_freq_method <-  new_variants_predictions[which(new_variants_predictions[,method]=='D'), c('Variant_ID', 'Allele_Frequency')]
+for(method in colnames(new_variants_predictions_wP)[2:22]){
+  allele_freq_method <-  new_variants_predictions_wP[which(new_variants_predictions_wP[,method]=='D'), c('Variant_ID', 'Allele_Frequency')]
   method <- rep(method, length(allele_freq_method$Allele_Frequency))
   method_data <- cbind(allele_freq_method$Variant_ID, allele_freq_method$Allele_Frequency, method)
   data <- rbind(data, method_data)
@@ -1319,14 +1319,13 @@ for(method in colnames(new_variants_predictions)[2:23]){
 data <- as.data.frame(data)
 colnames(data) <- c('Variant_ID', 'Allele_Frequency', 'Method')
 data$Allele_Frequency<- as.numeric(data$Allele_Frequency)
-data$Method <- tool_names[gsub('_pred', '', data$Method)]
+data$Method <- tool_names[-3][gsub('_pred', '', data$Method)]
 data$Method <- factor(data$Method, levels=names(numD))
 
 ## Identify variants with allele freq >0.5
 data[which(data$Allele_Frequency>0.5),]
 #       Variant_ID  Allele_Frequency          Method
 #   4-69795626-C-T         0.7568806 PolyPhen-2 HDIV
-#   4-69795626-C-T         0.7568806 PolyPhen-2 HVAR
 #   4-69795626-C-T         0.7568806            CADD
 #   4-69795626-C-T         0.7568806            DANN
 #  4-115589302-A-G         0.9953603             LRT
@@ -1335,8 +1334,8 @@ data[which(data$Allele_Frequency>0.5),]
 sapply(levels(data$Method), function(x){dim(subset(data, Method==x & Allele_Frequency>0.01))[1] / dim(subset(data, Method==x))[1]*100})
 #    MutPred             CADD          PROVEAN             DANN MutationAssessor             SIFT 
 #  0.0000000        0.4688362        0.4182934        0.5136986        0.4184100        0.5382775 
-#  PolyPhen-2 HDIV         ClinPred  PolyPhen-2 HVAR       FATHMM-MKL             ADME              LRT 
-#        0.3984064        0.0000000        0.3942652        0.4063539        0.4219409        0.8574491 
+#  PolyPhen-2 HDIV         ClinPred       FATHMM-MKL             ADME              LRT 
+#        0.3984064        0.0000000        0.4063539        0.4219409        0.8574491 
 #   Eigen-PC             VEST            M-CAP    AlphaMissense           MetaLR          MetaSVM 
 #  0.3351955        0.2347418        0.0000000        0.4629630        0.0000000        0.1041667 
 #       MVP            REVEL           FATHMM        PrimateAI 
@@ -1364,21 +1363,21 @@ ggplot(data = data, mapping = aes(x = Method, y = Allele_Frequency, color = Meth
   #geom_text(data = num_per_method, aes(x=Method, label=n,  y=-0.05, shape=NULL, color=NULL), size=1.6) +
   labs(x='', y='MAF of missense variants predicted as deleterious', shape='Variant ID (MAF>0.5)', 
        subtitle = paste0(dim(new_variants_predictions)[1], ' total missense variants across all UGT genes')) +
-  theme(title = element_text(size = (9), face='bold'),
-        plot.subtitle = element_text(size = (9), color="gray50", face='bold'), 
+  theme(title = element_text(size = (6), face='bold'),
+        plot.subtitle = element_text(size = (7), color="gray50", face='bold'), 
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
-        axis.title = element_text(size = (8.5), face='bold'),
+        axis.title = element_text(size = (6.5), face='bold'),
         axis.text = element_text(size = (8)),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, face='bold'),
-        legend.title = element_text(size=8), 
-        legend.text = element_text(size=7.5),
-        legend.position = c(0.2,0.87),
+        legend.title = element_text(size=6), 
+        legend.text = element_text(size=5.5),
+        legend.position = c(0.8,0.8),
         legend.key = element_blank(),
         legend.background = element_rect(fill=NA, color='black'),
         legend.key.size = unit(0.6, 'lines'))
 
-ggsave(filename='plots/03_Anno_functional_impact/GMAF_allDvars_perMethod.pdf', width = 5.28, height = 4.6)
+ggsave(filename='plots/03_Anno_functional_impact/GMAF_allDvars_perMethod.pdf', width = 4, height = 3.3)
 
 # ----------------------------------------------------------------------------------------------------
 
@@ -1469,7 +1468,6 @@ data[which(data$Carrier_Frequency>0.5),]
 # Variant_ID      Allele_Frequency         Method           label Carrier_Frequency
 # 2-234602202-A-C        0.3443850           SIFT            <NA>         0.5701690
 #  4-69795626-C-T        0.7568806 Polyphen2 HDIV  4-69795626-C-T         0.9408930
-#  4-69795626-C-T        0.7568806 Polyphen2 HVAR  4-69795626-C-T         0.9408930
 #  4-69795626-C-T        0.7568806           CADD  4-69795626-C-T         0.9408930
 #  4-69795626-C-T        0.7568806           DANN  4-69795626-C-T         0.9408930
 #  4-70156313-T-A        0.4690027            LRT            <NA>         0.7180419
