@@ -34,10 +34,10 @@ The functional effect (deleterious/neutral) of the exonic variants across all 22
     
     * *3\.1\.5  Comparison and evaluation of predictive algorithms*: the predictive outputs of all methods were contrasted and their predictive performance evaluated using [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/) variants as benchmark data.
     
-    * *3\.1\.6  Development of a UGT-optimized prediction framework*: a new method was developed integrating the predictions of all the previous algorithms by optimizing their score thresholds to define deleteriousness for UGT missense variation. 
+    * *3\.1\.6  Development of a UGT-optimized prediction framework*: a new score was developed integrating the predictions of all the previous algorithms by optimizing their score thresholds to define deleteriousness for UGT missense variation. 
 
 
-  * **3\.2  Annotate functional consequence of all UGT variants**: all exonic (and promoter TA *UGT1A1*) variants were functionally annotated per gene and gene family and deleterious variants were quantified for each; the global minor allele frequencies (GMAF) of deleterious variants were examined. 
+  * **3\.2  Annotate functional consequence of all UGT variants**: all exonic (and promoter TA *UGT1A1*) variants were functionally annotated per gene and gene family and deleterious variants were quantified for each; the global minor allele frequency (GMAF) of deleterious variants was examined. 
   
   
 # 4. Population-scale analysis of deleterious UGT variants

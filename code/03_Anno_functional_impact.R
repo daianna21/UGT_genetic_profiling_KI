@@ -1937,6 +1937,8 @@ plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]]
           plots[[19]], plots[[20]], plots[[21]], plots[[22]], ncol=7)
 ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.png', width = 24, height = 9)
 ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots.pdf', width = 24, height = 9)
+## Smaller version
+ggsave(filename='plots/03_Anno_functional_impact/Youden_Index_plots_smaller.pdf', width = 15.3, height = 7.5)
 
 
 ## Add coordinate for new thresholds in ROC curves
@@ -1959,7 +1961,7 @@ ggroc(r[-17]) +
   ## Point for UGT optimized thresholds
   geom_point(data=subset(data, name!='PolyPhen-2 HVAR'), aes(x=new_threshold_specificity, y=new_threshold_sensitivity), shape=5, color='red', size=1.3, stroke = 1) 
 
-ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_new_thresholds_methods.pdf', width = 11, height = 5)
+ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_new_thresholds_methods.pdf', width = 9, height = 4.5)
 
 
 ## Create table with results
@@ -2031,7 +2033,7 @@ ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_UGT-optimizedMethod.pdf
 
 # ---------------------------------------------------------------------------------------------------------
 
-## Use framework for all missense variants
+## Use framework for all missense variants 
 
 ## New categories with optimized thresholds
 new_categorical_predictions <- data.frame(matrix(nrow=dim(new_variants_predictions)[1], ncol=length(names(new_algorithms_thresholds))+1))
