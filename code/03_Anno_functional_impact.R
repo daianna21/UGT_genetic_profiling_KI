@@ -884,8 +884,8 @@ plots[[21]] <-  plots[[21]] + theme(legend.position = 'none',
 plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],
           plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
           plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], 
-          ncol=7, legend)
-ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots_without_Polyphen2_HVAR.pdf', width = 11.8, height = 7.9)
+          ncol=7, legend, align = 'vh')
+ggsave(filename='plots/03_Anno_functional_impact/New_RawScores_density_plots_without_Polyphen2_HVAR.pdf', width = 11.8, height = 7.7)
 
 
 # ------------------------------------------------------------------------------
