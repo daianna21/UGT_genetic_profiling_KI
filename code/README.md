@@ -37,10 +37,19 @@ The functional effect (deleterious/neutral) of the exonic variants across all 22
     * *3\.1\.6  Development of a UGT-optimized prediction framework*: a new score was developed integrating the predictions of all the previous algorithms by optimizing their score thresholds to define deleteriousness for UGT missense variation. 
 
 
-  * **3\.2  Annotate functional consequence of all UGT variants**: all exonic (and promoter TA *UGT1A1*) variants were functionally annotated per gene and gene family and deleterious variants were quantified for each; the global minor allele frequency (GMAF) of deleterious variants was examined. 
+  * **3\.2  Annotate functional consequence of all UGT variants**: all exonic (and promoter TA$_{[7-8]}$ *UGT1A1*) variants were functionally annotated per gene and gene family and deleterious variants were quantified for each; the global minor allele frequency (GMAF) of deleterious variants was examined. 
   
   
 # 4. Population-scale analysis of deleterious UGT variants
+
+  * **4\.1  Examine MAF of deleterious UGT variants within each population**: the intra-population and global [gnomAD](https://gnomad.broadinstitute.org/) MAF of all UGT variants predicted as deleterious was examined in African/African American, Latino/Admixed American, East Asian, South Asian, Finnish, European non Finnish, and Ashkenazi Jewish populations. Variants with MAF>0.01 in a given population were considered population-specific and further studied, as well as UGT variants commonly found in all human populations considered. 
+
+    *  *4\.1\.1  Expected number of deleterious UGT variants per individual in each population*: the average number of deleterious variants an individual from each population carries in UGTs was computed per gene unique and shared exons, and per gene family, as well as the total mutational load in UGTs. 
+    
+* **4\.2  Compare MAF of the regulatory *UGT1A1* variants in each population**: the allele frequencies of the known (TA)$_n$ regulatory *UGT1A1* variants in the TATA-promoter element were compared across the same human populations. As no South Asian data were available in gnomAD, we manually calculated the frequency of these variants in this population based on previous reports in the literature. 
+
+
+
 
 
 
