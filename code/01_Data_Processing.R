@@ -1358,6 +1358,11 @@ all_UGT_vars_MAF <- all_exonic_vars$MAF
 dim(all_exonic_vars)[1]
 # [1] 9666
 
+## Total number of missense variants 
+table(all_exonic_vars$VEP_Annotation)['missense_variant']
+# missense_variant 
+#             6352 
+
 ## Number of exonic variants that are rare (MAF≤0.01)
 rare_exonic_vars <- subset(all_exonic_vars, MAF<=0.01)
 dim(rare_exonic_vars)[1]
