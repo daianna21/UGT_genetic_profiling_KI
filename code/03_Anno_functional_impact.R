@@ -1349,6 +1349,14 @@ data$label <- apply(data, 1, function(x){if (as.numeric(x['Allele_Frequency'])>0
 num_per_method <- as.data.frame(table(data$Method))
 colnames(num_per_method) <- c('Method', 'n')
 
+## Number of unique D variants that are common (across all methods)
+length(unique(subset(data, Allele_Frequency>0.01)$Variant_ID))
+# [1] 32
+
+## Percentage of all D variants (across all methods) the common ones represent
+32/length(unique(data$Variant_ID)) *100
+# [1] 0.5873715
+
 ## Save data
 write.table(data, file ='processed-data/03_Anno_functional_impact/GMAF_allDvars_perMethod.csv', row.names = FALSE, col.names = TRUE, sep = '\t')
 
