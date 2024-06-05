@@ -24,14 +24,14 @@ UGT8_genes <- c('UGT8')
 
 ## Load exonic data for each gene 
 for (gene in UGT_genes){
-  exonic_vars <- eval(parse_expr(load(here(paste0('~/Desktop/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata')),
+  exonic_vars <- eval(parse_expr(load(here(paste0('~/Documents/KI_projects/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata')),
        verbose=TRUE)))
   assign( paste0(gene, '_exonic_data'), exonic_vars)
 }
 
 ## Load info of canonical txs 
 for (gene_family in gene_families){
-  load(here(paste0('~/Desktop/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/canonical_', gene_family, '_txs.Rdata')),
+  load(here(paste0('~/Documents/KI_projects/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/canonical_', gene_family, '_txs.Rdata')),
        verbose=TRUE)
 }
 
