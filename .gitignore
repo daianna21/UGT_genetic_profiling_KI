@@ -3,3 +3,7 @@
 .RData
 .Ruserdata
 raw-data/*
+processed-data/03_Anno_functional_impact/ANNOVAR/*
+processed-data/03_Anno_functional_impact/gnomAD_v4.1.0_variants/*
+!processed-data/03_Anno_functional_impact/ANNOVAR/input_data/
+!processed-data/03_Anno_functional_impact/ANNOVAR/output_data/
