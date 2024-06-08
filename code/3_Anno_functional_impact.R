@@ -53,7 +53,7 @@ canonical_UGT8_txs <- list('UGT8'= 'ENST00000310836.6')
 ## Load exonic data for each gene 
 non_minor_alleles_allGenes <- vector()
 for (gene in UGT_genes){
-  exonic_vars <- eval(parse_expr(load(here(paste0('~/Desktop/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata')),
+  exonic_vars <- eval(parse_expr(load(here(paste0('~/Documents/KI_projects/UGT_genetic_profiling_KI/processed-data/01_Data_Processing/', gene, '_exonic_data.Rdata')),
        verbose=TRUE)))
   ## Variants with global allele freqs > 0.5 (not minor allele)
   non_minor_alleles <- exonic_vars[which(exonic_vars$Allele_Frequency>0.5), ]
@@ -145,15 +145,16 @@ for (gene in UGT_genes){
   missense_vars_ANNOVAR_format$Obs <- UGT_missense_vars$Alternate
   
   assign(paste0(gene, '_missense_vars_ANNOVAR_format'), missense_vars_ANNOVAR_format)
-  save(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/', 
+  save(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/ANNOVAR/input_data/', 
                                                                                       gene, '_missense_vars_ANNOVAR_format.Rdata'))
-  write.table(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/', 
+  write.table(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/ANNOVAR/input_data/', 
                                                    gene, '_missense_vars_ANNOVAR_format.txt'), row.names = FALSE, col.names = FALSE, sep = '\t')
-  write.table(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/', 
+  write.table(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/ANNOVAR/input_data/', 
                                                           gene, '_missense_vars_ANNOVAR_format.csv'), row.names = FALSE, col.names = FALSE, sep = '\t')
 }
  
 
+## --> ANNOVAR was run in 3.2_run_ANNOVAR.sh
 
 # _______________________________________________________________________________
 #  3.1.2  Examination of ANNOVAR gene-based annotation output 
@@ -161,7 +162,7 @@ for (gene in UGT_genes){
 
 ## Download ANNOVAR output for each gene
 for (gene in UGT_genes){
-  myanno <- read.csv(paste0('processed-data/03_Anno_functional_impact/ANNOVAR_output/myanno', gene, '.hg19_multianno.csv'))
+  myanno <- read.csv(paste0('processed-data/03_Anno_functional_impact/ANNOVAR/output_data/myanno', gene, '.hg19_multianno.csv'))
   assign(paste0('myanno_', gene), myanno)
   
 }
@@ -511,14 +512,14 @@ variants_predictions$ADME_score[which(is.nan(variants_predictions$ADME_score))] 
 
 
 
-# _______________________________________________________________________________
+ # _______________________________________________________________________________
 #  3.1.4  Extract AlphaMissense (AM) predictions for all UGT variants
 # _______________________________________________________________________________
 
 ## Retrieve AM scores and predictions for all variants of a gene
 for (gene in UGT_genes){
   tx <- canonical_txs[[gene]]
-  data <- read_tsv(paste0('~/Desktop/UGT_genetic_profiling_KI/raw-data/AlphaMissense_data/', tx, '_AlphaMissense_data'), show_col_types = FALSE)
+  data <- read_tsv(paste0('~/Documents/KI_projects/UGT_genetic_profiling_KI/raw-data/AlphaMissense_data/', tx, '_AlphaMissense_data'), show_col_types = FALSE)
   ## Add variant IDs
   colnames(data) <- c('chr', 'pos', 'ref', 'alt', 'genome', 'uniprot_id', 'transcript_id', 'protein_variant', 'am_pathogenicity', 'am_class')
   data$chr <- sapply(data$chr, function(x){strsplit(x, 'chr')[[1]][2]})
@@ -789,7 +790,7 @@ for (i in 1:length(algorithms)){
   j=j+2
 }
 
-plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], plots[[6]], plots[[7]],<
           plots[[8]], plots[[9]], plots[[10]], plots[[11]], plots[[12]], plots[[13]], plots[[14]], 
           plots[[15]], plots[[16]], plots[[17]], plots[[18]], plots[[19]], plots[[20]], plots[[21]], plots[[22]], 
           plots[[23]], plots[[24]], plots[[25]], plots[[26]], plots[[27]], plots[[28]],
@@ -1389,7 +1390,7 @@ ggsave(filename='plots/03_Anno_functional_impact/GMAF_allDvars_perMethod.pdf', w
 
 # ----------------------------------------------------------------------------------------------------
 
-## Plot GMAF of variants predicted as D by each methods in each gene 
+## Plot GMAF of variants predicted as D by each method in each gene 
 i=1
 plots <- list()
 for (gene in UGT_genes){
@@ -1522,7 +1523,7 @@ ggsave(filename='plots/03_Anno_functional_impact/CarrierFreq_Dvars_perMethod.pdf
 benchmark_data <- vector()
 benchmark_whole_data <- vector()
 for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
-  data <- read_delim(paste0('~/Desktop/UGT_genetic_profiling_KI/raw-data/ClinVar_data/clinvar_variants_', gene, '.txt'), delim='\t', show_col_types = FALSE)
+  data <- read_delim(paste0('~/Documents/KI_projects/UGT_genetic_profiling_KI/raw-data/ClinVar_data/clinvar_variants_', gene, '.txt'), delim='\t', show_col_types = FALSE)
   ## Add variant ID
   data$Ref <- sapply(data$Name, function(x){substr(strsplit(x, '>')[[1]][1], nchar(strsplit(x, '>')[[1]][1]), nchar(strsplit(x, '>')[[1]][1]))})
   data$Alt <- sapply(data$Name, function(x){substr(strsplit(x, '>')[[1]][2], 1,1)})
@@ -1533,7 +1534,7 @@ for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
     else if(length(grep('Benign|benign', x))!=0) {'N'}
   })
   assign(paste0('clinvar_variants_', gene), data)
-  print(paste0(dim(data)[1], ' benchmark variants in ', gene))
+  print(paste0(dim(data)[1], ' benchmark variants in ', gene, ':', table(data$effect)))
   ## Generate input file to run predictions in ANNOVAR for these variants
   benchmark_whole_data <-rbind(benchmark_whole_data, data[,c('Variant_ID', 'effect')])
   benchmark_data <- rbind(benchmark_data, data[, c('GRCh37Chromosome', 'GRCh37Location', 'GRCh37Location', 'Ref', 'Alt')])
@@ -1547,8 +1548,10 @@ for (gene in UGT_genes[which(UGT_genes!='UGT2A3')]){
 ## "37 benchmark variants in UGT1A7"
 ## "38 benchmark variants in UGT1A8"
 ## "37 benchmark variants in UGT1A9"
+##  UGT1A10
 ## "3 benchmark variants in UGT2A1"
 ## "2 benchmark variants in UGT2A2"
+##  UGT2B4:
 ## "1 benchmark variants in UGT2B7"
 ## "1 benchmark variants in UGT2B10"
 ## "1 benchmark variants in UGT2B11"
@@ -2039,9 +2042,239 @@ ggroc(r) +
 
 ggsave(filename='plots/03_Anno_functional_impact/AUC_ROC_UGT-optimizedMethod.pdf', width = 2.1, height = 2)
 
-# ---------------------------------------------------------------------------------------------------------
 
-## Use framework for all missense variants 
+
+
+
+# ______________________________________________________________________________________________
+#  3.1.7  Application of the UGT-optimized prediction framework in another set of UGT variants
+# ______________________________________________________________________________________________
+
+## IDs of canonical txs of UGT genes in gnomAD v4.1.0
+canonical_UGT1_txs_gnomADv4 <- c('UGT1A1'= 'ENST00000305208.10', 'UGT1A3'='ENST00000482026.6', 'UGT1A4'='ENST00000373409.8', 
+                           'UGT1A5'='ENST00000373414.4', 'UGT1A6'='ENST00000305139.11', 'UGT1A7'='ENST00000373426.4', 
+                           'UGT1A8'= 'ENST00000373450.5','UGT1A9'= 'ENST00000354728.5', 'UGT1A10'='ENST00000344644.10')
+
+canonical_UGT2_txs_gnomADv4  <- c('UGT2A1'= 'ENST00000286604.9', 'UGT2A2'='ENST00000604629.6', 'UGT2A3'='ENST00000251566.9', 
+                           'UGT2B4'='ENST00000305107.7', 'UGT2B7'='ENST00000305231.12', 'UGT2B10'='ENST00000265403.12', 
+                           'UGT2B11'= 'ENST00000446444.2', 'UGT2B15'= 'ENST00000338206.6', 'UGT2B17'='ENST00000317746.3', 
+                           'UGT2B28'='ENST00000335568.10')
+
+canonical_UGT3_txs_gnomADv4  <- c('UGT3A1'= 'ENST00000274278.8', 'UGT3A2'='ENST00000282507.8')
+
+canonical_UGT8_txs_gnomADv4  <- c('UGT8'= 'ENST00000310836.11')
+canonical_txs_gnomADv4 <- c(canonical_UGT1_txs_gnomADv4, canonical_UGT2_txs_gnomADv4, canonical_UGT3_txs_gnomADv4, canonical_UGT8_txs_gnomADv4)
+
+
+## Use framework for all missense variants in gnomAD v4.1.0
+for (gene in UGT_genes){
+  
+  ## Read data from gnomAD v4
+  UGT_gnomADv4_vars <- read.csv(paste0("raw-data/gnomAD_v4.1.0_variants/", gene, "_gnomAD_v4.1.0.csv"))
+  colnames(UGT_gnomADv4_vars) <- gsub('_$+', '', gsub('\\.+', '_', colnames(UGT_gnomADv4_vars)))
+  colnames(UGT_gnomADv4_vars) <- gsub('can_Af', 'can_or_Af', colnames(UGT_gnomADv4_vars))
+  UGT_gnomADv4_vars$Variant_ID <- paste(UGT_gnomADv4_vars$Chromosome, UGT_gnomADv4_vars$Position, 
+                                        UGT_gnomADv4_vars$Reference, UGT_gnomADv4_vars$Alternate, sep='-')
+  
+  assign(paste0(gene, '_gnomADv4_data'), UGT_gnomADv4_vars)
+  save(UGT_gnomADv4_vars, file=paste0('processed-data/03_Anno_functional_impact/gnomAD_v4.1.0_variants/', 
+                                               gene, '_gnomADv4_data'))
+  
+  ## Subset to variants in the canonical gene tx
+  UGT_gnomADv4_canonical_vars <- UGT_gnomADv4_vars[which(UGT_gnomADv4_vars$Transcript==canonical_txs_gnomADv4[gene]), ]
+  assign(paste0(gene, '_gnomADv4_canonical_vars'), UGT_gnomADv4_canonical_vars)
+  save(UGT_gnomADv4_canonical_vars, file=paste0('processed-data/03_Anno_functional_impact/gnomAD_v4.1.0_variants/', 
+                                               gene, '_gnomADv4_canonical_vars'))
+  
+  ## Subset to missense variants
+  UGT_gnomADv4_missense_vars <- UGT_gnomADv4_canonical_vars[which(UGT_gnomADv4_canonical_vars$VEP_Annotation=='missense_variant'), ]
+  assign(paste0(gene, '_gnomADv4_missense_vars'), UGT_gnomADv4_missense_vars)
+  save(UGT_gnomADv4_missense_vars, file=paste0('processed-data/03_Anno_functional_impact/gnomAD_v4.1.0_variants/', 
+                                               gene, '_gnomADv4_missense_vars'))
+  
+  ## Num of total and missense variants per gene (in canonical tx)
+  print(paste0(dim(UGT_gnomADv4_canonical_vars)[1], ' total variants in ', gene, ' canonical tx (', 
+               dim(UGT_gnomADv4_missense_vars)[1], ' missense)'))
+  
+}
+
+# [1] "1604 total variants in UGT1A1 canonical tx (747 missense)"
+# [1] "1618 total variants in UGT1A3 canonical tx (798 missense)"
+# [1] "1780 total variants in UGT1A4 canonical tx (811 missense)"
+# [1] "1572 total variants in UGT1A5 canonical tx (739 missense)"
+# [1] "1580 total variants in UGT1A6 canonical tx (724 missense)"
+# [1] "1634 total variants in UGT1A7 canonical tx (739 missense)"
+# [1] "1633 total variants in UGT1A8 canonical tx (776 missense)"
+# [1] "1570 total variants in UGT1A9 canonical tx (739 missense)"
+# [1] "1724 total variants in UGT1A10 canonical tx (797 missense)"
+# [1] "2031 total variants in UGT2A1 canonical tx (742 missense)"
+# [1] "1787 total variants in UGT2A2 canonical tx (834 missense)"
+# [1] "1941 total variants in UGT2A3 canonical tx (802 missense)"
+# [1] "1799 total variants in UGT2B4 canonical tx (774 missense)"
+# [1] "1843 total variants in UGT2B7 canonical tx (791 missense)"
+# [1] "1725 total variants in UGT2B10 canonical tx (762 missense)"
+# [1] "1933 total variants in UGT2B11 canonical tx (893 missense)"
+# [1] "1511 total variants in UGT2B15 canonical tx (686 missense)"
+# [1] "1102 total variants in UGT2B17 canonical tx (484 missense)"
+# [1] "1582 total variants in UGT2B28 canonical tx (714 missense)"
+# [1] "1836 total variants in UGT3A1 canonical tx (685 missense)"
+# [1] "1748 total variants in UGT3A2 canonical tx (651 missense)"
+# [1] "1284 total variants in UGT8 canonical tx (545 missense)"
+
+
+########## Initial run of ANNOVAR to get exonic variants in v4
+
+## Unique and shared v4 variants 
+for (UGT_variant in unique_UGT_vars){
+  ## Search variant in each gene dataset
+  for(gene in UGT_genes){
+    myanno <- eval(parse_expr(paste0('myanno_', gene)))
+    if (UGT_variant %in% myanno$Variant_ID){
+      ## For shared variants, assume the predictions are the same across all genes and take the ones reported in the first one
+      variants_predictions  <- rbind(variants_predictions, myanno[which(myanno$Variant_ID==UGT_variant), c('Variant_ID', 'Gene.refGene', scores_algorithms, cat_pred_algorithms)])
+      break
+    }
+  }
+}
+
+
+
+
+
+
+
+
+## Confirm missense v4 variants are:
+
+# ---------- 1. Single nucleotide variants ----------
+for (gene in UGT_genes){
+  UGT_gnomADv4_missense_vars <- eval(parse_expr(paste0(gene, '_gnomADv4_missense_vars')))
+  
+  ## Ref and Alt alleles are one of ('A', 'T', 'C', 'G')
+  print(paste0(gene, ': ', 
+               names(table(sapply(1:dim(UGT_gnomADv4_missense_vars)[1], function(i){
+                              if (UGT_gnomADv4_missense_vars$Reference[i] %in% c('A', 'T', 'C', 'G') &
+                                  UGT_gnomADv4_missense_vars$Alternate[i] %in% c('A', 'T', 'C', 'G')){TRUE}
+                              else {FALSE} 
+                          })))
+  ))
+}
+# [1] "UGT1A1: TRUE"
+# [1] "UGT1A3: TRUE"
+# [1] "UGT1A4: TRUE"
+# [1] "UGT1A5: TRUE"
+# [1] "UGT1A6: TRUE"
+# [1] "UGT1A7: TRUE"
+# [1] "UGT1A8: TRUE"
+# [1] "UGT1A9: TRUE"
+# [1] "UGT1A10: TRUE"
+# [1] "UGT2A1: TRUE"
+# [1] "UGT2A2: TRUE"
+# [1] "UGT2A3: TRUE"
+# [1] "UGT2B4: TRUE"
+# [1] "UGT2B7: TRUE"
+# [1] "UGT2B10: TRUE"
+# [1] "UGT2B11: TRUE"
+# [1] "UGT2B15: TRUE"
+# [1] "UGT2B17: TRUE"
+# [1] "UGT2B28: TRUE"
+# [1] "UGT3A1: TRUE"
+# [1] "UGT3A2: TRUE"
+# [1] "UGT8: TRUE"
+
+
+# ---------- 2. Have a protein consequence ----------
+for (gene in UGT_genes){
+  UGT_gnomADv4_missense_vars <- eval(parse_expr(paste0(gene, '_gnomADv4_missense_vars')))
+  
+  ## Variants with no protein consequence 
+  print(paste0(gene, ': ', length(which(UGT_gnomADv4_missense_vars$Protein_Consequence==''))))
+}
+# [1] "UGT1A1: 0"
+# [1] "UGT1A3: 0"
+# [1] "UGT1A4: 0"
+# [1] "UGT1A5: 0"
+# [1] "UGT1A6: 0"
+# [1] "UGT1A7: 0"
+# [1] "UGT1A8: 0"
+# [1] "UGT1A9: 0"
+# [1] "UGT1A10: 0"
+# [1] "UGT2A1: 0"
+# [1] "UGT2A2: 0"
+# [1] "UGT2A3: 0"
+# [1] "UGT2B4: 0"
+# [1] "UGT2B7: 0"
+# [1] "UGT2B10: 0"
+# [1] "UGT2B11: 0"
+# [1] "UGT2B15: 0"
+# [1] "UGT2B17: 0"
+# [1] "UGT2B28: 0"
+# [1] "UGT3A1: 0"
+# [1] "UGT3A2: 0"
+# [1] "UGT8: 0"
+
+
+## Bind all variants per gene in a single dataframe
+gnomADv4_all_missense_vars <- 
+for (gene in UGT_genes){
+  UGT_gnomADv4_missense_vars <- eval(parse_expr(paste0(gene, '_gnomADv4_missense_vars')))
+  
+  ## Variants with no protein consequence 
+  print(paste0(gene, ': ', length(which(UGT_gnomADv4_missense_vars$Protein_Consequence==''))))
+}
+
+
+## Number of unique and shared variants per gene
+
+
+
+## Input variants for ANNOVAR (all together)
+for (gene in UGT_genes){
+  UGT_missense_vars <- eval(parse_expr(paste0(gene, '_missense_vars')))
+  missense_vars_ANNOVAR_format <- data.frame(matrix(ncol=5, nrow=nrow(UGT_missense_vars)))
+  colnames(missense_vars_ANNOVAR_format) <- c('Chromosome', 'Start', 'End', 'Ref', 'Obs')
+  
+  missense_vars_ANNOVAR_format$Chromosome <- UGT_missense_vars$Chromosome
+  missense_vars_ANNOVAR_format$Start <- missense_vars_ANNOVAR_format$End <- UGT_missense_vars$Position
+  missense_vars_ANNOVAR_format$Ref <- UGT_missense_vars$Reference
+  missense_vars_ANNOVAR_format$Obs <- UGT_missense_vars$Alternate
+  
+  assign(paste0(gene, '_missense_vars_ANNOVAR_format'), missense_vars_ANNOVAR_format)
+  save(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/', 
+                                                   gene, '_missense_vars_ANNOVAR_format.Rdata'))
+  write.table(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/', 
+                                                          gene, '_missense_vars_ANNOVAR_format.txt'), row.names = FALSE, col.names = FALSE, sep = '\t')
+  write.table(missense_vars_ANNOVAR_format, file = paste0('processed-data/03_Anno_functional_impact/', 
+                                                          gene, '_missense_vars_ANNOVAR_format.csv'), row.names = FALSE, col.names = FALSE, sep = '\t')
+}
+
+
+
+
+## Don't include PolyPhen2 HVAR
+new_algorithms_thresholds <- new_thresholds[which(rownames(new_thresholds)!='Polyphen2_HVAR'),'new_threshold']
+names(new_algorithms_thresholds) <- data$method_name[-17]
+
+new_benchmark_pred <- data.frame(matrix(nrow=dim(benchmark_scores)[1], ncol=length(names(new_algorithms_thresholds))+1))
+colnames(new_benchmark_pred) <- c('Variant_ID', paste0(names(new_algorithms_thresholds), '_pred'))
+new_benchmark_pred$Variant_ID <- benchmark_scores$Variant_ID
+
+for(algorithm in names(new_algorithms_thresholds)){
+  new_benchmark_pred[paste0(algorithm, '_pred')] <- apply(benchmark_scores, 1, 
+                                                          function(x){if (x[paste0(algorithm, '_score')]=='.'){NA}
+                                                            else if (eval(parse_expr(paste0('as.numeric(x[paste0(algorithm, \'_score\')])', new_algorithms_thresholds[[algorithm]]))) ){1}
+                                                            else{0} })
+}
+
+## Global UGT-optimized score as the mean of all predictions for each variant
+UGT_optimized_score <- apply(new_benchmark_pred[,-1], 1, function(x){mean(x[which(x!='.')])})
+UGT_optimized_score[which(is.nan(UGT_optimized_score))] <- NA
+
+
+
+
+
+
 
 ## New categories with optimized thresholds
 new_categorical_predictions <- data.frame(matrix(nrow=dim(new_variants_predictions)[1], ncol=length(names(new_algorithms_thresholds))+1))

@@ -429,11 +429,16 @@ across all 22 human UGT genes was annotated.</p>
 the functional consequence of UGT missense variants was predicted by
 multiple functionality prediction algorithms through ANNOVAR, as well as
 implementing an ADME-optimized framework and extracting the predictions
-from AlphaMissense.</p>
+from AlphaMissense (script
+<code>3.1_extract_AlphaMissense_scores.sh</code>).</p>
 <ul>
 <li><p><em>3.1.1 ANNOVAR input file preparation</em>: variant input
 files were prepared to annotate them and predict their effects running
-ANNOVAR.</p></li>
+ANNOVAR.</p>
+<ul>
+<li>ANNOVAR was run for multiple variant sets in
+<code>3.2_run_ANNOVAR.sh</code></li>
+</ul></li>
 <li><p><em>3.1.2 Examination of ANNOVAR gene-based annotation
 output</em>: we confirmed all input missense variants are annotated as
 exonic and non-synonymous, evaluated point cases of those variants
